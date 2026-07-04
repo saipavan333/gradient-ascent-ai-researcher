@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Researcher Path — Portfolio</title><link rel="stylesheet" href="/static/portfolio.css"></head>
+<body><main>
+  <div class="hero">
+    <div class="kicker">Built from scratch · pure NumPy · no ML frameworks</div>
+    <h1>AI from first principles — three live demos</h1>
+    <p>I built a transformer, a research reproduction, and a reinforcement-learning agent entirely from scratch (no PyTorch or TensorFlow), then deployed them as interactive demos. Each is explainable line by line. Click any project to try it live.</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="ico">🧬</div><h3>MiniGPT Name Generator</h3>
+      <div class="desc">A character-level Transformer (~120 lines of NumPy, hand-derived backprop) that invents new names one character at a time. Adjust creativity and prefix in real time.</div>
+      <div class="tags"><span class="tag">Transformer</span><span class="tag">attention</span><span class="tag">sampling</span></div>
+      <a class="go" href="/namegen">Try it live →</a>
+    </div>
+    <div class="card">
+      <div class="ico">📉</div><h3>Double Descent Lab</h3>
+      <div class="desc">An interactive reproduction of a landmark ML result. Drag the noise and regularization sliders and watch the test-error spike at the interpolation threshold appear and vanish.</div>
+      <div class="tags"><span class="tag">reproduction</span><span class="tag">least squares</span><span class="tag">bias–variance</span></div>
+      <a class="go" href="/ddlab">Try it live →</a>
+    </div>
+    <div class="card">
+      <div class="ico">🤖</div><h3>RL GridWorld — Live</h3>
+      <div class="desc">Watch a Q-learning agent learn to solve a maze in your browser — value heatmap and policy arrows sharpen with every batch of training episodes.</div>
+      <div class="tags"><span class="tag">Q-learning</span><span class="tag">TD updates</span><span class="tag">MDP</span></div>
+      <a class="go" href="/gridworld">Try it live →</a>
+    </div>
+  </div>
+  <div class="foot">Each project is a self-contained repo with tests, CI, and a Dockerfile. Built as the capstones of a from-scratch AI curriculum (11 tracks, 57 lessons). Models are pure NumPy — every line is defensible.</div>
+</main></body></html>

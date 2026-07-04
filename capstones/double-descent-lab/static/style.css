@@ -1,0 +1,13 @@
+:root{--bg:#0f172a;--card:#1e293b;--ink:#e2e8f0;--mut:#94a3b8;--accent:#38bdf8}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1e293b,#0f172a);color:var(--ink);min-height:100vh}
+main{max-width:680px;margin:0 auto;padding:2.5rem 1.25rem}
+h1{font-size:1.9rem;margin:0 0 .3rem}.sub{color:var(--mut);line-height:1.5;margin:0 0 1.5rem}
+.controls{background:var(--card);border:1px solid #334155;border-radius:14px;padding:1.1rem;display:grid;gap:.9rem}
+label{display:flex;align-items:center;gap:.6rem;font-size:.92rem;flex-wrap:wrap}
+input[type=range]{flex:1;accent-color:var(--accent)}
+button{background:var(--accent);color:#0b1220;font-weight:700;border:0;border-radius:10px;padding:.6rem 1rem;font-size:1rem;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.status{color:var(--mut);margin:1rem 0 .3rem;min-height:1.2em;text-align:center}
+#plot{width:100%;background:#fff;border-radius:12px;border:1px solid #334155}
+.foot{color:var(--mut);font-size:.85rem;margin-top:1.25rem;text-align:center}

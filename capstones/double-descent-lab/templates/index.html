@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Double Descent Lab</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main>
+    <h1>📉 Double Descent Lab</h1>
+    <p class="sub">A live reproduction of <strong>double descent</strong> — the result that overturned the textbook bias–variance story. Increase model size past the <em>interpolation threshold</em> (P = n) and test error spikes, then falls again. Move the sliders and watch the curve change in real time.</p>
+    <div class="controls">
+      <label>Label noise <input id="noise" type="range" min="0" max="1.5" step="0.05" value="0.5"><span id="noiseVal">0.50</span></label>
+      <label>Ridge λ (regularization) <input id="ridge" type="range" min="-7" max="0.5" step="0.25" value="-6"><span id="ridgeVal">1e-6</span></label>
+      <button id="go">Recompute</button>
+    </div>
+    <div id="status" class="status"></div>
+    <img id="plot" alt="double descent curve" />
+    <p class="foot">Random ReLU features + least squares, averaged over feature draws. Raise λ and the interpolation spike shrinks — that's the mechanism. From Track 8 of the AI Researcher Path.</p>
+  </main>
+  <script>
+    const $=s=>document.querySelector(s);
+    const noise=$("#noise"), ridge=$("#ridge");
+    noise.oninput=()=>$("#noiseVal").textContent=(+noise.value).toFixed(2);
+    ridge.oninput=()=>$("#ridgeVal").textContent=Math.pow(10,+ridge.value).toExponential(0);
+    async function go(){
+      $("#go").disabled=true; $("#status").textContent="computing…";
+      const r=await fetch(`/api/curve?noise=${noise.value}&ridge=${Math.pow(10,+ridge.value)}`);
+      const d=await r.json();
+      $("#plot").src="data:image/png;base64,"+d.image;
+      $("#status").textContent=`peak test error ${d.peak_error} at P/n ≈ ${d.peak_ratio}`;
+      $("#go").disabled=false;
+    }
+    $("#go").onclick=go; go();
+  </script>
+</body>
+</html>

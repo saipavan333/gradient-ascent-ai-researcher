@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RL GridWorld — Live</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main>
+    <h1>🤖 GridWorld — watch it learn</h1>
+    <p class="sub">A <strong>Q-learning</strong> agent learning to reach the goal (and avoid the pit) by trial and error — no model of the world, just experience. Click <em>Train</em> and watch the value heatmap and policy arrows sharpen. Built from scratch in <strong>Track 7</strong> of the AI Researcher Path.</p>
+    <div class="bar">
+      <button id="train">Train 200 episodes ▶</button>
+      <button id="auto">Auto-train ⏩</button>
+      <button id="reset" class="ghost">Reset ↺</button>
+      <span id="stat" class="stat"></span>
+    </div>
+    <div id="grid" class="grid"></div>
+    <p class="legend"><span class="sw goal"></span> goal +1 &nbsp; <span class="sw pit"></span> pit −1 &nbsp; <span class="sw wall"></span> wall &nbsp; arrows = current best action &nbsp; color = state value</p>
+  </main>
+  <script>
+    const ARROWS={up:"↑",down:"↓",left:"←",right:"→"};
+    function color(v){ // value in ~[-1,1] -> red..green
+      const t=Math.max(0,Math.min(1,(v+0.2)/1.2));
+      const r=Math.round(220-160*t), g=Math.round(70+150*t), b=90;
+      return `rgb(${r},${g},${b})`;
+    }
+    function render(s){
+      const g=document.getElementById("grid");
+      g.style.gridTemplateColumns=`repeat(${s.cols},1fr)`;
+      g.innerHTML=s.cells.map(c=>{
+        if(c.kind==="wall") return `<div class="c wall"></div>`;
+        if(c.kind==="goal") return `<div class="c goal">GOAL<br>+1</div>`;
+        if(c.kind==="pit")  return `<div class="c pit">PIT<br>−1</div>`;
+        return `<div class="c" style="background:${color(c.value)}"><span class="ar">${ARROWS[c.policy]||""}</span><span class="v">${c.value.toFixed(2)}</span></div>`;
+      }).join("");
+      document.getElementById("stat").textContent=`episodes: ${s.episodes} · greedy return: ${s.return}`;
+    }
+    async function call(path){const r=await fetch(path);return r.json();}
+    const train=()=>call("/api/train?episodes=200").then(render);
+    document.getElementById("train").onclick=train;
+    document.getElementById("reset").onclick=()=>call("/api/reset").then(render);
+    let timer=null;
+    document.getElementById("auto").onclick=function(){
+      if(timer){clearInterval(timer);timer=null;this.textContent="Auto-train ⏩";return;}
+      this.textContent="Stop ⏸"; timer=setInterval(train,600);
+    };
+    call("/api/state").then(render);
+  </script>
+</body>
+</html>

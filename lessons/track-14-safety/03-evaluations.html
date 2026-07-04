@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t14-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Evaluations &amp; red-teaming · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Evaluations &amp; red-teaming</h1>
+      <p class="subtitle">A single accuracy number is a comforting lie. A model can score 90% overall and fail completely for a group of people who matter. Safety evaluation means refusing the average — disaggregating, stress-testing, and actively hunting for the failures a benchmark hides.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 3</span>
+        <span class="chip">Concept + code</span>
+        <span class="chip">~22 min</span>
+        <span class="chip">Builds on: Track 9, Lessons 0–2</span>
+      </div>
+
+      <p class="lead prose">
+        You know from Track&nbsp;9 how to evaluate honestly on average. Safety demands more: an average can be excellent while the model is dangerous in exactly the cases that matter. Responsible AI development therefore treats <span class="newterm">evaluation</span> as an adversarial search for failure — <span class="newterm">red-teaming</span> — not a single leaderboard score. This lesson shows how badly averages can mislead, and what to do instead.
+      </p>
+
+      <!-- CONCEPT -->
+      <h2><span class="sec-ico">💡</span> Concept: the average hides the worst case</h2>
+      <p class="prose">
+        Aggregate metrics are weighted by frequency, so a large, easy majority can drown out a small, critical minority. A model that is perfect on 90% of inputs and completely wrong on the other 10% still reports 90% accuracy — a number that looks great and conceals a total failure. In safety-relevant settings (medical, legal, a demographic subgroup, a rare but dangerous input), it’s precisely the minority slice you cannot afford to get wrong.
+      </p>
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Bar chart: overall accuracy 0.90, group A 1.00, group B 0.01 — the average hides the total failure on group B." />
+        <figcaption><span class="fig-num">Figure 3.1.</span> Real output from <code>evaluation.py</code>. The headline accuracy is 0.90 — impressive. But disaggregating reveals the model is ~100% on the majority group A and ~0% on minority group B. The average is arithmetically true and completely misleading; only the <em>slices</em> expose the failure.</figcaption>
+      </figure>
+
+      <!-- CODE + PRACTICE OF EVAL -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: disaggregate, then red-team</h2>
+      <p class="prose">
+        The demo builds data where a 90% majority follows one rule and a 10% minority follows the opposite; a single classifier nails the majority and fails the minority. The one-line fix in <em>reporting</em> changes everything:
+      </p>
+      <pre><code>overall = accuracy(pred, y)                       # 0.90  -- the comforting headline
+for g in groups:                                  # disaggregate by subgroup
+    print(group_name[g], accuracy(pred[g], y[g])) # A: 1.00  |  B: 0.01  -- the truth
+</code></pre>
+      <p class="prose">
+        Disaggregation is the defensive move; <span class="newterm">red-teaming</span> is the offensive one — actively constructing inputs designed to make the model fail: adversarial phrasings, edge cases, jailbreak prompts, underrepresented groups, distribution shifts. Rather than asking “what’s the average score?”, red-teaming asks “what’s the worst thing this model will do, and how do I make it do that?” The two together — measure the slices you know, hunt for the failures you don’t — are the backbone of a safety evaluation.
+      </p>
+      <div class="callout intuition ml-link">
+        <strong>Evals are becoming the science of AI safety.</strong> For modern models, the hardest safety questions are empirical: can it be jailbroken? Does it deceive? Can it assist with dangerous capabilities? Is it robust across languages and demographics? Progress here is measured by <em>evaluations</em> — carefully constructed test suites and red-team exercises, increasingly by independent third parties. It’s the same rigor from Track&nbsp;9 (multiple seeds, honest reporting, no test-set gaming), now aimed at harms rather than accuracy — and it’s one of the most in-demand skills in the field.
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Averages hide worst cases:</strong> a frequency-weighted metric can be high while a critical minority slice fails completely.</li>
+          <li><strong>Disaggregate</strong> by subgroup/slice to reveal failures the headline number conceals.</li>
+          <li><strong>Red-teaming</strong> = actively constructing inputs to make the model fail (edge cases, jailbreaks, shifts), not just measuring averages.</li>
+          <li><strong>Evaluate the worst case, not the mean</strong> — especially in safety-critical settings.</li>
+          <li><strong>Safety evals</strong> extend Track&nbsp;9’s honest-evaluation rigor to harms, robustness, and misuse — increasingly by independent parties.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> A model reports 90% overall accuracy but 0% on a 10% subgroup. How is the 90% possible?</p>
+          <ul class="quiz-options">
+            <li>The overall number must be wrong.<div class="quiz-why">It’s arithmetically correct: \(0.9\times100\% + 0.1\times0\% = 90\%\). That’s exactly the problem.</div></li>
+            <li>The average is frequency-weighted, so the large majority (perfect) dominates the small failing minority.<div class="quiz-why">Correct. Aggregate metrics weight by group size; a 90% majority at 100% plus a 10% minority at 0% averages to 90%, hiding the total failure on the minority.</div></li>
+            <li>The subgroup has no data.<div class="quiz-why">It has 10% of the data; that data is simply all misclassified.</div></li>
+            <li>Accuracy can’t be disaggregated.<div class="quiz-why">It can and should be — disaggregation is exactly what reveals the failure.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What is “red-teaming” a model?</p>
+          <ul class="quiz-options">
+            <li>Reporting its average score.<div class="quiz-why">That’s the passive metric red-teaming is meant to go beyond.</div></li>
+            <li>Training it on more data.<div class="quiz-why">Red-teaming is about testing/attacking, not training.</div></li>
+            <li>Making it faster.<div class="quiz-why">Performance optimization, not safety evaluation.</div></li>
+            <li>Actively constructing inputs designed to make it fail — edge cases, jailbreaks, shifts.<div class="quiz-why">Correct. Red-teaming is an adversarial search for failures: you try to break the model on purpose to discover harms before deployment does.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why is disaggregated evaluation especially important in safety-critical settings?</p>
+          <ul class="quiz-options">
+            <li>Because the failing minority may be exactly the cases you cannot afford to get wrong.<div class="quiz-why">Correct. In medical, legal, or demographic contexts, a small slice can be the most consequential; an average that hides its failure is not just misleading but harmful.</div></li>
+            <li>Because averages are hard to compute.<div class="quiz-why">Averages are trivial to compute; the issue is what they conceal.</div></li>
+            <li>Because minorities are always easy.<div class="quiz-why">Often the opposite — minority/rare cases are frequently where models fail.</div></li>
+            <li>Because it speeds up inference.<div class="quiz-why">Evaluation granularity is unrelated to inference speed.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> How do safety evaluations relate to Track&nbsp;9’s honest-evaluation methods?</p>
+          <ul class="quiz-options">
+            <li>They abandon them for new rules.<div class="quiz-why">They build on the same principles, not replace them.</div></li>
+            <li>They only care about speed.<div class="quiz-why">Speed isn’t the focus; correctness and harm are.</div></li>
+            <li>They apply the same rigor (honest reporting, no test-set gaming, worst-case thinking) but aim it at harms, robustness, and misuse.<div class="quiz-why">Correct. Safety evals extend multiple-seed, disaggregated, no-leakage discipline from accuracy to safety-relevant behaviors — the same scientific honesty, higher stakes.</div></li>
+            <li>They require no data.<div class="quiz-why">They require carefully constructed, often adversarial data — arguably more, not less.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1.</strong> In <code>evaluation.py</code>, change the minority group’s share from 10% to 1%. How does the headline accuracy change, and why is that scarier?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The headline rises toward ~99% (the tiny failing group barely moves the average), which is <em>scarier</em>: the smaller the failing slice, the better the aggregate looks, so the more thoroughly a real failure is hidden. A 99% headline invites total confidence while the model may be catastrophically wrong for a rare but important population. This is why you cannot let a single high number end the conversation — the rarer and more consequential a failure mode, the more it demands targeted evaluation. It also motivates <em>stress datasets</em> that deliberately over-sample hard/minority cases so failures are visible in the metrics.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2.</strong> Design three red-team tests for a customer-service chatbot. What failure is each hunting for?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Examples: (1) <em>Jailbreak prompts</em> (“ignore your instructions and…”) — hunting for safety-guardrail bypasses. (2) <em>Adversarial/edge phrasings and typos, and non-English inputs</em> — hunting for robustness gaps and demographic/linguistic disparities. (3) <em>Prompt-injection via user-supplied content</em> (a support ticket that contains instructions) — hunting for the model following untrusted embedded commands. Others: eliciting confidently wrong facts (hallucination), coaxing it to reveal system prompts or other users’ data (privacy), and pushing it toward harmful advice. Each test targets a specific harm class; a good red-team is systematic across categories, and the failures found feed back into training and guardrails — a loop, not a one-off checkmark.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3.</strong> Conceptual: why are <em>independent, third-party</em> evaluations increasingly seen as important for frontier models?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The developer of a model has incentives (and blind spots) that can bias its own evaluations — and Goodhart’s law (Lesson&nbsp;1) means a lab optimizing its internal benchmarks may over-fit them. Independent evaluators bring fresh adversarial creativity, no stake in a favorable result, and consistency across models from different developers, making claims about safety and capability more trustworthy — much as third-party audits do in other high-stakes industries. It also addresses a collective-action problem: shared, external evals let society compare models on safety, not just marketing. This is why external red-teaming, evaluation organizations, and pre-deployment testing regimes are becoming standard practice for the most capable systems — the same “don’t trust the number you optimized” principle, applied at the level of an entire lab.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Buolamwini &amp; Gebru (2018), “Gender Shades” — disaggregated evaluation exposing subgroup failures. <a href="https://proceedings.mlr.press/v81/buolamwini18a.html" target="_blank" rel="noopener">proceedings.mlr.press</a></li>
+          <li><span class="src-type">paper</span> Ganguli et al. (2022), “Red Teaming Language Models to Reduce Harms.” <a href="https://arxiv.org/abs/2209.07858" target="_blank" rel="noopener">arXiv:2209.07858</a></li>
+          <li><span class="src-type">paper</span> Ribeiro et al. (2020), “Beyond Accuracy: Behavioral Testing of NLP Models (CheckList).” <a href="https://arxiv.org/abs/2005.04118" target="_blank" rel="noopener">arXiv:2005.04118</a></li>
+        </ul>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
