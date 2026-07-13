@@ -222,4 +222,4 @@ if __name__ == "__main__":
     conv_slide(); maxpool(); cnn_arch(); learned_filters(); augment_grid(); transfer_schematic()
     print("Track 15 diagrams written to", OUT)
     for f in sorted(os.listdir(OUT)):
-        pr
+        print("  ", f)
