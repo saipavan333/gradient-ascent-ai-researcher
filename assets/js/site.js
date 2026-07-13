@@ -171,6 +171,17 @@
         { id: "t14-l04", title: "Adversarial robustness",      file: "lessons/track-14-safety/04-adversarial-robustness.html", status: "done" },
       ],
     },
+    {
+      n: 15, id: "t15", title: "Convolutional Networks & Vision",
+      desc: "How machines see: convolution, pooling, a CNN built and trained from scratch, augmentation, and transfer learning.",
+      lessons: [
+        { id: "t15-l00", title: "Convolution from scratch",     file: "lessons/track-15-cnns-vision/00-convolution.html", status: "done" },
+        { id: "t15-l01", title: "Pooling & stride",             file: "lessons/track-15-cnns-vision/01-pooling-stride.html", status: "done" },
+        { id: "t15-l02", title: "A ConvNet from scratch",       file: "lessons/track-15-cnns-vision/02-convnet.html", status: "done" },
+        { id: "t15-l03", title: "Data augmentation",            file: "lessons/track-15-cnns-vision/03-augmentation.html", status: "done" },
+        { id: "t15-l04", title: "Transfer learning",           file: "lessons/track-15-cnns-vision/04-transfer-learning.html", status: "done" },
+      ],
+    },
   ];
 
   /* expose for any page that wants it */
