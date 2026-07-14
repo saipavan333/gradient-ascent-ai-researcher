@@ -157,13 +157,13 @@
     },
     {
       n: 13, id: "t17", title: "Learning Paradigms",
-      desc: "Beyond supervised labels: self-supervised & contrastive learning, semi-supervised, transfer, and active learning.",
+      desc: "Beyond supervised labels: unsupervised clustering, self-supervised & contrastive learning, semi-supervised, and active learning.",
       lessons: [
-        { id: "t17-l00", title: "Self-supervised learning", file: "#", status: "soon" },
-        { id: "t17-l01", title: "Contrastive learning (SimCLR)", file: "#", status: "soon" },
-        { id: "t17-l02", title: "Semi-supervised learning", file: "#", status: "soon" },
-        { id: "t17-l03", title: "Transfer learning", file: "#", status: "soon" },
-        { id: "t17-l04", title: "Active learning", file: "#", status: "soon" },
+        { id: "t17-l00", title: "Learning without labels: k-means", file: "lessons/track-17-learning-paradigms/00-learning-paradigms.html", status: "done" },
+        { id: "t17-l01", title: "Self-supervised learning", file: "lessons/track-17-learning-paradigms/01-self-supervised.html", status: "done" },
+        { id: "t17-l02", title: "Contrastive learning (SimCLR)", file: "lessons/track-17-learning-paradigms/02-contrastive.html", status: "done" },
+        { id: "t17-l03", title: "Semi-supervised learning", file: "lessons/track-17-learning-paradigms/03-semi-supervised.html", status: "done" },
+        { id: "t17-l04", title: "Active learning", file: "lessons/track-17-learning-paradigms/04-active-learning.html", status: "done" },
       ],
     },
     {

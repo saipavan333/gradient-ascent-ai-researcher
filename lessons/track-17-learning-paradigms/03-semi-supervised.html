@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t17-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Semi-supervised learning · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Semi-supervised learning: a few labels go a long way</h1>
+      <p class="subtitle">The realistic middle ground. You rarely have zero labels or a full answer key — you have a handful of labels and a mountain of unlabelled data. Semi-supervised learning uses the <em>shape</em> of the unlabelled mountain to stretch those few labels across everything.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 13 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~19 min</span>
+        <span class="chip">Builds on: Lesson 0</span>
+      </div>
+
+      <p class="lead prose">
+        Real projects almost never sit at the extremes. You seldom have a label for every example (too expensive), and you seldom have none at all (you can usually afford a few). The common situation is lopsided: maybe 50 labelled examples and 50,000 unlabelled ones. <span class="newterm">Semi-supervised learning</span> is built for exactly this. Its insight is that the unlabelled data, though it carries no answers, reveals the <em>shape</em> of the data — where the clumps are, where the empty gaps are. And that shape is enormously informative: if two points sit in the same dense clump, they almost certainly share a label, even if only one of them is labelled. So you can let a few labels "flow" through the unlabelled structure and light up the whole dataset. This lesson builds the cleanest version of that idea — <span class="newterm">label propagation</span> — where six labels correctly classify three hundred points.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: rumours spread through a crowd</h2>
+      <p class="prose">
+        Picture a crowded room where people naturally stand in social clusters. Two people know a secret — one in each of two friend groups. Now let the secret spread only between people standing close together. It races through the first friend group and the second, but doesn't jump the empty space between them. Within minutes, everyone in group one knows secret&nbsp;A and everyone in group two knows secret&nbsp;B — from just two original knowers. That is label propagation. The "secret" is a class label, "standing close" is being similar, and the empty space between clusters is the natural boundary the labels won't cross.
+      </p>
+      <p class="prose">
+        This works because of an assumption that holds for most real data, called the <span class="newterm">cluster assumption</span>: points in the same dense region tend to share a label, and the true boundary between classes runs through low-density gaps, not through the middle of a clump. When that's true — and it very often is — the unlabelled points act like stepping stones, carrying a few labels across the whole dataset.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Left: two clusters of grey unlabelled points with only six labelled seeds (three blue in the left clump, three red in the right). Right: after propagation, every point in the left clump is blue and every point in the right clump is red." />
+        <figcaption>Label propagation: six labelled seeds (left) spread along the neighbour graph to correctly classify all 120 points (right) — labels flow within clusters and stop at the gap between them.</figcaption>
+      </figure>
+
+      <p class="prose">
+        Concretely: build a graph where each point connects to its nearest neighbours. Put the known labels on the few "seed" points. Then repeatedly let every unlabelled point take on a blend of its neighbours' labels, while pinning the seeds to their true values:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \hat{y}_i \leftarrow \text{average of } \{\hat{y}_j : j \text{ is a neighbour of } i\}, \qquad \hat{y}_i = y_i \text{ if } i \text{ is a seed} \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        In words: each point's guessed label \(\hat{y}_i\) becomes the average of its neighbours' current guesses — so labels diffuse outward from the seeds one hop at a time — but seed points are clamped to their real label \(y_i\) so the signal has a fixed source. Repeat until the labels stop changing. Because label mass flows along dense connections and stalls at sparse gaps, each cluster fills with the label of whatever seed it contains.
+      </p>
+
+      <!-- WIDGET -->
+      <div class="widget" id="lplab">
+        <div class="wtitle">▶ Interactive · propagate a handful of labels</div>
+        <div class="whint"><strong>Click any grey point</strong> to label it: one click makes it <span style="color:#2563eb;font-weight:700">class A</span>, another <span style="color:#dc2626;font-weight:700">class B</span>, a third clears it. Label just one or two points per clump, then press <strong>Propagate</strong> and watch the labels flow through the neighbour graph to fill both clusters. The readout scores your result against the hidden truth — see how few seeds you can get away with.</div>
+        <canvas id="lpcanvas" width="640" height="360" aria-label="Interactive label propagation"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="lpprop">▶ Propagate</button>
+          <button class="wbtn" id="lpclear">↻ Clear labels</button>
+          <button class="wbtn" id="lpreset">⟳ New data</button>
+        </div>
+        <div class="wreadout" id="lpread">Click a point or two in each clump to seed it, then press Propagate.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: labels flowing along a chain</h3>
+        <p class="prose">Five points in a line, each linked to its immediate neighbours. Only the ends are labelled. Watch the middle fill in.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Setup.</strong> Points \(P_1\!-\!P_2\!-\!P_3\!-\!P_4\!-\!P_5\). Seeds: \(P_1=\)A (score 1 for A), \(P_5=\)B (score 1 for B). Middle points start with no label.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Round 1.</strong> Each middle point averages its neighbours. \(P_2\) sees \(P_1\)=A and \(P_3\)=none → leans A. \(P_4\) sees \(P_5\)=B → leans B. \(P_3\) sees two blanks → still undecided.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Round 2.</strong> Now \(P_3\) sees \(P_2\) (leaning A) and \(P_4\) (leaning B) — a tie, but \(P_2\)'s A-lean is a touch stronger if the chain is even. In this symmetric case \(P_3\) sits exactly on the boundary; break ties either way. The point: the split lands <em>between</em> the two seeds, where the "density" is thinnest.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Settle.</strong> Repeat and it stabilizes: \(P_1,P_2\to\)A, \(P_4,P_5\to\)B, \(P_3\) on the fence. Two labels classified five points, and the boundary fell in the natural gap — exactly the cluster assumption at work. Scale this to real clusters and six seeds cover three hundred points at 100% accuracy (our validated demo).</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: label propagation</h2>
+      <pre><code>nn = kNN_graph(X, k=6)                  # each point linked to its 6 nearest neighbours
+scores = zeros(n, 2)                    # a soft label (prob of A, prob of B) per point
+scores[seed_idx, seed_label] = 1.0     # clamp the few known labels
+
+for _ in range(iters):
+    new = scores.copy()
+    for i in unlabelled:
+        new[i] = scores[nn[i]].sum(0)  # sum neighbours' current label-scores  (eq 3.1)
+    scores = normalise_rows(new)
+    scores[seed_idx] = onehot(seed_label)   # re-clamp seeds every round
+
+pred = scores.argmax(1)                 # each point's final label = its winning class</code></pre>
+      <p class="prose">
+        No training loop, no gradients — just averaging labels over a neighbour graph until it settles. The only "model" is the graph itself, which the unlabelled data built for free. This is why semi-supervised methods can be so cheap: the expensive labelled examples do a tiny amount of work, and the abundant unlabelled examples do the rest.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The modern version: pseudo-labelling.</strong> Deep-learning practice uses a close cousin. Train a model on your few labels, let it predict the unlabelled data, keep only the predictions it's most <em>confident</em> about as new "pseudo-labels," add them to the training set, and retrain. Combined with consistency training (forcing the model to give the same answer to two augmentations of an unlabelled image — an echo of contrastive learning), this is how methods like FixMatch reach near-fully-supervised accuracy using a tiny fraction of the labels.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Forgetting the cluster assumption can fail.</strong> If classes overlap heavily (no low-density gap between them), propagation leaks labels across the true boundary and confidently mislabels. Semi-supervised learning helps most when the data really is clumpy.</li>
+          <li><strong>Trusting pseudo-labels blindly.</strong> If the model is confidently wrong on some unlabelled points, adding those as "labels" teaches it its own mistakes — a feedback loop that can spiral. Confidence thresholds and consistency checks exist to guard against this.</li>
+          <li><strong>Seeding a cluster with the wrong label — or not at all.</strong> A clump with no seed gets whatever label leaks in from elsewhere; a clump with a mislabelled seed fills with that error. Every distinct cluster needs at least one correct seed.</li>
+          <li><strong>Expecting it to beat full supervision.</strong> Semi-supervised learning approaches the fully-labelled result cheaply; it doesn't exceed it. Its value is accuracy per labelling dollar, not a higher ceiling.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Semi-supervised = a few labels + lots of unlabelled data;</strong> use the data's shape to stretch the labels.</li>
+          <li><strong>Cluster assumption:</strong> nearby points share labels; the true boundary lies in low-density gaps.</li>
+          <li><strong>Label propagation</strong> flows the few seed labels along a nearest-neighbour graph until they settle (eq 3.1).</li>
+          <li><strong>Every distinct cluster needs at least one correct seed;</strong> six seeds classified 300 points in our demo.</li>
+          <li><strong>Modern deep version:</strong> pseudo-labelling + consistency (FixMatch) nears full-supervised accuracy with a fraction of labels.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does semi-supervised learning assume about the data to make a few labels useful?</p>
+          <ul class="quiz-options">
+            <li>That every class has exactly the same number of points.<div class="quiz-why">Balance isn't required; the key assumption is about structure.</div></li>
+            <li>That the data is one-dimensional.<div class="quiz-why">It works in any dimension; dimensionality isn't the assumption.</div></li>
+            <li>The cluster assumption: nearby points share labels and boundaries lie in low-density gaps.<div class="quiz-why">Correct. That's what lets labels flow safely through clumps and stop at the gaps.</div></li>
+            <li>That labels are noisy.<div class="quiz-why">Noise is a separate concern; the enabling assumption is the cluster structure.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> In label propagation, why are the seed points "clamped" each round?</p>
+          <ul class="quiz-options">
+            <li>So the known labels stay fixed as a stable source for the spreading signal.<div class="quiz-why">Correct. If seeds drifted, the labels would have no anchor and could wash out.</div></li>
+            <li>To make training faster.<div class="quiz-why">There's no training; clamping is about keeping the source fixed.</div></li>
+            <li>To increase the number of clusters.<div class="quiz-why">Clamping doesn't change cluster count.</div></li>
+            <li>Because seeds have no neighbours.<div class="quiz-why">Seeds do have neighbours; they're clamped despite that.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> When does label propagation fail badly?</p>
+          <ul class="quiz-options">
+            <li>When there are too many unlabelled points.<div class="quiz-why">More unlabelled points usually help, not hurt.</div></li>
+            <li>When the graph is built from neighbours.<div class="quiz-why">That's how it's supposed to work.</div></li>
+            <li>When every cluster has a seed.<div class="quiz-why">That's the ideal case — it works well then.</div></li>
+            <li>When classes overlap with no low-density gap, so labels leak across the true boundary.<div class="quiz-why">Correct. Without a gap, the cluster assumption breaks and labels bleed into the wrong class.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What is "pseudo-labelling"?</p>
+          <ul class="quiz-options">
+            <li>Randomly assigning labels to unlabelled data.<div class="quiz-why">The point is to use confident model predictions, not random guesses.</div></li>
+            <li>Training on your few labels, then adding the model's most confident predictions on unlabelled data as new labels.<div class="quiz-why">Correct — the deep-learning cousin of label propagation, usually paired with a confidence threshold.</div></li>
+            <li>Labelling data by hand a second time.<div class="quiz-why">No new human labels are created.</div></li>
+            <li>Deleting the labels you have.<div class="quiz-why">You keep your labels and add machine-generated ones.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, seed only <em>one</em> clump and leave the other unlabelled, then propagate. What happens to the unseeded clump, and what does that teach you?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The unseeded clump either stays unlabelled or gets whatever weak signal leaks across the gap — usually the wrong or an undecided label — so accuracy is poor there. The lesson: label propagation can only spread labels that exist. Each distinct cluster needs at least one correct seed, because labels flow <em>within</em> dense regions and can't reliably jump the empty space between them. Deciding which points to seed is itself important — which is exactly what active learning (Lesson 4) optimizes.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> You have 100,000 unlabelled images and budget to label 100. Would you rather label 100 random images or 100 chosen to cover the different clusters? Why?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Chosen to cover the clusters. Random labelling might put 60 labels in the biggest cluster and miss small ones entirely, leaving those clusters unseeded and mislabelled. Deliberately spreading your seeds so every dense region has a few gives propagation a correct source in each — far more accuracy per label. This is the bridge to active learning: when labels are scarce, <em>which</em> points you label matters as much as how many, and choosing well can multiply the value of every label.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Pseudo-labelling can spiral: a model's confident mistake becomes a training label, reinforcing the mistake. Name two safeguards, and explain why consistency training (same answer for two augmentations) is a particularly good one.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Safeguards: (1) a <em>confidence threshold</em> — only pseudo-label predictions above, say, 95% certainty, so shaky guesses don't enter training; (2) <em>consistency training</em> — require the model to give the same prediction for two different augmentations of the same unlabelled image before trusting it. Consistency is powerful because a genuine, content-based decision survives cropping and colour shifts, whereas a spurious one (latching onto a background artefact) usually doesn't — so agreement across augmentations is evidence the prediction is about real content. It also directly injects the invariances you care about, echoing contrastive learning. Together these turn a risky feedback loop into the state-of-the-art semi-supervised method, FixMatch.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Semi-supervised learning is quietly everywhere labels are costly: medical imaging (a few expert-annotated scans among thousands), speech recognition, fraud detection, and content moderation. The modern deep methods — pseudo-labelling, consistency training, and their combination in FixMatch and its successors — routinely reach within a point or two of fully-supervised accuracy using 10× to 100× fewer labels. And the frontier keeps blurring the lines: large models now pre-train self-supervised on everything, then fine-tune semi-supervised on a little labelled data, then get labelled by human feedback at the very end (Track&nbsp;10). Almost every real system is a blend of the paradigms in this track.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Semi-supervised learning uses a few labels plus a lot of unlabelled data. The unlabelled data reveals the clusters, and — assuming nearby points share labels — you let the few labels flow through a neighbour graph to fill every clump. Six labels can classify three hundred points. The deep version, pseudo-labelling with consistency, gets within a whisker of full supervision at a fraction of the cost."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Zhu &amp; Ghahramani (2002), "Learning from Labeled and Unlabeled Data with Label Propagation." <a href="https://mlg.eng.cam.ac.uk/zoubin/papers/CMU-CALD-02-107.pdf" target="_blank" rel="noopener">cam.ac.uk</a></li>
+          <li><span class="src-type">paper</span> Sohn et&nbsp;al. (2020), "FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence." <a href="https://arxiv.org/abs/2001.07685" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">survey</span> van Engelen &amp; Hoos (2020), "A survey on semi-supervised learning." <a href="https://link.springer.com/article/10.1007/s10994-019-05855-6" target="_blank" rel="noopener">springer</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: label propagation needs a good seed in every cluster — so <em>which</em> points should you spend your labelling budget on? <a href="04-active-learning.html">Active learning</a> lets the model choose, asking for labels only where it is most uncertain.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('lpcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var pts=[], nn=[], timer=null;
+    function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/2; }
+    function reset(){
+      pts=[];
+      for(var i=0;i<60;i++) pts.push({x:170+gauss()*70, y:180+gauss()*90, t:0, lab:-1});
+      for(var j=0;j<60;j++) pts.push({x:470+gauss()*70, y:180+gauss()*90, t:1, lab:-1});
+      buildNN(); stop(); draw(); read('Click a point or two in each clump to seed it, then press Propagate.');
+    }
+    function buildNN(){
+      nn=[];
+      for(var i=0;i<pts.length;i++){
+        var d=[];
+        for(var j=0;j<pts.length;j++) if(i!==j) d.push([Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y),j]);
+        d.sort(function(a,b){return a[0]-b[0];});
+        nn.push(d.slice(0,6).map(function(x){return x[1];}));
+      }
+    }
+    function propagate(){
+      stop();
+      // reset non-seed labels
+      var sc=pts.map(function(p){ return p.lab>=0 ? (p.lab===0?[1,0]:[0,1]) : [0,0]; });
+      var seeds=pts.map(function(p){return p.lab>=0;});
+      var step=0;
+      timer=setInterval(function(){
+        var nw=sc.map(function(r){return r.slice();});
+        for(var i=0;i<pts.length;i++){
+          if(seeds[i]) continue;
+          var a=0,b=0;
+          for(var m=0;m<nn[i].length;m++){ a+=sc[nn[i][m]][0]; b+=sc[nn[i][m]][1]; }
+          var s=a+b; if(s>0){ nw[i]=[a/s,b/s]; }
+        }
+        sc=nw;
+        for(var k=0;k<pts.length;k++){
+          if(seeds[k]) continue;
+          pts[k].pred = sc[k][0]===sc[k][1]?-1:(sc[k][0]>sc[k][1]?0:1);
+        }
+        draw(true);
+        step++;
+        if(step>=18){ stop(); score(); }
+      },90);
+    }
+    function score(){
+      var correct=0, tot=0, seeds=0;
+      for(var i=0;i<pts.length;i++){
+        if(pts[i].lab>=0){seeds++; continue;}
+        tot++;
+        var g = (pts[i].pred===undefined)?-1:pts[i].pred;
+        if(g===pts[i].t) correct++;
+      }
+      var acc = tot>0 ? (100*correct/tot).toFixed(0) : '0';
+      read(seeds+' seed'+(seeds===1?'':'s')+' → propagated to the other '+tot+' points at '+acc+'% accuracy vs the hidden truth'+(acc>=95?'  ✓':''));
+    }
+    function draw(showPred){
+      ctx.clearRect(0,0,W,H);
+      for(var i=0;i<pts.length;i++){
+        var p=pts[i], col='#cbd5e1', r=4.5, ring=false;
+        if(p.lab>=0){ col=p.lab===0?'#2563eb':'#dc2626'; r=7; ring=true; }
+        else if(showPred && p.pred!==undefined && p.pred>=0){ col=p.pred===0?'#93c5fd':'#fca5a5'; }
+        ctx.fillStyle=col; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
+        if(ring){ ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.5; ctx.stroke(); }
+      }
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui';
+      ctx.fillText('grey = unlabelled · ringed = your seed · faded = propagated guess', 14, 22);
+    }
+    function stop(){ if(timer){clearInterval(timer);timer=null;} }
+    function read(t){ document.getElementById('lpread').textContent=t; }
+    cv.addEventListener('click',function(e){
+      var r=cv.getBoundingClientRect();
+      var mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+      var best=-1,bd=1e9;
+      for(var i=0;i<pts.length;i++){ var d=Math.hypot(pts[i].x-mx,pts[i].y-my); if(d<bd){bd=d;best=i;} }
+      if(bd<18){ pts[best].lab = pts[best].lab>=1 ? -1 : pts[best].lab+1; delete pts[best].pred; draw(); }
+    });
+    document.getElementById('lpprop').onclick=propagate;
+    document.getElementById('lpclear').onclick=function(){ stop(); pts.forEach(function(p){p.lab=-1; delete p.pred;}); draw(); read('Cleared. Seed a point or two per clump, then Propagate.'); };
+    document.getElementById('lpreset').onclick=reset;
+    reset();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

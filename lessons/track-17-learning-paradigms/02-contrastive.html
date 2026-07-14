@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t17-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contrastive learning · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Contrastive learning: understanding by comparison</h1>
+      <p class="subtitle">Instead of rebuilding an input, learn by comparing. Pull two altered views of the same thing together in representation space, push different things apart — and with no labels at all, a map of "what is similar to what" emerges. This is the engine behind SimCLR and CLIP.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 13 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~21 min</span>
+        <span class="chip">Builds on: Lesson 1</span>
+      </div>
+
+      <p class="lead prose">
+        The autoencoder in Lesson&nbsp;1 learned by <em>rebuilding</em> each input. <span class="newterm">Contrastive learning</span> takes a different and often more powerful route: it learns by <em>comparing</em>. The recipe is startlingly simple. Take one unlabelled example — say a photo. Make two altered copies of it (crop it differently, shift its colours, flip it): these are two <span class="newterm">views</span> of the same underlying thing, and they should <em>mean</em> the same. Now grab a bunch of <em>other</em> examples: these are <span class="newterm">negatives</span>, and they should mean something different. Train an encoder so that the two views of the same source land close together in representation space, while the negatives are pushed far away. That's it. No human ever said what any photo contains — the only supervision is the free fact "these two came from the same original." Yet from millions of such comparisons, the encoder builds a representation where similar things cluster and different things separate, which is exactly what makes it useful for downstream tasks.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: two photos of your friend vs a stranger</h2>
+      <p class="prose">
+        You can recognize a friend from a blurry photo, a side angle, or bad lighting — because your brain has learned a representation of "them" that ignores those surface changes. Contrastive learning builds exactly that kind of representation, and it does so from a simple game: given an anchor and two candidates, learn to tell which candidate is "the same thing seen differently" and which is "something else." To win that game reliably, the encoder has no choice but to throw away the accidental details (lighting, crop, angle) and keep the essential ones (identity, content). The essentials it keeps <em>are</em> the representation.
+      </p>
+      <p class="prose">
+        The forces are literally a tug of war in representation space. Every "same-source" pair is a spring pulling two points together; every "different-source" pair is a magnet pushing points apart. Run the tug of war over the whole dataset and the points self-organize: views of the same thing collapse into tight clusters, different things spread out.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Left: an anchor point with two same-source views pulled toward it (green arrows) and several different-source negatives pushed away (red dashed arrows). Right: an embedding space where each source's several views have clustered tightly together, separated from other sources." />
+        <figcaption>Contrastive learning as a tug of war: pull two views of the same input together, push different inputs apart. The result (right) is a space where same-source views cluster with no labels used.</figcaption>
+      </figure>
+
+      <p class="prose">
+        We measure closeness by <span class="newterm">similarity</span> of the encoded vectors (how aligned they point), and train with a loss that is basically "make the positive pair's similarity the highest among all the candidates." The standard choice, called <span class="newterm">InfoNCE</span> or NT-Xent, is a softmax classification where the correct "class" is the positive:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \mathcal{L} = -\log \frac{\exp(\text{sim}(z, z^{+})/\tau)}{\exp(\text{sim}(z, z^{+})/\tau) + \sum_{k}\exp(\text{sim}(z, z^{-}_k)/\tau)} \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        Don't let it intimidate you — it says one thing. \(z\) is the anchor's code, \(z^{+}\) its positive (the other view), and \(z^{-}_k\) the negatives. \(\text{sim}\) measures alignment (bigger = more similar). The fraction is a softmax: it is large only when the positive's similarity \(\text{sim}(z,z^{+})\) dominates all the negatives' similarities in the denominator. Taking \(-\log\) of it means "we pay a penalty unless the positive is the clear winner." Minimizing the penalty pulls the positive close and pushes negatives away — equation (2.1) is just the tug of war, written down. The \(\tau\) (tau, "temperature") is a knob for how harshly the loss treats near-misses: small \(\tau\) makes it very picky, demanding the positive win by a wide margin.
+      </p>
+
+      <!-- WIDGET -->
+      <div class="widget" id="colab">
+        <div class="wtitle">▶ Interactive · watch the tug of war organize a space</div>
+        <div class="whint">Each colour is one source, scattered as several jittered <strong>views</strong>. Right now they're a random mess. Press <strong>Train step</strong> (or <strong>Run</strong>) to apply the contrastive forces: same-colour views pull together, different colours push apart. Watch tidy clusters emerge — the representation organizing itself with no labels, only the fact "same colour = same source."</div>
+        <canvas id="cocanvas" width="640" height="360" aria-label="Interactive contrastive learning"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="costep">▶ Train step ×5</button>
+          <button class="wbtn" id="corun">▶▶ Run</button>
+          <button class="wbtn" id="coreset">↻ Reset (scramble)</button>
+        </div>
+        <div class="wreadout" id="coread">Scrambled. Same-colour distance ≈ different-colour distance — no structure yet.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: one contrastive step by the numbers</h3>
+        <p class="prose">Strip it to one anchor, one positive, one negative, to see the mechanics of equation (2.1).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Setup.</strong> Encode three items to unit vectors. Anchor \(z\), positive \(z^{+}\) (a view of the same source), negative \(z^{-}\). Suppose current similarities are \(\text{sim}(z,z^{+})=0.2\) and \(\text{sim}(z,z^{-})=0.6\) — the encoder wrongly thinks the negative is <em>more</em> similar. Bad.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Score with softmax</strong> (take \(\tau=1\)). Numerator \(e^{0.2}=1.22\); denominator \(e^{0.2}+e^{0.6}=1.22+1.82=3.04\). Probability of "positive is the match" \(=1.22/3.04=0.40\). Loss \(=-\log 0.40=0.92\) — a big penalty, as it should be.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>The gradient pushes the right way.</strong> Minimizing the loss increases \(\text{sim}(z,z^{+})\) (pull the positive closer) and decreases \(\text{sim}(z,z^{-})\) (push the negative away). One step might move them to \(0.35\) and \(0.45\).</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>After many steps.</strong> The positive wins clearly: \(\text{sim}(z,z^{+})=0.9\), \(\text{sim}(z,z^{-})=-0.1\). Probability \(\approx e^{0.9}/(e^{0.9}+e^{-0.1})=0.73\), loss \(\approx 0.31\). Repeat across every pair in the batch and the whole space organizes — in our validated demo, same-source views end up ~11× closer than different-source pairs (0.11 vs 1.28).</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: the contrastive objective</h2>
+      <pre><code>za = normalise(W @ aug(x))        # view A of x, encoded to a unit vector
+zb = normalise(W @ aug(x))        # view B of the SAME x  -> the positive
+zn = normalise(W @ negatives)     # OTHER examples        -> the negatives
+
+pos = dot(za, zb) / tau                       # similarity to the positive
+neg = zn @ za / tau                           # similarity to each negative
+logits = concat([pos], neg)
+p = softmax(logits)                           # want p[0] (the positive) to win
+loss = -log(p[0])                             # InfoNCE:  penalty unless positive wins
+# gradient step on W pulls the positive in, pushes negatives out</code></pre>
+      <p class="prose">
+        The two <code>aug(x)</code> calls are the whole trick: apply random alterations twice to the same input to manufacture a positive pair, for free. Everything else is a softmax classifier whose one correct answer is "the positive." The encoder <code>W</code> that solves this game becomes your representation.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Two views, or two modalities.</strong> The same idea works across <em>types</em> of data. CLIP (the model behind much of modern image generation and search) treats an image and its caption as a positive pair, and mismatched image–caption pairs as negatives. Trained on 400 million such pairs from the web — no hand-labelling — it learns a shared space where a picture of a dog and the words "a dog" land in the same place. That is contrastive learning at internet scale.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Weak augmentations.</strong> If the two views are nearly identical, the task is trivial and the encoder learns a shortcut (like matching brightness) instead of real content. Strong, varied augmentations are what force useful representations.</li>
+          <li><strong>Too few negatives.</strong> With only a couple of negatives, "push apart" barely constrains anything. Contrastive methods famously need many negatives (big batches, or a memory bank) to work well.</li>
+          <li><strong>Forgetting to normalize.</strong> Similarity is measured between unit-length vectors (direction only). Skip the normalization and the model can cheat by inflating vector lengths instead of aligning directions.</li>
+          <li><strong>Thinking it's supervised.</strong> No labels are used — the "classes" in the softmax are just "which candidate is the positive," a fact that comes free from how the pair was made.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Learn by comparison:</strong> pull two views of the same source together, push different sources apart — no labels.</li>
+          <li><strong>Positives</strong> = two augmented views of one input; <strong>negatives</strong> = other inputs.</li>
+          <li><strong>InfoNCE / NT-Xent loss</strong> (2.1) is a softmax: make the positive's similarity the highest among all candidates.</li>
+          <li><strong>Needs strong augmentations and many negatives;</strong> vectors are normalized so only direction matters. Temperature \(\tau\) tunes strictness.</li>
+          <li><strong>Powers SimCLR, MoCo, and CLIP;</strong> CLIP aligns images with text captions the same way, at web scale.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is a "positive pair" in contrastive learning?</p>
+          <ul class="quiz-options">
+            <li>Two examples with the same human label.<div class="quiz-why">No human labels are involved; that would be supervised.</div></li>
+            <li>Two augmented views of the same underlying input.<div class="quiz-why">Correct. The free supervision is "these two came from the same original."</div></li>
+            <li>Two examples the model got right.<div class="quiz-why">"Positive" refers to pairing, not correctness.</div></li>
+            <li>The two largest values in the batch.<div class="quiz-why">It has nothing to do with magnitudes.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What does the InfoNCE loss actually push the encoder to do?</p>
+          <ul class="quiz-options">
+            <li>Reconstruct the input from a small code.<div class="quiz-why">That's an autoencoder (Lesson 1), not contrastive.</div></li>
+            <li>Predict the next token.<div class="quiz-why">That's autoregressive language modelling, a different pretext task.</div></li>
+            <li>Make the positive pair more similar than every negative.<div class="quiz-why">Correct. It's a softmax whose one right answer is the positive — so the positive's similarity must dominate.</div></li>
+            <li>Cluster points with k-means.<div class="quiz-why">No clustering algorithm is involved; the loss shapes an encoder.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why do contrastive methods need many negatives?</p>
+          <ul class="quiz-options">
+            <li>More negatives make "push apart" a stronger, more informative constraint on the space.<div class="quiz-why">Correct. With few negatives the task is too easy and the representation stays weak; big batches or memory banks supply many.</div></li>
+            <li>To speed up training.<div class="quiz-why">More negatives usually cost more compute, not less.</div></li>
+            <li>To avoid using augmentations.<div class="quiz-why">Augmentations are still essential for making positives.</div></li>
+            <li>Because the softmax requires exactly 10 classes.<div class="quiz-why">There's no fixed class count; the "classes" are the candidates in the batch.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q4.</span> How does CLIP apply this idea across images and text?</p>
+          <ul class="quiz-options">
+            <li>It reconstructs images from captions.<div class="quiz-why">CLIP is contrastive, not reconstructive.</div></li>
+            <li>It labels every image by hand.<div class="quiz-why">Its scale comes precisely from avoiding hand-labelling.</div></li>
+            <li>It clusters captions with k-means.<div class="quiz-why">No clustering; it aligns an encoder pair.</div></li>
+            <li>It treats a matching image–caption as a positive pair and mismatches as negatives.<div class="quiz-why">Correct. That aligns images and text in one shared space, learned from web pairs with no manual labels.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, reset and run training. Watch the readout's two distances. Which one shrinks and which one grows, and why does that mean the representation is improving?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The same-colour (positive) distance shrinks while the different-colour (negative) distance grows. That gap opening up is exactly what a good representation looks like: views of the same source become nearly interchangeable (small distance), while distinct sources become easy to tell apart (large distance). A downstream classifier then needs only a simple boundary. The single number that summarizes representation quality here is the <em>ratio</em> of between-source to within-source distance — larger is better.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Suppose you set the augmentation to "do nothing," so both views of an input are identical. What breaks, and what does the encoder learn instead?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The positive task becomes trivial — the two views are literally the same vector, so matching them requires no understanding. The encoder can satisfy the loss with a degenerate shortcut (e.g., map everything to be distinguishable by some trivial cue) without learning content-meaningful features. This is why augmentation strength is the single most important design choice in contrastive learning: the representation is only forced to capture what stays invariant across the augmentations you chose. Choose augmentations that change the things you want ignored (crop, colour) and preserve the things you want kept (identity, content).</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Contrastive learning needs negatives, which forces large batches. Some newer methods (BYOL, SimSiam) drop negatives entirely and still avoid collapse. Why is "avoiding collapse" the central challenge once you remove negatives?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Without negatives, there is nothing pushing points apart — so the trivial way to make every positive pair identical is to map <em>every</em> input to the same constant vector. That is "collapse": zero loss, zero information. Negatives normally prevent it (you can't collapse everything together if different things must stay apart). Methods that remove negatives must add another anti-collapse mechanism — a slowly-updated "target" network (BYOL), a stop-gradient (SimSiam), or a term that keeps the features spread out (VICReg, Barlow Twins). The deep lesson: any self-supervised objective must include some pressure toward <em>using</em> the representation, or it will find the laziest constant solution.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Contrastive learning triggered a wave: SimCLR and MoCo showed that self-supervised image features could rival supervised ones; CLIP aligned vision and language and became the backbone of text-to-image generation and zero-shot classification; the same recipe now pre-trains models for audio, video, molecules, and code. The active frontier is understanding <em>why</em> it works so well, escaping the need for huge batches of negatives, and combining contrastive and generative objectives. What you built here — organize a space by comparison, using only "same or different" — is one of the most transferable ideas in all of machine learning.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Contrastive learning organizes a representation by comparison: make two altered views of the same input land close together, and push different inputs apart. The only supervision is the free fact 'these came from the same original.' It's a softmax that says 'the positive should win' — and it's how SimCLR and CLIP learned from the web with no labels."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Chen et&nbsp;al. (2020), "A Simple Framework for Contrastive Learning of Visual Representations" (SimCLR). <a href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Radford et&nbsp;al. (2021), "Learning Transferable Visual Models From Natural Language Supervision" (CLIP). <a href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Grill et&nbsp;al. (2020), "Bootstrap Your Own Latent" (BYOL) — contrastive without negatives. <a href="https://arxiv.org/abs/2006.07733" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: self- and contrastive learning use <em>no</em> labels. But often you have a <em>few</em>. <a href="03-semi-supervised.html">Semi-supervised learning</a> combines a handful of labels with a mountain of unlabelled data — and gets most of the way to fully-supervised accuracy.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('cocanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cols=['#2563eb','#059669','#d97706','#dc2626','#6d28d9','#0e7490'];
+    var K=6, V=4, pts=[], timer=null;
+    function reset(){
+      pts=[];
+      for(var s=0;s<K;s++) for(var v=0;v<V;v++)
+        pts.push({s:s, x:60+Math.random()*(W-120), y:40+Math.random()*(H-80)});
+      stop(); draw(); measure();
+    }
+    function step(){
+      var nx=pts.map(function(p){return p.x;}), ny=pts.map(function(p){return p.y;});
+      for(var i=0;i<pts.length;i++){
+        var fx=0, fy=0;
+        for(var j=0;j<pts.length;j++){
+          if(i===j) continue;
+          var dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+          var d=Math.sqrt(dx*dx+dy*dy)+1e-3;
+          if(pts[i].s===pts[j].s){ fx-=dx*0.020; fy-=dy*0.020; }       // attract same source
+          else { var r=Math.min(900/(d*d), 0.9); fx+=(dx/d)*r*7; fy+=(dy/d)*r*7; } // repel others
+        }
+        nx[i]=Math.max(20,Math.min(W-20, pts[i].x+fx));
+        ny[i]=Math.max(20,Math.min(H-20, pts[i].y+fy));
+      }
+      for(var k=0;k<pts.length;k++){ pts[k].x=nx[k]; pts[k].y=ny[k]; }
+      draw(); measure();
+    }
+    function measure(){
+      var same=0,ns=0,diff=0,nd=0;
+      for(var i=0;i<pts.length;i++) for(var j=i+1;j<pts.length;j++){
+        var d=Math.hypot(pts[i].x-pts[j].x, pts[i].y-pts[j].y);
+        if(pts[i].s===pts[j].s){ same+=d; ns++; } else { diff+=d; nd++; }
+      }
+      same/=ns; diff/=nd;
+      var ratio=(diff/same).toFixed(1);
+      document.getElementById('coread').textContent='same-colour distance '+same.toFixed(0)+'   vs   different-colour '+diff.toFixed(0)+'   →   separation ratio '+ratio+(diff/same>3?'×  (well organized ✓)':'×');
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      for(var i=0;i<pts.length;i++){
+        ctx.fillStyle=cols[pts[i].s];
+        ctx.beginPath(); ctx.arc(pts[i].x,pts[i].y,6,0,7); ctx.fill();
+      }
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui';
+      ctx.fillText('each colour = one source, shown as '+V+' augmented views', 14, 22);
+    }
+    function stop(){ if(timer){clearInterval(timer);timer=null; var b=document.getElementById('corun'); if(b)b.textContent='▶▶ Run';} }
+    function run(){ var b=document.getElementById('corun'); if(timer){stop();return;} b.textContent='⏸ Pause'; timer=setInterval(step,80); }
+    document.getElementById('costep').onclick=function(){ stop(); for(var i=0;i<5;i++) step(); };
+    document.getElementById('corun').onclick=run;
+    document.getElementById('coreset').onclick=reset;
+    reset();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
