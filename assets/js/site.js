@@ -170,11 +170,11 @@
       n: 14, id: "t20", title: "Graph Neural Networks",
       desc: "Learning on graphs: message passing, GCNs and GATs from scratch, and node/graph tasks.",
       lessons: [
-        { id: "t20-l00", title: "Graphs as data", file: "#", status: "soon" },
-        { id: "t20-l01", title: "Message passing", file: "#", status: "soon" },
-        { id: "t20-l02", title: "Graph convolutions (GCN)", file: "#", status: "soon" },
-        { id: "t20-l03", title: "Attention on graphs (GAT)", file: "#", status: "soon" },
-        { id: "t20-l04", title: "Applications", file: "#", status: "soon" },
+        { id: "t20-l00", title: "Graphs as data", file: "lessons/track-20-graph-neural-networks/00-graphs-as-data.html", status: "done" },
+        { id: "t20-l01", title: "Message passing", file: "lessons/track-20-graph-neural-networks/01-message-passing.html", status: "done" },
+        { id: "t20-l02", title: "Graph convolutions (GCN)", file: "lessons/track-20-graph-neural-networks/02-gcn.html", status: "done" },
+        { id: "t20-l03", title: "Attention on graphs (GAT)", file: "lessons/track-20-graph-neural-networks/03-gat.html", status: "done" },
+        { id: "t20-l04", title: "Graph classification", file: "lessons/track-20-graph-neural-networks/04-graph-classification.html", status: "done" },
       ],
     },
     {

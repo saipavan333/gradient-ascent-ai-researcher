@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t20-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graphs as data · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Graphs: data that comes as a web of connections</h1>
+      <p class="subtitle">An image is a grid, a sentence is a line, but a social network, a molecule, a road map, and the web are none of those — they are <em>graphs</em>: things joined by relationships. To learn on them, we first need to write a graph down as numbers a model can chew on.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~17 min</span>
+        <span class="chip">Builds on: Track 6</span>
+      </div>
+
+      <p class="lead prose">
+        Every model so far assumed a tidy, fixed shape for its input: a CNN wants a grid of pixels, an RNN wants a line of tokens. But a huge amount of the world's most valuable data has no such shape. A <span class="newterm">graph</span> is a set of <span class="newterm">nodes</span> (also called vertices — the "things") joined by <span class="newterm">edges</span> (the "relationships between things"). Your friends and who-knows-whom is a graph; a molecule's atoms and their bonds is a graph; web pages and their links, the power grid, a citation network, a recommendation system of users and products — all graphs. What makes them special is that there is no natural order to the nodes and each node can have a different number of neighbours, so you can't just flatten them into a fixed list. This track builds neural networks that operate directly on graphs. Step one, this lesson: how do you turn a web of connections into numbers? The answer is the <span class="newterm">adjacency matrix</span>, and everything else follows from it.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: a table of who-connects-to-whom</h2>
+      <p class="prose">
+        Suppose five people are at a party and you want to record who is talking to whom. You could draw dots for people and lines for conversations — that's the graph. But to store it in a computer, make a grid with one row and one column per person, and put a 1 in cell (row&nbsp;<em>i</em>, column&nbsp;<em>j</em>) whenever person&nbsp;<em>i</em> and person&nbsp;<em>j</em> are talking, 0 otherwise. That grid is the adjacency matrix. It holds the entire structure of the graph as a block of numbers — and numbers are exactly what a neural network eats.
+      </p>
+      <p class="prose">
+        Two quantities fall right out of it. A node's <span class="newterm">degree</span> is just how many neighbours it has — add up its row. And the whole matrix is <em>symmetric</em> for an undirected graph (if you talk to me, I talk to you), so cell (i,&nbsp;j) equals cell (j,&nbsp;i). Read those two facts off the grid and you already know a lot about the graph's shape.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A small graph of six numbered nodes joined by edges, shown next to its 6x6 adjacency matrix where each edge lights up two symmetric cells with a 1." />
+        <figcaption>A graph and its adjacency matrix A: every edge i–j lights up cells (i,j) and (j,i). A node's degree is its row-sum.</figcaption>
+      </figure>
+
+      <p class="prose">
+        Formally, for a graph with \(N\) nodes the adjacency matrix \(A\) is \(N\times N\) with
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ A_{ij} = \begin{cases} 1 & \text{if there is an edge between node } i \text{ and node } j \\ 0 & \text{otherwise} \end{cases}, \qquad \deg(i) = \sum_{j} A_{ij} \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        The degree of node \(i\), written \(\deg(i)\), is the sum of its row — the count of its 1s, i.e. its number of neighbours. One more object matters for what's coming: GNNs don't use \(A\) raw; they use a <span class="newterm">normalised adjacency</span> \(\hat{A} = D^{-1/2}(A+I)D^{-1/2}\). Unpack it gently: \(A+I\) adds a 1 on the diagonal (a "self-loop," so a node also listens to itself); \(D\) is the diagonal matrix of degrees; and dividing by \(\sqrt{\deg}\) on both sides stops high-degree nodes from shouting over everyone. You'll use \(\hat{A}\) in every later lesson — for now just know it's the "politeness-adjusted" version of the connection table.
+      </p>
+
+      <!-- WIDGET -->
+      <div class="widget" id="glab">
+        <div class="wtitle">▶ Interactive · build a graph, watch its matrix</div>
+        <div class="whint"><strong>Click empty space</strong> to drop a node. <strong>Click one node then another</strong> to toggle an edge between them. The adjacency matrix on the right updates live — see how each edge lights up two symmetric cells, and how a node's degree is just its row-sum. Try building two clusters with a single link between them.</div>
+        <canvas id="gcanvas" width="640" height="360" aria-label="Interactive graph builder"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="gsample">◈ Sample graph</button>
+          <button class="wbtn" id="gclear">↻ Clear</button>
+        </div>
+        <div class="wreadout" id="gread">Click to add nodes; click two nodes to connect them.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: reading a graph off its matrix</h3>
+        <p class="prose">You're handed this 4×4 adjacency matrix and asked to describe the graph without drawing it. Rows/columns are nodes 0–3.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The matrix.</strong> Row 0: <code>0 1 1 0</code>. Row 1: <code>1 0 1 0</code>. Row 2: <code>1 1 0 1</code>. Row 3: <code>0 0 1 0</code>. First check: it's symmetric (cell i,j = cell j,i), so the graph is undirected.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Edges.</strong> Read the 1s above the diagonal: (0,1), (0,2), (1,2), (2,3). Four edges.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Degrees.</strong> Sum each row: node 0 → 2, node 1 → 2, node 2 → 3, node 3 → 1. Node 2 is the hub (connected to everyone); node 3 is a leaf (one connection).</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Shape.</strong> Nodes 0, 1, 2 form a triangle (all pairwise connected), with node 3 hanging off node 2. You reconstructed the entire graph from 16 numbers — that's why the adjacency matrix is <em>the</em> representation.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: a graph and its matrices</h2>
+      <pre><code>def normalised_adjacency(A):
+    A = A + np.eye(len(A))          # add self-loops: a node also sees itself
+    d = A.sum(1)                    # degree of each node (row sum)
+    Dinv = np.diag(1.0 / np.sqrt(d))
+    return Dinv @ A @ Dinv          # Â = D^-1/2 (A+I) D^-1/2  — degree-balanced
+
+A, comm = stochastic_block_model()  # two communities: dense inside, sparse between
+deg = A.sum(1)                      # every node's neighbour count
+assert np.allclose(A, A.T)          # undirected  ->  symmetric matrix
+Ahat = normalised_adjacency(A)      # what every GNN layer multiplies by</code></pre>
+      <p class="prose">
+        The <code>stochastic_block_model</code> builds a graph with two communities — many edges inside each, few between — which is the running example for this whole track (think two friend groups with one mutual acquaintance). Notice how little code it takes: a graph <em>is</em> its adjacency matrix, and the degree and normalised versions are one line each.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why not just flatten it?</strong> You might think: turn the matrix into one long vector and feed it to an MLP. Two problems. First, if you relabel the nodes (swap "node 1" and "node 2"), the matrix scrambles but the graph is <em>identical</em> — an MLP would see a totally different input for the same graph. Second, graphs come in different sizes, but an MLP needs a fixed input length. A good graph model must be <em>permutation-invariant</em> (immune to relabelling) and size-agnostic. That's exactly what message passing (next lesson) delivers.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Forgetting the graph has no node order.</strong> The labels 0,1,2… are arbitrary. Any method that gives a different answer when you renumber the nodes is broken — real graph models must be permutation-invariant.</li>
+          <li><strong>Treating the adjacency matrix like an image.</strong> It looks like a grid, but a CNN's spatial assumptions (nearby pixels relate) don't hold — row 5 and row 6 are just two arbitrarily-numbered nodes, not neighbours.</li>
+          <li><strong>Skipping the self-loop.</strong> Without adding \(I\), a node's update ignores its own current features and only listens to neighbours — usually you want it to keep some of itself, which is what \(A+I\) provides.</li>
+          <li><strong>Ignoring degree normalisation.</strong> Raw \(A\) lets a node with 100 neighbours dominate; \(\hat{A}\)'s \(D^{-1/2}\) scaling keeps high- and low-degree nodes on comparable footing.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>A graph = nodes + edges,</strong> stored as an \(N\times N\) <strong>adjacency matrix</strong> \(A\) (\(A_{ij}=1\) if \(i\)–\(j\) linked).</li>
+          <li><strong>Degree</strong> of a node = its row-sum = its number of neighbours.</li>
+          <li><strong>Undirected graph ⇒ symmetric</strong> \(A\) (\(A_{ij}=A_{ji}\)).</li>
+          <li><strong>GNNs use the normalised</strong> \(\hat{A}=D^{-1/2}(A+I)D^{-1/2}\): self-loops plus degree balancing.</li>
+          <li><strong>Graph models must be permutation-invariant</strong> and handle any size — you can't just flatten and use an MLP.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does entry \(A_{ij}=1\) mean in an adjacency matrix?</p>
+          <ul class="quiz-options">
+            <li>Node \(i\) has degree \(j\).<div class="quiz-why">Degree is a row-sum, not a single entry.</div></li>
+            <li>There is an edge between node \(i\) and node \(j\).<div class="quiz-why">Correct. The matrix records the graph's connections, one cell per possible pair.</div></li>
+            <li>Node \(i\) equals node \(j\).<div class="quiz-why">Nodes being connected doesn't make them equal.</div></li>
+            <li>The graph is directed.<div class="quiz-why">Direction is about symmetry of the whole matrix, not a single 1.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How do you get a node's degree from the matrix?</p>
+          <ul class="quiz-options">
+            <li>Read the diagonal entry.<div class="quiz-why">The diagonal is 0 for a simple graph (no self-loops) — degree isn't there.</div></li>
+            <li>Take the largest entry in its row.<div class="quiz-why">Entries are 0/1; the max is just 1 if it has any neighbour.</div></li>
+            <li>Sum its row.<div class="quiz-why">Correct. Each 1 is one neighbour, so the row-sum is the neighbour count.</div></li>
+            <li>Multiply the row by the column.<div class="quiz-why">That's not how degree is defined.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why can't you just flatten a graph's adjacency matrix and feed it to an MLP?</p>
+          <ul class="quiz-options">
+            <li>Matrices are too large.<div class="quiz-why">Size is a factor but not the core issue.</div></li>
+            <li>MLPs can't do multiplication.<div class="quiz-why">MLPs multiply constantly; that's not the problem.</div></li>
+            <li>Graphs are always directed.<div class="quiz-why">Many graphs are undirected; direction isn't the issue.</div></li>
+            <li>Relabelling nodes scrambles the matrix though the graph is unchanged, and graphs vary in size — an MLP isn't permutation-invariant or size-agnostic.<div class="quiz-why">Correct. A good graph model must give the same answer regardless of node numbering and work at any size.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What does adding \(I\) (the identity) to \(A\) accomplish in \(\hat{A}\)?</p>
+          <ul class="quiz-options">
+            <li>It adds self-loops so each node also includes its own features when updating.<div class="quiz-why">Correct. \(A+I\) puts a 1 on the diagonal, so a node listens to itself as well as its neighbours.</div></li>
+            <li>It makes the matrix invertible for training.<div class="quiz-why">That's not the purpose; self-loops are about including the node itself.</div></li>
+            <li>It deletes the edges.<div class="quiz-why">It adds to the diagonal; existing edges stay.</div></li>
+            <li>It doubles every degree.<div class="quiz-why">It adds exactly one (the self-loop) to each node's connections, not a doubling.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, build two triangles joined by a single edge. Look at the matrix: where do the "inside a cluster" 1s sit versus the one "between clusters" 1? What structure does that block pattern reveal?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The 1s clump into two dense blocks along the diagonal (each triangle's nodes connect to each other) with a single lonely 1 in the off-diagonal region (the bridge edge). That block-diagonal pattern is the fingerprint of community structure: dense within groups, sparse between. Spotting it in the matrix is exactly what community-detection and the GCN in Lesson 2 exploit — and it's why we generate graphs with a "stochastic block model."</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> The entry \((A^2)_{ij}\) counts something meaningful. Compute \(A^2\) for a small graph and figure out what each entry counts.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>\((A^2)_{ij}=\sum_k A_{ik}A_{kj}\) counts the number of length-2 paths from \(i\) to \(j\) — i.e., how many common neighbours they share (for \(i\neq j\)), and the diagonal \((A^2)_{ii}\) equals node \(i\)'s degree (paths that go out and back). This is the seed of message passing: multiplying by \(A\) once spreads information one hop, twice spreads it two hops. A \(k\)-layer GNN effectively lets each node see \(k\) hops out, which is why depth controls "reach" on a graph.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> A directed graph (e.g., "who follows whom" on social media) has an asymmetric \(A\). Name one thing that changes about degree, and one modelling consequence.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Degree splits into two: <em>in-degree</em> (column sum — how many point at you, your followers) and <em>out-degree</em> (row sum — how many you point at, who you follow). Modelling consequence: message passing must respect direction — information should flow along edges the right way (e.g., influence flows from followee to follower), so you use \(A\) and \(A^\top\) for the two directions, or aggregate incoming and outgoing neighbours separately. Directedness also breaks the symmetric normalisation \(\hat A\); directed GNNs use variants. The core idea — aggregate from neighbours — survives; you just track which neighbours are "in" and which are "out."</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Graph data runs some of the largest systems on earth: Google's PageRank ranks web pages by the link graph; recommendation engines at Pinterest and Amazon are graph models over billions of user–item edges; drug discovery represents molecules as graphs of atoms and bonds; fraud detection hunts for suspicious patterns in transaction graphs. The reason a whole track exists is that "things and their relationships" is one of the most general shapes data can take — more general than grids or sequences, which are just special, tidy graphs. Master the adjacency matrix here and every later lesson is a short step: message passing, GCNs, and attention all boil down to clever multiplications by \(A\) and \(\hat{A}\).</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A graph is things joined by relationships — nodes and edges — and you write it down as an adjacency matrix: a grid with a 1 wherever two nodes connect. A node's degree is its row-sum, undirected graphs give symmetric matrices, and GNNs use a degree-balanced version with self-loops, \(\hat A\). You can't just flatten it into an MLP, because renumbering the nodes shouldn't change the answer — which is why we need graph-specific models."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">survey</span> Hamilton (2020), "Graph Representation Learning" — the standard textbook, free online. <a href="https://www.cs.mcgill.ca/~wlh/grl_book/" target="_blank" rel="noopener">mcgill.ca</a></li>
+          <li><span class="src-type">article</span> Sanchez-Lengeling et&nbsp;al. (2021), "A Gentle Introduction to Graph Neural Networks" (Distill). <a href="https://distill.pub/2021/gnn-intro/" target="_blank" rel="noopener">distill.pub</a></li>
+          <li><span class="src-type">paper</span> Page et&nbsp;al. (1999), "The PageRank Citation Ranking" — learning on the web graph. <a href="http://ilpubs.stanford.edu:8090/422/" target="_blank" rel="noopener">stanford.edu</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: now that a graph is numbers, how does a node actually learn from its neighbours? <a href="01-message-passing.html">Message passing</a> is the one operation at the heart of every GNN — aggregate from your neighbours, repeat, and information flows across the whole graph.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('gcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var GX=360, MX=386, MW=W-MX-14;                 // graph area / matrix area
+    var nodes=[], edges={}, sel=-1;
+    function key(i,j){ return Math.min(i,j)+'-'+Math.max(i,j); }
+    function sample(){
+      nodes=[{x:80,y:90},{x:170,y:60},{x:150,y:170},{x:70,y:200},
+             {x:280,y:250},{x:330,y:150},{x:250,y:120}];
+      edges={}; [[0,1],[0,2],[1,2],[2,3],[0,3],[2,6],[6,5],[5,4],[4,6]].forEach(function(e){edges[key(e[0],e[1])]=true;});
+      sel=-1; draw(); info();
+    }
+    function clear(){ nodes=[]; edges={}; sel=-1; draw(); info(); }
+    function hit(x,y){ for(var i=0;i<nodes.length;i++){ if(Math.hypot(nodes[i].x-x,nodes[i].y-y)<18) return i; } return -1; }
+    cv.addEventListener('click',function(e){
+      var r=cv.getBoundingClientRect();
+      var x=(e.clientX-r.left)*(W/r.width), y=(e.clientY-r.top)*(H/r.height);
+      if(x>GX) return;                              // clicks in matrix area do nothing
+      var h=hit(x,y);
+      if(h<0){ if(nodes.length<10){ nodes.push({x:x,y:y}); sel=-1; } }
+      else if(sel<0){ sel=h; }
+      else if(sel===h){ sel=-1; }
+      else { var k=key(sel,h); if(edges[k]) delete edges[k]; else edges[k]=true; sel=-1; }
+      draw(); info();
+    });
+    function info(){
+      var deg=nodes.map(function(_,i){var d=0;for(var k in edges){var p=k.split('-');if(+p[0]===i||+p[1]===i)d++;}return d;});
+      document.getElementById('gread').textContent=nodes.length+' nodes, '+Object.keys(edges).length+' edges'+(nodes.length?'.  degrees: ['+deg.join(', ')+']':'.  Click to add nodes; click two nodes to connect them.');
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // edges
+      ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
+      for(var k in edges){ var p=k.split('-'),a=nodes[+p[0]],b=nodes[+p[1]]; if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();} }
+      // nodes
+      for(var i=0;i<nodes.length;i++){
+        ctx.fillStyle = i===sel ? '#d97706' : '#2563eb';
+        ctx.beginPath(); ctx.arc(nodes[i].x,nodes[i].y,15,0,7); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(i, nodes[i].x, nodes[i].y);
+      }
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      // divider + matrix
+      ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.moveTo(GX+12,10); ctx.lineTo(GX+12,H-10); ctx.stroke();
+      ctx.fillStyle='#334155'; ctx.font='bold 12px system-ui'; ctx.fillText('adjacency matrix A', MX, 24);
+      var n=nodes.length; if(n===0){ ctx.fillStyle='#94a3b8'; ctx.font='12px system-ui'; ctx.fillText('(empty)', MX, 48); return; }
+      var cell=Math.min(30, MW/n, 220/n), ox=MX, oy=36;
+      for(var a2=0;a2<n;a2++){ for(var b2=0;b2<n;b2++){
+        var on=(a2!==b2)&&edges[key(a2,b2)];
+        ctx.fillStyle= on ? '#2563eb' : '#eff6ff';
+        ctx.fillRect(ox+b2*cell, oy+a2*cell, cell-1, cell-1);
+        if(on && cell>16){ ctx.fillStyle='#fff'; ctx.font='bold '+(cell*0.42)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('1', ox+b2*cell+cell/2, oy+a2*cell+cell/2); }
+      }}
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle='#64748b'; ctx.font='11px system-ui';
+      ctx.fillText('each edge → two blue cells (symmetric)', MX, oy+n*cell+18);
+    }
+    document.getElementById('gsample').onclick=sample;
+    document.getElementById('gclear').onclick=clear;
+    sample();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

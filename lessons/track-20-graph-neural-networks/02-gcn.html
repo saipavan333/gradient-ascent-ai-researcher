@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t20-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph Convolutional Networks · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Graph Convolutional Networks: message passing that learns</h1>
+      <p class="subtitle">Take message passing, insert a weight matrix and a nonlinearity, stack two layers — and you have a GCN, the workhorse of graph learning. Train it on a handful of labelled nodes and the graph structure fills in the rest.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~21 min</span>
+        <span class="chip">Builds on: Lesson 1</span>
+      </div>
+
+      <p class="lead prose">
+        Message passing (Lesson&nbsp;1) spread a signal, but it could only shuffle the numbers it was given — it had no way to <em>learn</em>. The <span class="newterm">Graph Convolutional Network</span> (GCN) fixes that with one small addition: after mixing each node with its neighbours, multiply by a learnable weight matrix and pass the result through a nonlinearity. That turns "average your neighbours" into "learn a useful transformation of your neighbourhood." Stack two such layers, attach a classifier, and train by ordinary gradient descent — the same backpropagation you've used since Track&nbsp;4. The payoff is striking: because each layer pulls in information from further out on the graph, a GCN can be trained on just a <em>few</em> labelled nodes and still classify every node correctly, using the graph's structure to carry the labels where they need to go. It's the "hello world" of graph deep learning, and it works.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: convolution, but on a graph</h2>
+      <p class="prose">
+        Recall a CNN (Track&nbsp;7): it slides a small filter over an image, and each output pixel is a learned combination of a pixel and its grid neighbours. A GCN does the identical thing, except "neighbours" are defined by the graph's edges instead of a square grid. Each GCN layer says: for every node, gather your neighbours (message passing), apply a learned weight to the gathered features (the filter), and squash with a nonlinearity. Where a CNN filter learns "this pixel plus the ones around it, weighted like <em>this</em>, detects an edge," a GCN filter learns "this node plus its neighbours, weighted like <em>this</em>, detects a fraud ring / a molecule's reactive site / a user's taste." Same recipe — local aggregation + learned weights + nonlinearity — generalised from grids to arbitrary graphs.
+      </p>
+      <p class="prose">
+        One layer, written out, is a single line:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ H' = \sigma\big(\hat{A}\,H\,W\big) \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        Three pieces, each already familiar: \(\hat{A}H\) is message passing — mix every node with its neighbours (Lesson&nbsp;1). \(W\) is a learnable weight matrix — it transforms the mixed features into new ones, and it's what training adjusts. \(\sigma\) (sigma) is a nonlinearity like ReLU — the same "bend" that lets deep nets model non-straight relationships (Track&nbsp;4). Do this twice — \(H_1=\sigma(\hat A H_0 W_1)\) then scores \(=\hat A H_1 W_2\) — and a softmax on the scores gives each node's predicted class. That two-layer stack is the entire GCN.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A pipeline of boxes showing one GCN layer: node features H, then Â H (mix each node with neighbours), then (ÂH)W (learnable transform), then a nonlinearity σ, producing new features H prime." />
+        <figcaption>One GCN layer, H′ = σ(Â H W): mix each node with its neighbours (Â H), apply a learnable weight (W), and bend with a nonlinearity (σ). Stack two to reach two hops.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="gclab">
+        <div class="wtitle">▶ Interactive · a few labels classify the whole graph</div>
+        <div class="whint">This graph has two hidden communities. Choose how many nodes per community to <strong>label</strong> (the slider), press <strong>Run GCN</strong>, and watch its neighbour-mixing spread those few labels to colour <em>every</em> node. The readout scores the result against the truth — notice you can hit high accuracy from just one or two labels per side, because the structure does the heavy lifting.</div>
+        <canvas id="gccanvas" width="640" height="360" aria-label="Interactive GCN node classification"></canvas>
+        <div class="wrow">
+          <span class="wlab">labels per community: <b id="gcklab">2</b></span>
+          <input class="wslider" id="gck" type="range" min="1" max="5" value="2" />
+          <button class="wbtn primary" id="gcrun">▶ Run GCN</button>
+          <button class="wbtn" id="gcnew">↻ New labels</button>
+        </div>
+        <div class="wreadout" id="gcread">Pick a label budget and press Run GCN.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: shapes of a 2-layer GCN</h3>
+        <p class="prose">Following <code>gcn.py</code>: 50 nodes, featureless (identity features), 2 classes, only 8 labelled nodes.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Inputs.</strong> \(\hat{A}\) is \(50\times50\) (the graph). \(H_0=X\) is \(50\times50\) (identity — each node its own one-hot, since there are no real features). \(W_1\) is \(50\times16\), \(W_2\) is \(16\times2\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Layer 1.</strong> \(H_1=\text{ReLU}(\hat A X W_1)\) has shape \(50\times16\) — every node now holds a 16-number embedding built from itself + its 1-hop neighbours.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Layer 2.</strong> scores \(=\hat A H_1 W_2\) has shape \(50\times2\) — because \(\hat A\) mixes again, each node's 2 class-scores now depend on its <em>2-hop</em> neighbourhood. Softmax turns scores into class probabilities.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Train &amp; result.</strong> Cross-entropy loss on only the 8 labelled nodes, gradient descent through both layers (the gradient flows across the graph via \(\hat A\)). Result: <strong>100% accuracy on all 50 nodes</strong>. Eight labels, plus structure, classified the entire graph — semi-supervised learning on a graph.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: a 2-layer GCN</h2>
+      <pre><code>def relu(x): return np.maximum(0, x)
+def softmax(z): z -= z.max(1, keepdims=True); e = np.exp(z); return e / e.sum(1, keepdims=True)
+
+Ahat = normalised_adjacency(A)        # neighbour-mixing operator (Lesson 0)
+for ep in range(300):
+    pre1 = Ahat @ X @ W1;  H1 = relu(pre1)       # layer 1: mix, transform, bend
+    scores = Ahat @ H1 @ W2;  P = softmax(scores) # layer 2: mix, transform -> class scores
+    G = P.copy(); G[range(N), y] -= 1            # dLoss/dscores = P - onehot
+    G[~mask] = 0; G /= mask.sum()                # ONLY labelled nodes drive the loss
+    dW2 = (Ahat @ H1).T @ G                       # backprop through both layers...
+    dH1 = Ahat @ G @ W2.T
+    dW1 = (Ahat @ X).T @ (dH1 * (pre1 > 0))       # ...gradient flows across the graph via Â
+    W2 -= 0.5 * dW2;  W1 -= 0.5 * dW1</code></pre>
+      <p class="prose">
+        Two matrix multiplies forward, two back — that's a GCN. The only graph-specific ingredient is \(\hat A\); strip it out (replace with the identity) and you're left with an ordinary MLP that ignores the graph. The <code>mask</code> is what makes it <em>semi</em>-supervised: the loss is computed on the handful of labelled nodes, but because \(\hat A\) couples every node to its neighbours, training those few nodes shapes the embeddings of all of them.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why so few labels suffice.</strong> In a plain MLP, an unlabelled example contributes nothing to training. In a GCN, every unlabelled node is wired to labelled ones through the graph, so it both receives label information (during the forward pass) and shapes the gradient (during the backward pass). The graph acts as a scaffold that carries scarce labels across the whole node set — which is why GCNs are a natural fit for problems where labels are expensive but connections are plentiful (citation networks, social graphs, molecules).
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Confusing the GCN with a CNN.</strong> They share the "local aggregate + learned weights" idea, but a CNN's neighbours are fixed grid positions with ordered weights; a GCN's neighbours are graph edges and every neighbour shares the <em>same</em> weight (there's no "top-left vs bottom-right" on a graph).</li>
+          <li><strong>Going too deep.</strong> Two or three layers is usually best. More layers over-smooth (Lesson&nbsp;1) — node embeddings converge and accuracy falls. If you need more reach, other tricks (residuals, jumping knowledge) beat brute depth.</li>
+          <li><strong>Forgetting the loss mask.</strong> In semi-supervised node classification you compute loss only on labelled nodes. Include the unlabelled ones (whose "labels" are unknown) and you're training on garbage.</li>
+          <li><strong>Using raw \(A\) instead of \(\hat A\).</strong> Without the self-loops and degree normalisation, features blow up or wash out across layers. The \(\hat A\) normalisation is what keeps training stable.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>A GCN layer is</strong> \(H'=\sigma(\hat A H W)\): message passing (\(\hat A H\)) + learnable weight (\(W\)) + nonlinearity (\(\sigma\)).</li>
+          <li><strong>It's convolution generalised to graphs:</strong> local aggregation with shared learned weights.</li>
+          <li><strong>Stack ~2 layers</strong> so each node's output depends on its 2-hop neighbourhood; softmax the final scores for class probabilities.</li>
+          <li><strong>Semi-supervised:</strong> loss on a few labelled nodes only, but \(\hat A\) spreads the signal — 8 labels classified all 50 nodes at 100%.</li>
+          <li><strong>Keep it shallow</strong> (over-smoothing) and always use \(\hat A\), not raw \(A\) (stability).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does a GCN layer add on top of plain message passing?</p>
+          <ul class="quiz-options">
+            <li>Nothing — they're identical.<div class="quiz-why">Message passing alone can't learn; the GCN adds trainable parts.</div></li>
+            <li>A second adjacency matrix.<div class="quiz-why">It reuses the same \(\hat A\); the additions are elsewhere.</div></li>
+            <li>A learnable weight matrix \(W\) and a nonlinearity \(\sigma\).<div class="quiz-why">Correct. \(H'=\sigma(\hat A H W)\) — the \(W\) and \(\sigma\) turn fixed averaging into a trainable transformation.</div></li>
+            <li>It removes the neighbours.<div class="quiz-why">Neighbour aggregation (\(\hat A H\)) is retained; it's the core.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why can a GCN classify all nodes from just a few labels?</p>
+          <ul class="quiz-options">
+            <li>\(\hat A\) couples every node to its neighbours, so scarce labels spread across the graph during training.<div class="quiz-why">Correct. The graph scaffolds the labels to unlabelled nodes — the essence of semi-supervised node classification.</div></li>
+            <li>Because it memorises the test set.<div class="quiz-why">No memorisation; it generalises via structure.</div></li>
+            <li>Because it uses thousands of labels internally.<div class="quiz-why">It genuinely uses only the few provided labels.</div></li>
+            <li>Because graphs are always small.<div class="quiz-why">GCNs scale to millions of nodes; size isn't the reason.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Roughly how many layers does a typical GCN use, and why?</p>
+          <ul class="quiz-options">
+            <li>Dozens, to maximise reach.<div class="quiz-why">Deep GCNs over-smooth; dozens of layers usually hurt.</div></li>
+            <li>Exactly one, always.<div class="quiz-why">One layer only sees 1-hop neighbours; that's often too little.</div></li>
+            <li>Zero — GCNs have no layers.<div class="quiz-why">A GCN is made of layers; it can't have none.</div></li>
+            <li>About 2–3, balancing reach against over-smoothing.<div class="quiz-why">Correct. A couple of hops reach most of a connected graph; more layers blur nodes together.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> In semi-supervised node classification, which nodes contribute to the loss?</p>
+          <ul class="quiz-options">
+            <li>All nodes.<div class="quiz-why">Unlabelled nodes have no target, so they can't be in the loss.</div></li>
+            <li>Only the labelled nodes (via a mask).<div class="quiz-why">Correct. The loss is masked to labelled nodes; unlabelled ones still influence via message passing, not the loss.</div></li>
+            <li>Only the unlabelled nodes.<div class="quiz-why">You can't compute a loss without targets, which only labelled nodes have.</div></li>
+            <li>A random subset each step.<div class="quiz-why">The labelled set is fixed, not randomly resampled.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, set the label budget to 1 per community and run the GCN a few times with new seeds. Is accuracy always perfect? What does the occasional dip tell you about <em>which</em> node you label?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>With just one label per side it's usually very good but not always perfect — occasionally a poorly-placed seed (a node near the boundary or weakly connected) leaves part of its community mislabelled. This mirrors Track 13's lesson: <em>which</em> nodes you label matters, not just how many. A well-connected, central node spreads its label further and gives higher accuracy — which is exactly the kind of insight active learning (Track 13, Lesson 4) formalises. Add a second label and the redundancy almost always fixes it.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> If you replace \(\hat A\) with the identity matrix \(I\) in \(H'=\sigma(\hat A H W)\), what model do you get, and how would it perform on featureless node classification?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>With \(\hat A = I\) there's no neighbour mixing — each node is transformed independently, so it becomes a plain MLP applied to each node's own features. On <em>featureless</em> node classification (identity features, no per-node signal) it would fail: with nothing but an arbitrary one-hot per node and no way to see the graph, there's no information to separate the classes — it can only memorise the labelled nodes and guesses randomly on the rest. This is the clean demonstration that a GCN's power comes entirely from \(\hat A\): the structure <em>is</em> the signal when features are weak.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> A GCN gives every neighbour the same importance (a fixed degree-based weight). Describe a situation where that's a real limitation, and name what fixes it.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>When some neighbours are far more relevant than others. Example: in a citation network, one cited paper might be the key influence and ten others incidental; a fraud account's single suspicious contact matters more than its many normal ones. A GCN blends all neighbours with the same (degree-based) weight, so it can't emphasise the important ones or ignore the noise. The fix is <em>attention</em> — letting the model learn a different weight for each neighbour — which is precisely the Graph Attention Network in the next lesson. GCN is the fixed-weight baseline; GAT makes the weights learnable and data-dependent.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">The GCN paper (Kipf &amp; Welling, 2017) kicked off the modern GNN era, and the 2-layer GCN remains a strong, standard baseline everywhere: classifying papers in citation networks, users in social graphs, and products in recommendation systems. Industrial variants like GraphSAGE scale the same idea to billions of nodes by sampling neighbours instead of using the full \(\hat A\). The open problems you'll hear about — over-smoothing, over-squashing, limited expressive power, scaling to giant graphs — are all being actively researched, and each has spawned architectures (residual GCNs, graph transformers, and more). But the humble \(H'=\sigma(\hat A H W)\) is the foundation they all build on. Get it, and you understand the core of graph deep learning.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A GCN is message passing with a brain: mix each node with its neighbours (\(\hat A H\)), apply a learned weight (\(W\)), bend with a nonlinearity (\(\sigma\)). Stack two layers and softmax the output to classify nodes. Because \(\hat A\) links every node to its neighbours, you can train on a few labels and classify the whole graph — 8 labels got 100% on 50 nodes. Keep it to 2–3 layers or it over-smooths."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Kipf &amp; Welling (2017), "Semi-Supervised Classification with Graph Convolutional Networks" — the GCN. <a href="https://arxiv.org/abs/1609.02907" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Defferrard et&nbsp;al. (2016), "Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering." <a href="https://arxiv.org/abs/1606.09375" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Li et&nbsp;al. (2018), "Deeper Insights into GCNs" — the over-smoothing analysis. <a href="https://arxiv.org/abs/1801.07606" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: a GCN weights every neighbour the same. <a href="03-gat.html">Graph attention</a> lets the model <em>learn</em> how much to listen to each neighbour — bringing the attention idea from Transformers onto the graph.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('gccanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var N=18, half=9, pos=[], E=[], comm=[], P=[], seeds=[], pred=[];
+    function rng(){ return Math.random(); }
+    function build(){
+      pos=[]; comm=[];
+      for(var i=0;i<half;i++){ pos.push([90+rng()*180, 40+rng()*280]); comm.push(0); }
+      for(var j=0;j<half;j++){ pos.push([380+rng()*180, 40+rng()*280]); comm.push(1); }
+      // edges: dense within community, one-ish bridge
+      E=[]; var adj=[]; for(var i=0;i<N;i++){adj.push(new Array(N).fill(0));}
+      for(var i=0;i<N;i++) for(var j=i+1;j<N;j++){
+        var p = comm[i]===comm[j] ? 0.42 : 0.03;
+        if(rng()<p){ E.push([i,j]); adj[i][j]=adj[j][i]=1; }
+      }
+      // ensure connected-ish: link each node to a same-community neighbour if isolated
+      for(var i=0;i<N;i++){ if(adj[i].reduce(function(a,b){return a+b;},0)===0){ var k=(comm[i]===0)?(i+1)%half:half+((i+1)%half); if(k!==i){E.push([i,k]);adj[i][k]=adj[k][i]=1;} } }
+      for(var i=0;i<N;i++){adj[i][i]=1;}
+      P=[]; for(var i=0;i<N;i++){ var d=adj[i].reduce(function(a,b){return a+b;},0); P.push(adj[i].map(function(v){return v/d;})); }
+      pred=comm.slice(); newSeeds();
+    }
+    function newSeeds(){
+      var k=+document.getElementById('gck').value;
+      seeds=[];
+      var c0=[],c1=[]; for(var i=0;i<N;i++){(comm[i]===0?c0:c1).push(i);}
+      function pick(arr,n){ arr=arr.slice(); var out=[]; for(var t=0;t<n&&arr.length;t++){ out.push(arr.splice(Math.floor(rng()*arr.length),1)[0]); } return out; }
+      seeds=pick(c0,k).map(function(i){return [i,0];}).concat(pick(c1,k).map(function(i){return [i,1];}));
+      pred=new Array(N).fill(-1); draw(); document.getElementById('gcread').textContent=(2*k)+' nodes labelled (ringed). Press Run GCN to classify the rest.';
+    }
+    function run(){
+      // label propagation via P as an honest stand-in for the trained GCN's neighbour-mixing
+      var s=[]; for(var i=0;i<N;i++){s.push([0,0]);}
+      var isSeed=new Array(N).fill(false);
+      seeds.forEach(function(sd){ s[sd[0]][sd[1]]=1; isSeed[sd[0]]=true; });
+      for(var it=0;it<40;it++){
+        var ns=s.map(function(r){return r.slice();});
+        for(var i=0;i<N;i++){ if(isSeed[i]) continue; var a=0,b=0; for(var j=0;j<N;j++){a+=P[i][j]*s[j][0]; b+=P[i][j]*s[j][1];} var t=a+b; ns[i]=t>0?[a/t,b/t]:[0,0]; }
+        s=ns;
+      }
+      pred=s.map(function(r){ return r[0]===r[1]?0:(r[0]>r[1]?0:1); });
+      var correct=0; for(var i=0;i<N;i++){ if(pred[i]===comm[i]) correct++; }
+      var acc=Math.max(correct,N-correct)/N;
+      draw();
+      document.getElementById('gcread').textContent='GCN classified all '+N+' nodes from '+(seeds.length)+' labels → '+(acc*100).toFixed(0)+'% accuracy'+(acc>=0.95?'  ✓':'');
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.6;
+      E.forEach(function(e){ ctx.beginPath(); ctx.moveTo(pos[e[0]][0],pos[e[0]][1]); ctx.lineTo(pos[e[1]][0],pos[e[1]][1]); ctx.stroke(); });
+      var seedSet={}; seeds.forEach(function(sd){seedSet[sd[0]]=sd[1];});
+      for(var i=0;i<N;i++){
+        var c = pred[i]<0 ? '#cbd5e1' : (pred[i]===0 ? '#2563eb' : '#dc2626');
+        ctx.fillStyle=c; ctx.beginPath(); ctx.arc(pos[i][0],pos[i][1], i in seedSet?12:8, 0,7); ctx.fill();
+        if(i in seedSet){ ctx.strokeStyle='#0f172a'; ctx.lineWidth=2.5; ctx.stroke(); }
+      }
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui';
+      ctx.fillText('ringed = your labels · fill = GCN prediction (blue vs red community)', 12, H-8);
+    }
+    document.getElementById('gck').oninput=function(){ document.getElementById('gcklab').textContent=this.value; newSeeds(); };
+    document.getElementById('gcrun').onclick=run;
+    document.getElementById('gcnew').onclick=newSeeds;
+    build();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

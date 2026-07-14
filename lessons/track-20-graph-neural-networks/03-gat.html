@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t20-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph Attention Networks · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Graph Attention Networks: learning which neighbours matter</h1>
+      <p class="subtitle">A GCN treats every neighbour as equally important. But some neighbours are signal and some are noise. A GAT learns a weight for each neighbour — the same attention idea that powers Transformers, now on a graph — so a node can lean on the neighbours that actually help.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~20 min</span>
+        <span class="chip">Builds on: Lesson 2, Track 9</span>
+      </div>
+
+      <p class="lead prose">
+        The GCN has one blunt assumption baked in: when a node aggregates its neighbours, they all get essentially the same weight (a fixed factor set by their degrees). But real neighbourhoods aren't uniform — a paper has one key influence among many incidental citations; a person has a few close friends among many acquaintances; a fraud account has one telling connection amid ordinary ones. Forcing every neighbour to count the same throws away exactly the distinction you often care about. The <span class="newterm">Graph Attention Network</span> (GAT) fixes this by <em>learning</em> a weight — an <span class="newterm">attention score</span> — for each neighbour, so the model can pour most of its "listening" into the neighbours that matter and tune out the rest. If you've met attention in Transformers (Track&nbsp;9), this is the same mechanism, restricted to run only along the graph's edges. This lesson builds a GAT layer from scratch — including its hand-derived, gradient-checked backpropagation — and confirms it learns to attend to the right neighbours.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: not all neighbours are equally worth hearing</h2>
+      <p class="prose">
+        Imagine deciding what to believe about a news event by asking the people around you. A GCN-style approach would average everyone's opinion equally — including the people who have no idea. Attention is what you actually do: you weight opinions by how relevant and trustworthy each person is, effectively ignoring the noise and focusing on the few who know. A GAT gives a node this skill. For each neighbour, it computes a relevance score from the two nodes' features, turns those scores into weights that add up to 1 (a softmax over the neighbours), and aggregates the neighbours using <em>those</em> weights instead of a flat average. The weights are learned end-to-end, so the network discovers, from the task, which kinds of neighbours to trust.
+      </p>
+      <p class="prose">
+        The recipe for node \(i\)'s attention over a neighbour \(j\):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ e_{ij} = \text{LeakyReLU}\big(\mathbf{a}^\top[\,W h_i \,\Vert\, W h_j\,]\big), \qquad \alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k\in\mathcal{N}(i)} \exp(e_{ik})}, \qquad h_i' = \sigma\!\Big(\sum_{j} \alpha_{ij}\, W h_j\Big) \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        Piece by piece: \(W h_i\) and \(W h_j\) are the two nodes' features after a shared learnable transform; the \(\Vert\) means "stick them side by side," and \(\mathbf{a}\) (a learnable vector) scores how relevant \(j\) is to \(i\), with a LeakyReLU bend. That raw score \(e_{ij}\) is turned into a proper weight \(\alpha_{ij}\) by a <em>softmax over node \(i\)'s neighbours</em> — so the weights are all positive and sum to 1 (they compete for attention). Finally, node \(i\)'s new features are the attention-weighted sum of its neighbours. Compare with the GCN's \(H'=\sigma(\hat A H W)\): the only change is that the fixed \(\hat A\) weights become learned, data-dependent \(\alpha_{ij}\) weights.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Two panels of the same node with four neighbours. Left (GCN): all four edges equally thick. Right (GAT): edges have different thicknesses labelled with learned attention weights 0.90, 0.15, 0.75, 0.20, so some neighbours count much more than others." />
+        <figcaption>A GCN weights every neighbour the same (left); a GAT learns an attention weight per neighbour (right), so it can lean on the informative ones and ignore the rest.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="gatlab">
+        <div class="wtitle">▶ Interactive · watch attention find the useful neighbours</div>
+        <div class="whint">The centre node aggregates six neighbours: three <span style="color:#059669;font-weight:700">relevant</span> ones (same community, carrying the true signal) and three <span style="color:#94a3b8;font-weight:700">distracting</span> ones (noise). Slide from a raw <strong>GCN</strong> (all neighbours weighted equally) to a fully-trained <strong>GAT</strong> and watch the edges thicken toward the relevant neighbours — and the centre node's estimate snap to the correct value as the noise gets tuned out.</div>
+        <canvas id="gatcanvas" width="640" height="340" aria-label="Interactive graph attention"></canvas>
+        <div class="wrow">
+          <span class="wlab">GCN &nbsp;←&nbsp; training &nbsp;→&nbsp; GAT: <b id="gattlab">0.0</b></span>
+          <input class="wslider" id="gatt" type="range" min="0" max="100" value="0" />
+        </div>
+        <div class="wreadout" id="gatread">At 0 = a GCN: every neighbour weighted equally, so noise leaks in.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: attention as a softmax over neighbours</h3>
+        <p class="prose">A node has three neighbours with raw relevance scores \(e = [2.0,\ 0.5,\ -1.0]\). Turn them into attention weights and aggregate.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Softmax the scores.</strong> \(\exp(2.0)=7.39,\ \exp(0.5)=1.65,\ \exp(-1.0)=0.37\). Sum \(=9.41\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Weights.</strong> \(\alpha=[7.39,\,1.65,\,0.37]/9.41=[0.79,\,0.17,\,0.04]\). They're positive and add to 1 — the first neighbour gets most of the attention, the third almost none.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Aggregate.</strong> The node's new features are \(0.79\,(Wh_1) + 0.17\,(Wh_2) + 0.04\,(Wh_3)\) — dominated by neighbour 1, exactly as a GCN's flat \([0.33,0.33,0.33]\) never could be.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Where the scores come from.</strong> \(e_{ij}\) is computed from both nodes' features via the learnable \(\mathbf a\) and \(W\), and training adjusts them so relevant neighbours get high scores. In <code>gat.py</code> we hand-derive the backprop for all of this, <strong>gradient-check it</strong> (analytic vs numeric match to 5 decimals), then train — reaching 100% node accuracy with average attention on same-community edges (0.134) clearly above cross-community (0.090). It learned to look the right way.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: the GAT attention layer</h2>
+      <pre><code>M  = X @ W                          # shared transform of every node's features
+e1 = M @ a1;  e2 = M @ a2           # split the attention vector a = [a1; a2]
+Zraw = e1 + e2.T                    # additive score for every (i,j) pair
+Zl   = leaky_relu(Zraw)
+Zm   = np.where(edge_mask, Zl, -1e9) # only real neighbours compete for attention
+alpha = softmax_rows(Zm)            # attention weights: each node's row sums to 1
+O = alpha @ M                       # aggregate neighbours, weighted by attention
+# backprop for W, a1, a2 is derived by hand and gradient-checked (see gat.py)</code></pre>
+      <p class="prose">
+        The masked softmax is the crux: writing scores for all pairs and setting non-edges to \(-\infty\) (which softmax turns into weight 0) lets us express the whole layer as clean matrix operations, so the aggregation \(O=\alpha M\) only ever mixes real neighbours. Because it's all standard matrix ops, the backward pass is derivable by hand — and we check it against numerical gradients so we <em>know</em> it's right, not just hope so.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Multi-head attention, again.</strong> Just like Transformers, GATs usually run several attention "heads" in parallel — each learns its own notion of relevance (one head might focus on same-community neighbours, another on high-degree hubs) — and their results are combined. It's the exact multi-head trick from Track&nbsp;9, transplanted onto the graph. The deep connection: a Transformer is essentially a GAT on a <em>fully-connected</em> graph where every token attends to every other. Graphs and sequences meet in attention.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking GAT always beats GCN.</strong> Attention adds parameters and cost; when neighbours really are roughly equally useful, a GCN's flat weighting is just as good and cheaper. GAT wins when neighbour importance genuinely varies.</li>
+          <li><strong>Forgetting the softmax is per-node.</strong> Each node's attention weights sum to 1 over <em>its own</em> neighbours — not globally. A high-degree node still splits one unit of attention among more neighbours.</li>
+          <li><strong>Skipping the mask.</strong> Attention must be computed only over actual neighbours. Let a node attend to non-neighbours and you've silently turned the graph into a fully-connected one.</li>
+          <li><strong>Trusting hand-derived gradients without checking.</strong> Attention backprop is fiddly (a softmax inside a sum). Always gradient-check: compare your analytic gradient to a finite-difference estimate — they should match to several decimals, as they do in <code>gat.py</code>.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>GAT learns a weight \(\alpha_{ij}\) per neighbour</strong> instead of the GCN's fixed degree-based weight.</li>
+          <li><strong>Scores → softmax over a node's neighbours → weighted aggregate</strong> (eq 3.1); weights are positive and sum to 1.</li>
+          <li><strong>It's Transformer attention on a graph;</strong> multi-head GAT runs several attentions in parallel.</li>
+          <li><strong>Wins when neighbour importance varies;</strong> otherwise a GCN is simpler and just as good.</li>
+          <li><strong>Always mask to real edges and gradient-check</strong> the attention backprop (analytic vs numeric).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is the core difference between a GAT and a GCN?</p>
+          <ul class="quiz-options">
+            <li>A GAT has no neighbours.<div class="quiz-why">It still aggregates neighbours — just with learned weights.</div></li>
+            <li>A GAT uses no weights at all.<div class="quiz-why">It adds attention weights on top of the usual transform.</div></li>
+            <li>A GAT learns a per-neighbour attention weight; a GCN uses a fixed degree-based weight.<div class="quiz-why">Correct. Attention makes the neighbour weighting data-dependent instead of fixed.</div></li>
+            <li>A GAT can't be trained.<div class="quiz-why">It trains end-to-end like any GNN.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> The attention weights \(\alpha_{ij}\) for a given node \(i\)...</p>
+          <ul class="quiz-options">
+            <li>are positive and sum to 1 over \(i\)'s neighbours (a softmax).<div class="quiz-why">Correct. Each node distributes one unit of attention across its own neighbours.</div></li>
+            <li>can be any real numbers.<div class="quiz-why">The softmax constrains them to be positive and normalised.</div></li>
+            <li>sum to 1 across the whole graph.<div class="quiz-why">Normalisation is per-node, not global.</div></li>
+            <li>are fixed before training.<div class="quiz-why">They're computed from features and learned, not fixed.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> When is a GAT most worth its extra cost over a GCN?</p>
+          <ul class="quiz-options">
+            <li>When the graph has no edges.<div class="quiz-why">With no edges there's nothing to attend to.</div></li>
+            <li>When all neighbours are equally useful.<div class="quiz-why">Then flat GCN weighting is just as good and cheaper.</div></li>
+            <li>When you want fewer parameters.<div class="quiz-why">GAT adds parameters; it's not the lighter option.</div></li>
+            <li>When some neighbours matter much more than others.<div class="quiz-why">Correct. Learned per-neighbour weights pay off exactly when importance varies.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Why gradient-check the GAT's backpropagation?</p>
+          <ul class="quiz-options">
+            <li>To make training faster.<div class="quiz-why">Gradient checking is about correctness, not speed (it's actually slow).</div></li>
+            <li>The attention backprop is error-prone, so comparing analytic vs numerical gradients confirms it's correct.<div class="quiz-why">Correct. A softmax inside a sum is easy to get subtly wrong; the finite-difference check catches mistakes.</div></li>
+            <li>To remove the need for a loss function.<div class="quiz-why">You still need a loss; the check verifies its gradient.</div></li>
+            <li>Because GATs can't use autograd.<div class="quiz-why">They can; we derive it by hand here for understanding and verify it.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, slide from GCN (0) to GAT (100). Watch the centre node's estimate and the edge thicknesses. What does the fully-trained GAT do that the GCN can't?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At 0 (GCN) all six edges are equally thick, so the three noisy neighbours drag the estimate away from the true value. As you slide toward GAT, the edges to the relevant neighbours thicken and the noisy ones thin to nearly nothing, and the estimate snaps to the correct value. The GAT learned to <em>ignore</em> the unhelpful neighbours — something a GCN, forced to weight everyone equally, structurally cannot do. That selective focus is the whole value of attention on graphs.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> A Transformer (Track 9) lets every token attend to every other token. Explain how that is a special case of a GAT.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A Transformer is a GAT on a <em>fully-connected</em> graph: treat each token as a node and put an edge between every pair, so each token's attention is a softmax over all other tokens — exactly self-attention. The GAT's edge mask is what generalises it: restrict attention to a sparse graph's real edges and you get a GAT; make the graph complete and you recover the Transformer. This is why graph transformers (attention over all node pairs, plus positional/structural encodings) are a natural bridge between the two worlds, and why understanding one deeply illuminates the other.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Attention weights are often held up as "explanations" ("the model focused on this neighbour"). Give one reason to be cautious about reading them that way.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>High attention on a neighbour doesn't guarantee that neighbour <em>caused</em> the prediction. Attention is one component of a deep, nonlinear computation; a neighbour with low attention can still influence the output through later layers, and different attention patterns can yield the same prediction (attention is not unique). Empirically, attention weights often correlate with importance but sometimes diverge from more rigorous attribution methods. So attention is a useful, cheap <em>hint</em> about what the model is using — worth inspecting — but not a faithful causal explanation on its own. This mirrors the broader interpretability caution from Track 23: a plausible-looking explanation is not automatically a correct one.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">GAT and its multi-head variants are standard tools wherever neighbour importance varies: molecular property prediction (some bonds matter more), recommendation (some interactions are more telling), and knowledge graphs. The bigger story is the convergence with Transformers: graph transformers now apply full attention over all node pairs with clever structural encodings, blurring the line between "GNN" and "Transformer." The same attention mechanism you first met for language turns out to be a general-purpose tool for reasoning over <em>any</em> set of related things — tokens, nodes, pixels, or objects. Attention is arguably the most important single idea in modern deep learning, and here you've seen it live on graphs.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A GAT is a GCN that learns how much to listen to each neighbour. It scores every neighbour from their features, softmaxes the scores into weights that sum to 1, and aggregates neighbours using those weights — so it can focus on the ones that matter and ignore noise. It's Transformer attention restricted to the graph's edges, and we verify its hand-derived gradients with a numerical check."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Veličković et&nbsp;al. (2018), "Graph Attention Networks" — the GAT. <a href="https://arxiv.org/abs/1710.10903" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Brody et&nbsp;al. (2022), "How Attentive are Graph Attention Networks?" (GATv2). <a href="https://arxiv.org/abs/2105.14491" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Ying et&nbsp;al. (2021), "Do Transformers Really Perform Bad for Graph Representation?" (Graphormer). <a href="https://arxiv.org/abs/2106.05234" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: we've labelled <em>nodes</em>. But many tasks label a whole <em>graph</em> — is this molecule toxic? <a href="04-graph-classification.html">Graph-level tasks</a> pool node embeddings into a single graph vector, and survey where GNNs are changing the world.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('gatcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cx=320, cy=170;
+    // 6 neighbours: 3 relevant (value ~ +1), 3 noisy (random)
+    var nb=[{x:150,y:60,rel:true,v:1.0},{x:120,y:180,rel:true,v:0.9},{x:170,y:290,rel:true,v:1.1},
+            {x:490,y:70,rel:false,v:-0.8},{x:520,y:190,rel:false,v:0.3},{x:470,y:290,rel:false,v:-1.2}];
+    function draw(){
+      var t=+document.getElementById('gatt').value/100;
+      document.getElementById('gattlab').textContent=t.toFixed(1);
+      // attention: interpolate from equal (1/6) toward concentrated-on-relevant
+      var raw=nb.map(function(n){ return n.rel ? 2.0 : -1.5; });          // learned relevance
+      var ex=raw.map(function(r){ return Math.exp(r*t*3); });             // t scales sharpness
+      var Z=ex.reduce(function(a,b){return a+b;},0);
+      var alpha=ex.map(function(e){ return (1-t)*(1/6) + t*(e/Z); });     // blend equal -> softmax
+      var est=0; for(var i=0;i<6;i++){ est+=alpha[i]*nb[i].v; }
+      ctx.clearRect(0,0,W,H);
+      for(var i=0;i<6;i++){
+        ctx.strokeStyle=nb[i].rel?'#059669':'#94a3b8'; ctx.lineWidth=1+alpha[i]*34;
+        ctx.globalAlpha=0.75; ctx.beginPath(); ctx.moveTo(nb[i].x,nb[i].y); ctx.lineTo(cx,cy); ctx.stroke(); ctx.globalAlpha=1;
+      }
+      for(var i=0;i<6;i++){
+        ctx.fillStyle=nb[i].rel?'#a7f3d0':'#e2e8f0'; ctx.strokeStyle=nb[i].rel?'#059669':'#94a3b8'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(nb[i].x,nb[i].y,17,0,7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#334155'; ctx.font='bold 10px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText((alpha[i]*100).toFixed(0)+'%', nb[i].x, nb[i].y);
+      }
+      ctx.fillStyle='#2563eb'; ctx.beginPath(); ctx.arc(cx,cy,24,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('node i', cx, cy);
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle='#059669'; ctx.font='11px system-ui'; ctx.fillText('relevant', 60, 24);
+      ctx.fillStyle='#94a3b8'; ctx.fillText('noise', 560, 24);
+      var err=Math.abs(est-1.0);
+      document.getElementById('gatread').textContent=(t<0.05?'GCN (t=0): equal weights → ':'GAT (t='+t.toFixed(1)+'): ')+
+        'node i\'s estimate = '+est.toFixed(2)+' (true = +1.00, error '+err.toFixed(2)+')'+(t>0.9?'  ✓ attention tuned out the noise':'');
+    }
+    document.getElementById('gatt').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

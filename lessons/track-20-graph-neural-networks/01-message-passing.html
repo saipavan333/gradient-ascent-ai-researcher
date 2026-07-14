@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t20-l01">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Message passing · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Message passing: how information moves on a graph</h1>
+      <p class="subtitle">One idea sits underneath every graph neural network: each node updates itself by gathering messages from its neighbours. Do it once and a node knows its immediate surroundings; repeat and news travels across the whole graph. This is the beating heart of the track.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 1</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Lesson 0</span>
+      </div>
+
+      <p class="lead prose">
+        Now that a graph is numbers, how does a node <em>learn</em> from where it sits? The answer — the single operation that defines this whole field — is <span class="newterm">message passing</span>. Each node looks at its neighbours, collects a "message" from each (for now, just their current feature values), and combines those messages into an updated version of itself. That's one round. The magic is in repetition: after one round a node reflects its immediate neighbours; after two rounds it reflects neighbours-of-neighbours; after \(k\) rounds it has pooled information from everything within \(k\) hops. Stacking rounds is how a signal — a label, a feature, a rumour — flows outward across the graph. Remarkably, you don't even need training to see it work: in this lesson, planting one labelled node in each of two communities and just letting messages pass will colour in the entire graph correctly. Message passing is to graphs what convolution is to images: the fundamental, reusable local operation you stack into a deep model.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: gossip through a social network</h2>
+      <p class="prose">
+        Picture a rumour starting with one person. In round one, they tell their friends. In round two, those friends tell <em>their</em> friends. Within a few rounds, the whole connected crowd has heard it — and crucially, it spreads fast <em>within</em> a tight friend group and slowly <em>across</em> the sparse links between groups. Message passing is exactly this gossip, made precise: at each step every node replaces its value with a blend of its neighbours' values (and a bit of its own). Values that start high spread to nearby nodes; the empty gaps between communities slow the spread, so each community ends up agreeing with itself before the message leaks across.
+      </p>
+      <p class="prose">
+        The simplest "combine" is an average. If \(h_i\) is node \(i\)'s value, one round is: replace \(h_i\) with the average of itself and its neighbours. In matrix form that's a single multiply by the normalised adjacency \(\hat{A}\) from Lesson&nbsp;0:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ h_i^{\text{new}} = \frac{1}{\deg(i)+1}\Big(h_i + \sum_{j \in \mathcal{N}(i)} h_j\Big), \qquad \text{all at once: } \; H^{\text{new}} = \hat{A}\,H \]</span>
+        <span class="eqn-num">(1.1)</span>
+      </div>
+      <p class="prose">
+        Reading it: \(\mathcal{N}(i)\) (script-N of i) is the set of node \(i\)'s neighbours; the sum gathers their values; dividing by \(\deg(i)+1\) averages them together with the node's own value (the \(+1\) is the self-loop). Doing this for every node at once is just one matrix multiply, \(H^{\text{new}} = \hat{A}H\), where \(H\) stacks all the node values. One multiply by \(\hat{A}\) = one hop of message passing. That's the entire mechanism.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Left: a central node with green arrows pointing inward from its four neighbours, labelled 'aggregate'. Right: a small graph with a signal that has diffused, one community coloured red (+1) and the other blue (−1) with a pale node in between." />
+        <figcaption>Message passing: each node aggregates its neighbours (left). Repeat, and a signal diffuses across the graph, with each community settling on its own value (right).</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="mplab">
+        <div class="wtitle">▶ Interactive · plant a signal, watch it spread</div>
+        <div class="whint"><strong>Click any node</strong> to light it up (inject a +1 pulse). Then press <strong>Step</strong> to run one round of message passing — every node becomes the average of itself and its neighbours — or <strong>Run</strong> to animate. Watch the colour flow outward along the edges, racing through the dense community and trickling across the sparse bridge. <strong>Reset</strong> clears it.</div>
+        <canvas id="mpcanvas" width="640" height="360" aria-label="Interactive message passing"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="mpstep">▶ Step (one hop)</button>
+          <button class="wbtn" id="mprun">▶▶ Run</button>
+          <button class="wbtn" id="mpseed">◈ Seed both communities</button>
+          <button class="wbtn" id="mpreset">↻ Reset</button>
+        </div>
+        <div class="wreadout" id="mpread">Click a node to inject a signal, then press Step.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: two labels colour a whole graph</h3>
+        <p class="prose">This is the demo in <code>message_passing.py</code>: two communities, one labelled seed in each, pure diffusion — no training.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Seed.</strong> Put \(+1\) on one node in community A and \(-1\) on one node in community B. Every other node starts at 0 — unlabelled.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Pass messages.</strong> Each round, replace every node with the average of itself and its neighbours: \(H \leftarrow \hat{A}H\). The \(+1\) bleeds into community A's nodes; the \(-1\) bleeds into community B's.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Why it separates.</strong> Because edges are dense <em>inside</em> a community and sparse <em>between</em>, the \(+1\) floods community A long before it can trickle across the few bridge edges to B. After a handful of rounds, community A's nodes are all positive and B's all negative.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Read the answer.</strong> Take the sign of each node: positive → community A, negative → community B. In the validated run this matches the true communities <strong>100%</strong> of the time — two labels, spread by message passing, classified all 40 nodes. (This is graph-based semi-supervised learning, echoing Track&nbsp;13.)</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: message passing is one multiply</h2>
+      <pre><code>Aself = A + np.eye(N)
+Dinv  = np.diag(1.0 / Aself.sum(1))
+P = Dinv @ Aself                      # one message-passing step = average of neighbours
+
+h = np.zeros(N)
+h[seedA] =  1.0                       # one labelled node per community
+h[seedB] = -1.0
+for step in range(8):
+    h = P @ h                         # spread the signal one more hop each round
+
+pred = (h < 0).astype(int)            # sign of the diffused signal = predicted community</code></pre>
+      <p class="prose">
+        The loop is the whole algorithm, and its core is a single line: <code>h = P @ h</code>. Everything a GNN does is dressed-up versions of this — the next lesson simply inserts a learnable weight and a nonlinearity, turning "average your neighbours" into "learn <em>what</em> to take from your neighbours."
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Depth = reach.</strong> One layer sees 1 hop, two layers see 2 hops, and so on. This is why GNNs are usually shallow (2–3 layers): a few hops already reach most of a well-connected graph, and going too deep causes <em>over-smoothing</em> — every node averages toward the same value and they all blur together. Reach is a feature, but too much reach erases the distinctions you wanted to learn.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking one layer is enough to see the whole graph.</strong> One round only reaches direct neighbours. To pool information from \(k\) hops away you need \(k\) rounds (layers).</li>
+          <li><strong>Stacking too many layers.</strong> The opposite trap: after many rounds every node has averaged with everyone, so all node values converge — "over-smoothing." Distinct nodes become indistinguishable and accuracy drops.</li>
+          <li><strong>Forgetting the self-loop.</strong> Without \(+I\), a node's update throws away its own current value and is built purely from neighbours — usually you want it to remember some of itself.</li>
+          <li><strong>Assuming aggregation must be a mean.</strong> Sum, max, and attention-weighted averages are all valid aggregators, and they capture different things (a sum knows how <em>many</em> neighbours you have; a mean doesn't).</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Message passing:</strong> each node updates itself by aggregating its neighbours' features. Repeat to spread information.</li>
+          <li><strong>One hop = one multiply</strong> by \(\hat{A}\): \(H^{\text{new}}=\hat{A}H\). \(k\) layers reach \(k\) hops.</li>
+          <li><strong>Dense-within, sparse-between</strong> structure makes signals settle inside a community before leaking out — the basis of graph semi-supervised learning.</li>
+          <li><strong>Depth is reach,</strong> but too much depth causes <strong>over-smoothing</strong> (all nodes blur together) — so GNNs are usually 2–3 layers.</li>
+          <li><strong>Aggregators vary:</strong> mean, sum, max, or attention — each captures different neighbourhood information.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What happens in one round of message passing?</p>
+          <ul class="quiz-options">
+            <li>Every node is connected to every other node.<div class="quiz-why">The graph's edges don't change; only node features update.</div></li>
+            <li>Each node updates itself by aggregating its neighbours' features.<div class="quiz-why">Correct. That local gather-and-combine is the entire operation.</div></li>
+            <li>The adjacency matrix is retrained.<div class="quiz-why">The structure \(A\) is fixed; message passing updates features, not edges.</div></li>
+            <li>Nodes are removed from the graph.<div class="quiz-why">Nothing is removed; values are updated in place.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How far can information travel after \(k\) rounds (layers)?</p>
+          <ul class="quiz-options">
+            <li>Only to direct neighbours, always.<div class="quiz-why">That's one round; more rounds reach further.</div></li>
+            <li>Across the entire graph in one round.<div class="quiz-why">One round only reaches 1 hop, not the whole graph.</div></li>
+            <li>Up to \(k\) hops away.<div class="quiz-why">Correct. Each round extends the reach by one hop, so \(k\) layers pool \(k\)-hop neighbourhoods.</div></li>
+            <li>It never travels.<div class="quiz-why">Spreading information is the whole point.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why do very deep GNNs often perform worse?</p>
+          <ul class="quiz-options">
+            <li>They run out of memory.<div class="quiz-why">Memory isn't the conceptual issue here.</div></li>
+            <li>Graphs can't be deep.<div class="quiz-why">You can stack layers; the problem is what happens when you do.</div></li>
+            <li>The adjacency matrix becomes singular.<div class="quiz-why">Not the issue; \(\hat A\) stays well-defined.</div></li>
+            <li>Over-smoothing: after many rounds every node averages toward the same value and they blur together.<div class="quiz-why">Correct. Too much mixing erases the differences between nodes, hurting tasks that need those differences.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> In the two-community demo, why does the signal separate the communities so cleanly?</p>
+          <ul class="quiz-options">
+            <li>Dense links inside a community spread the signal fast, while sparse links between them slow the leak.<div class="quiz-why">Correct. The structure itself confines each seed's signal to its own community for several rounds.</div></li>
+            <li>Because the model was trained on labels.<div class="quiz-why">No training happens — it's pure diffusion.</div></li>
+            <li>Because there are exactly two nodes.<div class="quiz-why">There are many nodes; two are merely seeded.</div></li>
+            <li>Because the graph is directed.<div class="quiz-why">The demo graph is undirected; direction isn't the reason.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, inject a signal into one node and press Step repeatedly. Count how many steps it takes to reach a node three hops away, and keep going — what eventually happens to all the values?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It takes three steps for any signal to first reach a node three hops away (one hop per round) — a direct demonstration that depth equals reach. Keep stepping and every node's value drifts toward the same middling number: the signal spreads everywhere and averages out. That's over-smoothing in miniature — beyond a few rounds, message passing stops sharpening distinctions and starts erasing them, which is exactly why practical GNNs are shallow.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Message passing with a <em>mean</em> aggregator can't tell a node with 2 neighbours from one with 20 (both average to a similar value). Give a task where that matters, and a fix.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Any task where degree itself is the signal — e.g., spotting a fraud hub that suddenly connects to hundreds of accounts, or distinguishing a popular molecule atom from a rare one. A mean normalises degree away, so it can't see "how many." Fixes: use a <em>sum</em> aggregator (which grows with degree), append the degree as an explicit node feature, or use an aggregator that's provably able to count (the GIN architecture was designed exactly to be as discriminative as possible). The general lesson: choose the aggregator to match what your task needs to distinguish.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> The demo classifies nodes with <em>no training</em>, just diffusion. What does the trainable GCN in the next lesson add, and why is it worth the extra machinery?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Pure diffusion can only spread the raw label/feature values as-is; it has no way to <em>transform</em> features or learn which combinations matter. The GCN inserts a learnable weight matrix \(W\) and a nonlinearity at each hop: \(H'=\sigma(\hat A H W)\). That lets it reshape features (e.g., combine "age" and "purchase history" into a useful signal), learn task-specific representations, and handle rich node features — not just propagate a single number. Diffusion is the skeleton; \(W\) and \(\sigma\) add the muscle that turns message passing into a trainable model that can fit complicated node- and graph-level targets.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Message passing is the abstraction that unified the field: nearly every GNN — GCN, GraphSAGE, GAT, GIN — is a choice of "what message to send" and "how to aggregate." It powers Google Maps' arrival-time predictions (roads as a graph), AlphaFold's reasoning over protein residues, and recommendation at planetary scale. The frontier pushes on its known limits: over-smoothing (why deep GNNs struggle), over-squashing (too much information crammed through a bottleneck edge), and expressive power (what structures message passing provably <em>cannot</em> tell apart). Some of the newest work replaces fixed neighbour-hops with graph transformers — attention over the whole graph — which is a natural next step once you've met attention on graphs in Lesson&nbsp;3.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Message passing is the one move behind every GNN: each node updates itself by averaging in its neighbours, which is just multiplying by \(\hat A\). Repeat it and information flows outward — \(k\) layers reach \(k\) hops. Plant one label per community and pure diffusion colours the whole graph. Add a learnable weight to 'average your neighbours' and you've got a GCN."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Gilmer et&nbsp;al. (2017), "Neural Message Passing for Quantum Chemistry" — the unifying framework. <a href="https://arxiv.org/abs/1704.01212" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Hamilton et&nbsp;al. (2017), "Inductive Representation Learning on Large Graphs" (GraphSAGE). <a href="https://arxiv.org/abs/1706.02216" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Xu et&nbsp;al. (2019), "How Powerful are Graph Neural Networks?" (GIN, over-smoothing/expressivity). <a href="https://arxiv.org/abs/1810.00826" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: we make message passing <em>learnable</em>. The <a href="02-gcn.html">Graph Convolutional Network</a> inserts a weight matrix and a nonlinearity into each hop — and trains on just a few labels to classify every node in the graph.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('mpcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var pos=[[130,90],[210,60],[120,190],[230,180],[170,270],   // community A (left)
+             [430,90],[510,70],[420,190],[520,190],[470,280]];  // community B (right)
+    var E=[[0,1],[0,2],[1,3],[2,3],[2,4],[3,4],[0,3],[1,2],      // A internal
+           [5,6],[5,7],[6,8],[7,8],[7,9],[8,9],[5,8],[6,7],      // B internal
+           [4,9]];                                              // one bridge
+    var N=10, P=[], h=new Array(N).fill(0), timer=null, steps=0;
+    (function buildP(){
+      var A=[]; for(var i=0;i<N;i++){A.push(new Array(N).fill(0));}
+      E.forEach(function(e){A[e[0]][e[1]]=A[e[1]][e[0]]=1;});
+      for(var i=0;i<N;i++){A[i][i]=1;}
+      for(var i=0;i<N;i++){ var d=A[i].reduce(function(a,b){return a+b;},0); P.push(A[i].map(function(v){return v/d;})); }
+    })();
+    function step(){
+      var nh=new Array(N).fill(0);
+      for(var i=0;i<N;i++){ for(var j=0;j<N;j++){ nh[i]+=P[i][j]*h[j]; } }
+      h=nh; steps++; draw();
+      var spread=h.filter(function(v){return Math.abs(v)>0.02;}).length;
+      document.getElementById('mpread').textContent='step '+steps+': signal has reached '+spread+' of '+N+' nodes';
+    }
+    function col(v){
+      v=Math.max(-1,Math.min(1,v)); var t=(v+1)/2;   // blue(-1) -> white(0) -> red(+1)
+      var r=Math.round(255*(t>0.5?1:2*t));
+      var b=Math.round(255*(t<0.5?1:2*(1-t)));
+      var g=Math.round(120+135*(1-Math.abs(v)));
+      return 'rgb('+r+','+g+','+b+')';
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=2;
+      E.forEach(function(e){ ctx.beginPath(); ctx.moveTo(pos[e[0]][0],pos[e[0]][1]); ctx.lineTo(pos[e[1]][0],pos[e[1]][1]); ctx.stroke(); });
+      for(var i=0;i<N;i++){
+        ctx.fillStyle=col(h[i]); ctx.beginPath(); ctx.arc(pos[i][0],pos[i][1],16,0,7); ctx.fill();
+        ctx.strokeStyle='#475569'; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.fillStyle=Math.abs(h[i])>0.55?'#fff':'#334155'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(h[i].toFixed(1), pos[i][0], pos[i][1]);
+      }
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle='#64748b'; ctx.font='11px system-ui';
+      ctx.fillText('left cluster + right cluster share ONE bridge edge — watch the signal respect it', 12, H-10);
+    }
+    function stop(){ if(timer){clearInterval(timer);timer=null; var b=document.getElementById('mprun'); if(b)b.textContent='▶▶ Run';} }
+    cv.addEventListener('click',function(e){
+      var r=cv.getBoundingClientRect(); var x=(e.clientX-r.left)*(W/r.width), y=(e.clientY-r.top)*(H/r.height);
+      for(var i=0;i<N;i++){ if(Math.hypot(pos[i][0]-x,pos[i][1]-y)<18){ h[i]=1; steps=0; draw(); document.getElementById('mpread').textContent='injected +1 at node '+i+'. Press Step to spread it.'; return; } }
+    });
+    document.getElementById('mpstep').onclick=function(){ stop(); step(); };
+    document.getElementById('mprun').onclick=function(){ var b=document.getElementById('mprun'); if(timer){stop();return;} b.textContent='⏸ Pause'; timer=setInterval(step,650); };
+    document.getElementById('mpseed').onclick=function(){ stop(); h=new Array(N).fill(0); h[0]=1; h[9]=-1; steps=0; draw(); document.getElementById('mpread').textContent='seeded +1 in the left community, −1 in the right. Step and watch them separate.'; };
+    document.getElementById('mpreset').onclick=function(){ stop(); h=new Array(N).fill(0); steps=0; draw(); document.getElementById('mpread').textContent='Click a node to inject a signal, then press Step.'; };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t20-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph classification & applications · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Graph-level tasks: labelling a whole graph</h1>
+      <p class="subtitle">So far we labelled individual nodes. But the biggest wins — is this molecule a drug? is this transaction ring a fraud? — need a label for the <em>entire</em> graph. The trick is to pool many node embeddings into one graph vector, and it's how GNNs are quietly reshaping chemistry, medicine, and search.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 14 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Lesson 3</span>
+      </div>
+
+      <p class="lead prose">
+        Node classification (Lessons 2–3) answers "what is this node?" But many of the most valuable graph problems ask about the <em>whole graph</em>: Is this molecule toxic or therapeutic? Does this circuit of bank transfers form a money-laundering ring? Is this protein likely to bind that target? Each input is an entire graph, and the output is a single label. The challenge: a GNN produces one embedding <em>per node</em>, but graphs have different numbers of nodes, so you can't just concatenate them into a fixed vector. The solution is a <span class="newterm">readout</span> (also called graph pooling): after message passing gives every node an embedding, combine all of them — usually by averaging or summing — into one fixed-length vector that represents the whole graph, then classify that. Because a mean or a sum ignores node order and works for any node count, the readout gives you the permutation-invariance and size-flexibility that Lesson&nbsp;0 said a graph model must have. This lesson builds a graph classifier and then steps back to see where GNNs are changing the world.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: from many opinions to one verdict</h2>
+      <p class="prose">
+        Think of each node embedding as one juror's opinion after they've heard the evidence (message passing let each node gather context from its neighbourhood). To reach a single verdict for the whole graph, you have to <em>combine</em> the jurors somehow. Averaging their opinions is the mean readout; tallying a total is the sum readout; taking the strongest single opinion is the max readout. Any of these turns a variable-size jury into one fixed verdict vector — which a normal classifier can then label. Crucially, the combination must not depend on the order you happened to list the jurors (the graph has no node order), which is exactly why order-blind operations like mean and sum are used.
+      </p>
+      <p class="prose">
+        The full pipeline is short: message-pass to get node embeddings, pool them into a graph vector, classify.
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ H = \text{GNN}(A, X) \;\;\rightarrow\;\; h_G = \text{pool}\big(\{h_i\}\big) = \frac{1}{N}\sum_i h_i \;\;\rightarrow\;\; \hat{y} = \text{classifier}(h_G) \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        Left to right: run a GNN over the graph to get a per-node embedding matrix \(H\); <em>pool</em> those node vectors \(\{h_i\}\) into one graph vector \(h_G\) (here a mean over all \(N\) nodes); feed \(h_G\) to an ordinary classifier for the graph's label \(\hat y\). The pooling step is the only new idea, and it's deliberately simple — its job is just to erase node identity and count while keeping the graph's overall character.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A pipeline: a small graph feeds into 'message passing → embeddings', then 'mean-pool (readout)' collapses the node embeddings into one vector, which a classifier turns into a label." />
+        <figcaption>Graph classification: run a GNN to embed every node, pool the embeddings into one graph vector (readout), then classify it. Pooling makes the output independent of node count and order.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="glab4">
+        <div class="wtitle">▶ Interactive · classify whole graphs by their structure</div>
+        <div class="whint">Press <strong>New graph</strong> to generate either a <em>community-structured</em> graph or a <em>random</em> one (you won't be able to tell from the circular layout — and neither can a person). The classifier reads out a structural feature — the <strong>clustering coefficient</strong> (how often your neighbours are also neighbours of each other) — and predicts the type. The running tally shows how well structure alone separates them.</div>
+        <canvas id="g4canvas" width="640" height="330" aria-label="Interactive graph classification"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="g4new">◈ New graph</button>
+          <button class="wbtn" id="g4reset">↻ Reset score</button>
+        </div>
+        <div class="wreadout" id="g4read">Press New graph to classify one.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: structured vs random graphs</h3>
+        <p class="prose">From <code>graph_classification.py</code>: tell two-community graphs from random ones — with the degree matched so the model can't cheat on size.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The trap to avoid.</strong> We match average degree (~7.3) between the two graph types, so simply counting edges is useless. The model must use real <em>structure</em>.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Readout features.</strong> For each graph, compute a few order-invariant structural numbers: average degree, the clustering coefficient (do your neighbours know each other?), triangle density, and the spectral gap (how easily the graph splits in two).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>They separate.</strong> Community graphs have high clustering (0.46 vs 0.25 for random) and a small spectral gap (0.06 vs 0.39 — they split easily into their two communities). Degree is identical, so those structural features carry all the signal.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Classify.</strong> Feed the readout vector to a logistic-regression classifier → <strong>100% accuracy</strong>. The pipeline "structural readout → classifier" told the two graph families apart perfectly, using shape, not size.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: readout + classify</h2>
+      <pre><code>def readout(A):
+    """summarise a whole graph as one fixed-length vector (order- and size-invariant)."""
+    deg = A.sum(1); triangles = np.trace(A @ A @ A) / 6
+    return np.array([deg.mean(), deg.std(),
+                     clustering_coef(A), triangles / len(A), spectral_gap(A)])
+
+X = np.array([readout(g) for g in graphs])     # one vector per graph, any size -> same length
+# ...then any classifier (here logistic regression) labels the graph vectors
+acc = train_logreg(X, y)                        # 100% telling community from random graphs</code></pre>
+      <p class="prose">
+        The <code>readout</code> is the whole story: it converts graphs of any size into vectors of the same length, using only quantities that don't depend on how the nodes are numbered. In a full GNN pipeline these hand-picked features are replaced by <em>learned</em> node embeddings that are then pooled — but the shape is identical: turn the graph into one vector, then classify.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Sum vs mean — a subtle choice.</strong> Mean pooling captures the "average character" of a graph but is blind to size (a 10-node and a 100-node version of the same motif pool to the same vector). Sum pooling grows with size, so it can tell them apart — and it turns out sum is provably more expressive for distinguishing graph structures (the insight behind the GIN architecture). The pooling operation isn't a throwaway detail: it sets a ceiling on what graph-level distinctions your model can ever make.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Using an order-dependent readout.</strong> Concatenating node embeddings in "node order" breaks permutation-invariance — relabel the nodes and the graph vector changes. Pool with order-blind operations (mean, sum, max) instead.</li>
+          <li><strong>Assuming mean pooling is always fine.</strong> Mean discards size information; for tasks where the number of a motif matters (how many reactive groups?), use sum, or you'll lose the signal.</li>
+          <li><strong>Letting the model cheat on a spurious feature.</strong> If your two graph classes differ in size, the model may just count nodes and ignore structure. Match the nuisance variables (as we matched degree) to force it to learn what you actually care about.</li>
+          <li><strong>Forgetting graphs vary in size.</strong> Any pipeline that assumes a fixed node count will break on the next graph. Readout exists precisely to absorb variable size.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Graph-level tasks</strong> label a whole graph (molecule, transaction ring) — one label per graph, not per node.</li>
+          <li><strong>Readout / pooling</strong> combines all node embeddings into one fixed graph vector: \(h_G=\text{pool}(\{h_i\})\).</li>
+          <li><strong>Use order-blind pooling</strong> (mean, sum, max) for permutation-invariance and any-size support.</li>
+          <li><strong>Sum is more expressive than mean</strong> (it senses size/count); the pooling choice caps what the model can distinguish.</li>
+          <li><strong>Pipeline:</strong> GNN → pool → classifier. Structural readouts told community vs random graphs apart at 100%.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is a "readout" (graph pooling) for?</p>
+          <ul class="quiz-options">
+            <li>To add more edges to the graph.<div class="quiz-why">It doesn't change the graph; it summarises node embeddings.</div></li>
+            <li>To combine all node embeddings into one fixed-length graph vector.<div class="quiz-why">Correct. That vector represents the whole graph so a classifier can label it.</div></li>
+            <li>To label each node.<div class="quiz-why">That's node classification; readout is for graph-level labels.</div></li>
+            <li>To normalise the adjacency matrix.<div class="quiz-why">That's \(\hat A\); readout pools node features.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why must the readout use order-blind operations like mean or sum?</p>
+          <ul class="quiz-options">
+            <li>Because they're faster.<div class="quiz-why">Speed isn't the reason; correctness is.</div></li>
+            <li>Because graphs have no edges.<div class="quiz-why">Graphs do have edges; that's unrelated.</div></li>
+            <li>To increase the number of nodes.<div class="quiz-why">Pooling reduces to one vector; it doesn't add nodes.</div></li>
+            <li>So relabelling the nodes doesn't change the graph vector (permutation-invariance).<div class="quiz-why">Correct. A graph has no canonical node order, so the summary must ignore order.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What can sum pooling capture that mean pooling cannot?</p>
+          <ul class="quiz-options">
+            <li>The size of the graph / how many of something it contains.<div class="quiz-why">Correct. A sum grows with node count, so it senses size and multiplicity; a mean normalises that away.</div></li>
+            <li>The colour of the nodes.<div class="quiz-why">Nodes don't have colours; that's not the distinction.</div></li>
+            <li>The exact node order.<div class="quiz-why">Neither should encode order — that would break invariance.</div></li>
+            <li>Nothing — they're identical.<div class="quiz-why">They differ precisely on size sensitivity.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> In the worked example, why is the average degree matched between the two graph classes?</p>
+          <ul class="quiz-options">
+            <li>To make the graphs bigger.<div class="quiz-why">Matching degree is about fairness, not size.</div></li>
+            <li>To speed up training.<div class="quiz-why">It's about what the model learns, not speed.</div></li>
+            <li>So the model can't cheat by counting edges and must use real structure.<div class="quiz-why">Correct. With degree matched, only structural features (clustering, spectral gap) separate the classes.</div></li>
+            <li>Because degree can't be computed.<div class="quiz-why">Degree is trivial to compute; it's deliberately neutralised.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, generate ~15 graphs and watch the running accuracy. The layout looks random for both types — so what is the classifier actually keying on?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The clustering coefficient: in a community-structured graph your neighbours tend to be each other's neighbours too (tight triangles), so clustering is high; in a random graph connections are scattered, so clustering is low. The classifier ignores the visual layout entirely and reads this one structural number off the adjacency matrix. It's a concrete demonstration that graph classification is about <em>structure</em>, which a readout can capture even when the picture looks like noise to a human.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> A molecule is a graph (atoms = nodes, bonds = edges). Sketch how you'd predict whether a molecule is water-soluble using everything in this track.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Represent each atom as a node with features (element, charge, number of bonds) and each bond as an edge (possibly with bond-type features). Run a few GNN layers (GCN or GAT) so each atom's embedding reflects its local chemical environment — message passing spreads information about neighbouring atoms and groups. Then <em>readout</em> (sum or mean pool) all atom embeddings into one molecule vector, and feed that to a classifier/regressor for solubility. Train on molecules with known solubility. This is exactly how real molecular-property models work (e.g., for drug discovery), and it's why "learn on graphs" matters: chemistry is natively a graph problem, and a GNN respects that structure where a flat feature vector would throw it away.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Mean pooling can't distinguish two graphs that differ only in size (e.g., a 6-ring vs a 12-ring of the same repeating unit). Why might that matter, and how does the choice of pooling relate to a GNN's fundamental expressive power?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It matters whenever size or count carries meaning — molecule size affects properties, a bigger fraud ring is more suspicious, a longer cycle behaves differently. Mean pooling collapses those to the same vector, so the model is <em>provably</em> unable to tell them apart no matter how it's trained. This connects to a deep result: a GNN's ability to distinguish graphs is bounded by the Weisfeiler–Lehman graph-isomorphism test, and using an injective (information-preserving) aggregator and a sum readout — as the GIN architecture does — reaches that bound, whereas mean/max fall short. The takeaway: pooling and aggregation choices aren't cosmetic; they set a hard ceiling on which graphs your model can ever distinguish. Matching that ceiling to your task is a real design decision.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Graph-level GNNs are where the headline applications live. In chemistry and drug discovery, models predict molecular properties and screen billions of candidate compounds — a GNN even discovered a novel antibiotic (halicin) by flagging molecules with the right structural signature. DeepMind's GNoME used graph networks to predict millions of new stable materials. Weather forecasting (GraphCast), traffic prediction (Google Maps), recommendation, and fraud detection all run graph-level or node-level GNNs at scale. You now have the whole arc: represent data as a graph, pass messages, learn with GCNs and attention, and pool for graph-level answers. That is the complete toolkit that lets neural networks reason over the relational structure of the world — arguably the most general data shape there is.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"To label a whole graph, run a GNN to embed every node, then <em>pool</em> those embeddings into one graph vector — with an order-blind operation like mean or sum so node numbering doesn't matter — and classify that vector. Sum pooling senses size; mean doesn't. It's how GNNs predict molecule properties, catch fraud rings, and forecast weather: turn the graph into a vector, then decide."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Xu et&nbsp;al. (2019), "How Powerful are Graph Neural Networks?" (GIN, pooling &amp; expressivity). <a href="https://arxiv.org/abs/1810.00826" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Stokes et&nbsp;al. (2020), "A Deep Learning Approach to Antibiotic Discovery" (halicin). <a href="https://www.cell.com/cell/fulltext/S0092-8674(20)30102-1" target="_blank" rel="noopener">cell.com</a></li>
+          <li><span class="src-type">paper</span> Lam et&nbsp;al. (2023), "GraphCast: Learning skillful medium-range global weather forecasting." <a href="https://arxiv.org/abs/2212.12794" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes Graph Neural Networks: graphs as data, message passing, GCNs, attention, and graph-level readout — the toolkit for learning on relational data. Next tracks continue the tour of modern paradigms across new structures and settings.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('g4canvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var right=0, total=0;
+    function rng(){ return Math.random(); }
+    function genGraph(){
+      var structured = rng()<0.5, N=16, comm=[], A=[];
+      for(var i=0;i<N;i++){ comm.push(i<N/2?0:1); A.push(new Array(N).fill(0)); }
+      if(structured){
+        for(var i=0;i<N;i++) for(var j=i+1;j<N;j++){ var p=comm[i]===comm[j]?0.55:0.03; if(rng()<p){A[i][j]=A[j][i]=1;} }
+      } else {
+        for(var i=0;i<N;i++) for(var j=i+1;j<N;j++){ if(rng()<0.28){A[i][j]=A[j][i]=1;} }
+      }
+      return {A:A,N:N,structured:structured};
+    }
+    function clustering(A,N){
+      var cs=[];
+      for(var i=0;i<N;i++){
+        var nb=[]; for(var j=0;j<N;j++){ if(A[i][j]) nb.push(j); }
+        var k=nb.length; if(k<2){ cs.push(0); continue; }
+        var links=0; for(var a=0;a<k;a++) for(var b=a+1;b<k;b++){ if(A[nb[a]][nb[b]]) links++; }
+        cs.push(links/(k*(k-1)/2));
+      }
+      return cs.reduce(function(a,b){return a+b;},0)/N;
+    }
+    function show(g){
+      var N=g.N, pos=[];
+      for(var i=0;i<N;i++){ var th=i/N*2*Math.PI; pos.push([320+Math.cos(th)*130, 150+Math.sin(th)*120]); }
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.3;
+      for(var i=0;i<N;i++) for(var j=i+1;j<N;j++){ if(g.A[i][j]){ ctx.beginPath(); ctx.moveTo(pos[i][0],pos[i][1]); ctx.lineTo(pos[j][0],pos[j][1]); ctx.stroke(); } }
+      for(var i=0;i<N;i++){ ctx.fillStyle='#2563eb'; ctx.beginPath(); ctx.arc(pos[i][0],pos[i][1],7,0,7); ctx.fill(); }
+      var cc=clustering(g.A,N);
+      var pred = cc>0.34 ? 'structured':'random';
+      var truth = g.structured?'structured':'random';
+      var ok = pred===truth; if(ok) right++; total++;
+      ctx.fillStyle=ok?'#059669':'#dc2626'; ctx.font='bold 13px system-ui';
+      ctx.fillText((ok?'✓ correct':'✗ wrong')+' — predicted '+pred+', actually '+truth, 20, 26);
+      document.getElementById('g4read').textContent='clustering coefficient = '+cc.toFixed(2)+'  (threshold 0.34)  →  predicted '+pred+'.   running accuracy '+right+'/'+total+' ('+(100*right/total).toFixed(0)+'%)';
+    }
+    document.getElementById('g4new').onclick=function(){ show(genGraph()); };
+    document.getElementById('g4reset').onclick=function(){ right=0; total=0; ctx.clearRect(0,0,W,H); document.getElementById('g4read').textContent='Score reset. Press New graph.'; };
+    show(genGraph());
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
