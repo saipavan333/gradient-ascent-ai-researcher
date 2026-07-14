@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t16-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recurrent neural networks · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Recurrent networks: giving a model a memory</h1>
+      <p class="subtitle">An MLP takes a fixed-size vector; a CNN takes a fixed-size grid. But language, audio, and sensor readings arrive as sequences of varying length, where order is everything. The recurrent network's answer: read one item at a time and carry a memory forward.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 8 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~24 min</span>
+        <span class="chip">Builds on: Track 6</span>
+      </div>
+
+      <p class="lead prose">
+        Here's a problem the networks so far can't handle. How do you feed both a 5-word sentence and a 50-word sentence to the <em>same</em> model? You can't just flatten them into one fixed list of numbers — you'd lose the order, and the two are different lengths anyway. A <span class="newterm">recurrent neural network</span> (RNN) solves this by reading the sequence <em>one item at a time</em> and keeping a running summary of everything it has seen so far. That running summary is called the <span class="newterm">hidden state</span>, and it is the network's memory. The same small set of weights is reused at every step — just as a CNN reused one kernel across space, an RNN reuses one "cell" across time.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: reading a book one word at a time</h2>
+      <p class="prose">
+        Think about how you read a sentence. You don't see all the words at once; you read them in order, and as you go you keep a mental summary of the story so far. When you reach the last word, that summary lets you understand the whole thing. An RNN works exactly like this. At each step it takes the next input, combines it with its current summary (the hidden state), and produces an updated summary. Feed it "the cat sat" word by word, and after the last word its hidden state holds a compressed sense of the whole phrase. For a yes/no decision, you just read that final summary and pass it through a simple classifier.
+      </p>
+      <p class="prose">
+        Concretely, at each step \(t\) the cell blends the current input \(x_t\) with the previous summary \(h_{t-1}\) and squashes the result with \(\tanh\) (a smooth S-shaped function that keeps numbers between −1 and 1):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ h_t = \tanh\!\left(W_{xh}\, x_t + W_{hh}\, h_{t-1} + b\right) \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        Read it in words: "new summary = squash( (weights times new input) + (weights times old summary) + a bias )." The weights \(W_{xh}, W_{hh}, b\) are the <em>same</em> at every step — that's what lets one model handle any length and reuse a pattern it learned at position 3 when the same thing shows up at position 30. Training is the usual gradient descent, applied to the whole unrolled loop; because the gradient flows backward across the time steps, it has a special name: <span class="newterm">backpropagation-through-time</span> (BPTT). It's ordinary backprop, just run along the sequence.
+      </p>
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="An RNN unrolled across three time steps: three copies of the same cell h0, h1, h2, each taking an input x below and passing the hidden state rightward to the next, with a final output arrow; a label notes the weights are shared." />
+        <figcaption>The same cell, unrolled in time. The hidden state (memory) flows left to right; the weights are identical at every step.</figcaption>
+      </figure>
+
+      <!-- INTERACTIVE -->
+      <div class="widget" id="rnnlab">
+        <div class="wtitle">▶ Interactive · carry a memory across time</div>
+        <div class="whint">Click the bits to set a sequence, then press <strong>Play</strong>. Watch the cell read left to right and carry the <em>very first bit</em> in its memory all the way to the end — the exact task the from-scratch RNN learns. This is memory in action.</div>
+        <canvas id="rnncanvas" width="620" height="230" aria-label="Interactive RNN memory demonstration"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="rnnplay">▶ Play</button>
+          <button class="wbtn" id="rnnstep">Step ▸</button>
+          <button class="wbtn" id="rnnrand">🎲 Random sequence</button>
+        </div>
+        <div class="wreadout" id="rnnread">Click bits to set the sequence, then press Play.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: run a tiny RNN by hand</h3>
+        <p class="prose">Let's use a 1-number memory and hand-pick weights so the RNN does something you can follow: <em>hold onto the first input</em>. Say \(W_{xh}=2\), \(W_{hh}=1\), \(b=0\), starting memory \(h_{-1}=0\), and inputs \(x = [1, 0, 0]\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Step 0, read \(x_0=1\):</strong> \(h_0 = \tanh(2\cdot1 + 1\cdot0 + 0) = \tanh(2) \approx 0.96\). The memory jumps up — it noticed the first input was a 1.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Step 1, read \(x_1=0\):</strong> \(h_1 = \tanh(2\cdot0 + 1\cdot0.96) = \tanh(0.96) \approx 0.74\). No new input, but the old memory carries forward (a bit weaker).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Step 2, read \(x_2=0\):</strong> \(h_2 = \tanh(1\cdot0.74) \approx 0.63\). Still clearly positive.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Read the final memory.</strong> \(h_2 \approx 0.63 > 0\), so a classifier reading "is it positive?" would correctly say the first bit was a 1. <span class="wnote">Notice the catch: the memory of that first 1 keeps <em>shrinking</em> each step (0.96 → 0.74 → 0.63). Over 3 steps it's fine. Over 30 steps it would fade to nearly nothing — which is exactly the problem the next lesson is about.</span></div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: the whole loop</h2>
+      <pre><code>class VanillaRNN:
+    def forward(self, x):
+        h = np.zeros(self.H)                       # start with an empty memory
+        for t in range(len(x)):                    # read one item at a time
+            h = np.tanh(self.Wxh[:,0]*x[t] + self.Whh @ h + self.bh)
+        return softmax(self.Why @ h + self.by), h  # read the final memory
+
+# BPTT: unroll the loop, then backprop from the last step to the first,
+# adding up each shared weight's gradient over every step it was used.</code></pre>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking each step has its own weights.</strong> It's one small cell reused at every step. That reuse is what lets an RNN handle any length and share what it learns across positions.</li>
+          <li><strong>Confusing the input with the memory.</strong> \(x_t\) is the new item you just read; \(h_{t-1}\) is the summary of everything before it. They play different roles in the same equation.</li>
+          <li><strong>Assuming the memory is perfect.</strong> As the worked example showed, the memory of an old input fades a little every step. Plain RNNs only reliably remember things from a handful of steps ago.</li>
+          <li><strong>Forgetting "through-time" just means "along the sequence."</strong> BPTT isn't a new algorithm — it's ordinary backprop applied to the unrolled loop, so a weight used at every step collects gradient from every step.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>An RNN reads a sequence one item at a time,</strong> updating a memory: \(h_t = \tanh(W_{xh}x_t + W_{hh}h_{t-1} + b)\).</li>
+          <li><strong>The hidden state is the memory;</strong> reading the final one summarizes the whole sequence for a decision.</li>
+          <li><strong>Weights are shared across time</strong> — one cell handles any length and reuses patterns across positions.</li>
+          <li><strong>Training = backpropagation-through-time:</strong> unroll and backprop; each shared weight's gradient sums over all steps.</li>
+          <li><strong>Plain RNNs only handle short memories</strong> — the signal from far-back inputs fades (next lesson).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What lets an RNN handle sequences of different lengths?</p>
+          <ul class="quiz-options">
+            <li>It pads everything to a fixed length first.<div class="quiz-why">Padding is sometimes used for batching, but it isn't what gives RNNs length-flexibility — the loop is.</div></li>
+            <li>It has a separate weight set per position.<div class="quiz-why">That would fix the length and block sharing across positions; RNNs do the opposite.</div></li>
+            <li>It reuses one cell at every step, looping as long as the input.<div class="quiz-why">Correct. One shared cell applied repeatedly can consume any number of items, carrying its memory forward.</div></li>
+            <li>It turns the sequence into an image.<div class="quiz-why">No image is involved; the model reads the sequence directly.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q2.</span> In \(h_t = \tanh(W_{xh}x_t + W_{hh}h_{t-1} + b)\), what is \(h_{t-1}\)?</p>
+          <ul class="quiz-options">
+            <li>The next input.<div class="quiz-why">\(x_t\) is the current input; \(h_{t-1}\) isn't an input at all.</div></li>
+            <li>The memory summarizing everything seen up to the previous step.<div class="quiz-why">Correct. The previous hidden state is the running summary the cell updates with each new item.</div></li>
+            <li>The final output.<div class="quiz-why">The output comes from the final state through a separate layer; \(h_{t-1}\) is an in-progress memory.</div></li>
+            <li>A fixed constant.<div class="quiz-why">It changes every step as new inputs arrive.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why is training an RNN called backpropagation-<em>through-time</em>?</p>
+          <ul class="quiz-options">
+            <li>Because it trains in real time.<div class="quiz-why">Nothing to do with wall-clock time; "time" means sequence steps.</div></li>
+            <li>Because gradients are computed forward.<div class="quiz-why">Backprop runs backward; "time" is the step axis, not the direction.</div></li>
+            <li>Because it uses a clock signal.<div class="quiz-why">There's no clock; the term refers to unrolling the sequence.</div></li>
+            <li>Because you unroll the sequence and backprop from the last step to the first.<div class="quiz-why">Correct. The loop becomes a deep chain over time steps, and gradients flow back along it.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> A shared weight is used at all \(T\) steps. How is its gradient computed?</p>
+          <ul class="quiz-options">
+            <li>Add up the gradient contributions from every step it was used.<div class="quiz-why">Correct. A weight reused in many places collects gradient from each — just like a convolution kernel across space.</div></li>
+            <li>Use only the last step's gradient.<div class="quiz-why">That ignores its effect at earlier steps and gives a wrong gradient.</div></li>
+            <li>Average and then discard.<div class="quiz-why">You sum contributions; averaging would rescale the gradient incorrectly.</div></li>
+            <li>Each step gets its own weight, so no sharing.<div class="quiz-why">The premise is sharing — there's one weight, not many.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> Run <code>rnn.py</code> with sequence length T=8, then bump it to 15, 25, 35 (add epochs if needed). What happens to accuracy, and what does it foreshadow?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Accuracy stays near perfect for short sequences but degrades as T grows — the network increasingly fails to carry the first bit to the end. This previews the vanishing-gradient problem (next lesson): the further apart two events are, the weaker the learning signal connecting them, so a plain RNN can't form long-range associations. It's not a bug in the code — it's a built-in limit of the architecture that LSTMs and GRUs were invented to fix.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> The code clips gradients in <code>step()</code>. Remove the clipping and train with a slightly larger learning rate. What can go wrong?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>You risk <span class="newterm">exploding gradients</span>: BPTT multiplies many terms together, and if that product grows, a single update can be huge, sending the loss to "NaN" (not-a-number) or making it swing wildly. Gradient clipping simply caps the size of the update when it gets too big, without changing its direction — a cheap, standard safety net for recurrent models. (The opposite failure — vanishing gradients — clipping can't fix; that needs the gated cells of later lessons.)</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> An RNN and a 1-D CNN can both process sequences. What's the essential difference in how each one "sees" the past?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A 1-D CNN looks at a <em>fixed-size local window</em> around each position — it can only relate items within that window (which only grows with depth). An RNN, in principle, has an <em>unbounded</em> reach: its memory can carry information from arbitrarily far back, since the state passes forward indefinitely. In practice the RNN's reach is limited by fading memory, and the CNN's by its window — both bounded, in different ways. The Transformer (Track&nbsp;5) sidesteps both by letting every position look at every other directly, which is a big reason it took over.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">For most of the 2010s, RNNs (and their gated versions, coming next) powered speech recognition, machine translation, and text generation — the technology behind early Siri and Google Translate. Transformers have since taken the crown for large-scale language, but the recurrent idea is far from dead: it's ideal for <em>streaming</em> settings where data arrives one piece at a time and you can't wait for the whole sequence (live captioning, sensor monitoring, tiny on-device models). And the frontier has circled back — modern <em>state-space models</em> like Mamba (Track&nbsp;24) are, at heart, very cleverly designed recurrent networks that rival Transformers while processing sequences in a single efficient sweep. The humble "carry a memory forward" idea keeps proving its worth.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"An RNN reads a sequence one item at a time and keeps a running summary — its memory — updating it at each step with the same reused cell, so it can handle text or time series of any length."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Elman (1990), "Finding Structure in Time" — the foundational simple recurrent network. <a href="https://onlinelibrary.wiley.com/doi/10.1207/s15516709cog1402_1" target="_blank" rel="noopener">wiley</a></li>
+          <li><span class="src-type">blog</span> Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks." <a href="https://karpathy.github.io/2015/05/21/rnn-effectiveness/" target="_blank" rel="noopener">karpathy.github.io</a></li>
+          <li><span class="src-type">book</span> Goodfellow et&nbsp;al., <em>Deep Learning</em>, ch.&nbsp;10 — Sequence Modeling: Recurrent and Recursive Nets. <a href="https://www.deeplearningbook.org/contents/rnn.html" target="_blank" rel="noopener">deeplearningbook.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: we saw the memory fade a little each step. <a href="01-vanishing-gradients.html">Vanishing &amp; exploding gradients</a> explains why that fade is fatal for long sequences — and it isn't a bug, it's arithmetic.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('rnncanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d');
+    var N=8, bits=[1,0,1,1,0,0,1,0];
+    var pos=-1, playing=false, mem=null, raf=null, last=0;
+    var cell=46, gx=40, gy=70;
+    function draw(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.font='13px -apple-system,Segoe UI,Roboto,sans-serif';ctx.fillStyle='#8a94a3';ctx.textAlign='left';
+      ctx.fillText('Input sequence (click a bit to flip it)',gx,gy-16);
+      for(var i=0;i<N;i++){
+        ctx.fillStyle = (i===pos)?'#2563eb':(bits[i]?'#1f2733':'#eef2f7');
+        ctx.fillRect(gx+i*cell,gy,cell-6,cell-6);
+        ctx.fillStyle = (i===pos||bits[i])?'#fff':'#5b6675';ctx.font='700 18px sans-serif';ctx.textAlign='center';
+        ctx.fillText(bits[i],gx+i*cell+(cell-6)/2,gy+(cell-6)/2+6);
+      }
+      // memory box
+      var my=gy+cell+30;
+      ctx.textAlign='left';ctx.fillStyle='#8a94a3';ctx.font='13px sans-serif';
+      ctx.fillText('Memory (carries the first bit):',gx,my-8);
+      ctx.fillStyle=(mem===null)?'#eef2f7':(mem?'#059669':'#b45309');
+      ctx.fillRect(gx,my,cell-6,cell-6);
+      ctx.fillStyle=(mem===null)?'#8a94a3':'#fff';ctx.font='700 18px sans-serif';ctx.textAlign='center';
+      ctx.fillText(mem===null?'?':mem,gx+(cell-6)/2,my+(cell-6)/2+6);
+      ctx.textAlign='left';ctx.fillStyle='#1f2733';ctx.font='700 14px sans-serif';
+      if(pos>=N-1&&mem!==null) ctx.fillText('Reached the end → Prediction: first bit was '+mem, gx+cell, my+16);
+      else if(pos>=0) ctx.fillText('reading step '+pos+' …', gx+cell, my+16);
+    }
+    function stepOne(){
+      if(pos>=N-1){playing=false;pbtn();return;}
+      pos++; if(pos===0) mem=bits[0];   // latch the first bit into memory
+      document.getElementById('rnnread').textContent = pos===0 ? 'Step 0: the cell reads the first bit ('+bits[0]+') and stores it in memory.' : ('Step '+pos+': no reset — the memory keeps carrying the first bit ('+mem+') forward.');
+      draw();
+    }
+    function loop(t){if(!playing)return;if(t-last>600){stepOne();last=t;}if(pos<N-1)raf=requestAnimationFrame(loop);else{playing=false;pbtn();}}
+    function pbtn(){document.getElementById('rnnplay').textContent=playing?'❚❚ Pause':'▶ Play';}
+    function reset(){pos=-1;mem=null;playing=false;pbtn();draw();}
+    document.getElementById('rnnplay').onclick=function(){if(pos>=N-1)reset();playing=!playing;pbtn();if(playing){last=0;raf=requestAnimationFrame(loop);}};
+    document.getElementById('rnnstep').onclick=function(){playing=false;pbtn();if(pos>=N-1)reset();stepOne();};
+    document.getElementById('rnnrand').onclick=function(){bits=bits.map(function(){return Math.random()<0.5?1:0;});reset();document.getElementById('rnnread').textContent='New random sequence. Press Play.';};
+    cv.onclick=function(e){
+      var r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
+      var mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+      if(my>=gy&&my<=gy+cell){var i=Math.floor((mx-gx)/cell);if(i>=0&&i<N){bits[i]=bits[i]?0:1;reset();}}
+    };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

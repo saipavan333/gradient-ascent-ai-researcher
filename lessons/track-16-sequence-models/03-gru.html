@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t16-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GRU · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>GRU: the same idea, with fewer parts</h1>
+      <p class="subtitle">The GRU keeps the LSTM's key insight — gates that protect a memory — but trims it down: two gates instead of three, one state instead of two. Fewer parameters, faster training, and often just as accurate. A lesson in cutting to the essentials.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 8 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~20 min</span>
+        <span class="chip">Builds on: Lesson 2</span>
+      </div>
+
+      <p class="lead prose">
+        The LSTM works, but it carries a lot of machinery: three gates, a separate candidate, and two separate states. The <span class="newterm">Gated Recurrent Unit</span> (GRU), introduced by Cho and colleagues in 2014, asks a good engineering question: is all of that necessary? It merges the two states into one and collapses the forget and input gates into a single <span class="newterm">update gate</span>. The result is a smaller, faster cell that, on many tasks, matches the LSTM — a clean example of simplifying a design without losing what makes it work.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: one dial that fades old into new</h2>
+      <p class="prose">
+        The LSTM used two separate valves — one to keep old memory, one to write new. The GRU notices these often do opposite jobs, so it uses <em>one</em> dial to handle both at once: the <span class="newterm">update gate</span> \(z\). Think of a photo cross-fade slider. At one end you see the old picture; at the other, the new one; in between, a blend. The GRU's update gate blends the old memory with a freshly proposed one:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ h_t = (1-z)\odot n + z\odot h_{t-1}. \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        When \(z\approx 1\), the slider sits on "old" — the previous memory \(h_{t-1}\) is copied forward almost unchanged (and, since the new content is weighted by \(1-z\approx 0\), nothing new is written). That's the exact "carry it forward, keep the gradient's highway" trick from the LSTM, now done by a single gate. When \(z\approx 0\), the slider sits on "new" — the fresh candidate \(n\) takes over. A second gate, the <span class="newterm">reset gate</span> \(r\), decides how much of the old memory to mix into that candidate in the first place:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ r=\sigma(W_r[x,h]),\quad z=\sigma(W_z[x,h]),\quad n=\tanh(W_n[x,\, r\odot h]). \]</span>
+        <span class="eqn-num">(3.2)</span>
+      </div>
+      <p class="prose">
+        Two gates, one state — and the same protection against vanishing gradients, because when \(z\approx1\) the memory (and the gradient) rides forward untouched.
+      </p>
+      <figure class="diagram">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABFkAAAHgCAMAAABJvkIWAAABgFBMVEX////+/v7+/f39/f38/Pz6+vv4+fr2+P7y9f3x9fnv8/3t8v38+fX79vb19PTx8/X++cP79cD+4uLt8PPp7PDx7N7p5tbh5/Pi5end4+rb6v7b6PzW5vz839z12svi39vX3+vX2t3z0LLxzoXxzYPxx6rvx5DY1Nfeyb7J1+/Iz9u/y97Jy87BxMzBwbO4wtC2wM6pwfTruW/ns3nrqI60vcu5u7mzt764sLSpudaotcelssWksMKrsLihq7qcqr2eqLqlqKigpKeTreKFp+uYprqWpLmQpMaWo7eUo7iMo8zjlkjeiiKxlZnnhmXWfB7ZdwbYdwbnbG2Zn6mTlpt/l8iGi5OBho56fIZtdH9obXhdi+9Vhe9Uhe9Ge+1Ad+1gcI02b+zhRETfOjrcJiZlaHJdY3CmQE5VZYMsaOsoZetWXmxRWGZMUl5GUWFDSVg7R1o6Q1MzQVU3PU0xN0csM0MpMEAlY+slY+olMU0hKTodJTYaITMWHjARGSwPFypOp9FrAAA2hUlEQVR42u2d+Vta17rHoQxJmlZrIM/FIUa8jQaEGJNSUoVYLXqSYzzpKVwmE722lfskTDKI52Ha//pda+0ZNrBVRIbv54cEYbHZ0/rwvu9ae2MwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBTwFz1XaD2dC+ts6SmuDnbV7gpP0T/wz7TFcsXUjZYQK+LUB0Nklkhuivy7G08Xe56ZiZRxBM2ia9Pu3Cyx87DfC7OAsTGL/ZyFLMVcIlfs3eO8g1y1PqFr01SYrOaBr2UufmM3wSxgiMwSLjrof+SfZM8z05RL9O7H4WEzi65NGyjGKY39FtPbslMLmAXcvlmC6fNMWNcXbzotPurU/Yo8GfIwWrT1+pAWsyjefOVVu1pkov4gNS2bZg6mzs/TEfJoOpI5z8Uc/JrtZs4zu2YpGzK/Ja2SLEoz0jdkYnZ5K3bS52m/wR7LnSeYmRWNNV5Vf0z6PFGMCFp3i1ag+NtbRuysaaRIQ5q3xVXDVDiZO89Ep+UWBvZBSQ/MAm7dLMl0OJgo/tryvE1G+qKzFaO9zOKnhItJtmRvrw9pMYvizd3e1YeNVnzQajgadtIHs36tTbMkisndYIRIaCpdjAUj5+dOumapTPhtkoUOzCzmBHmNPBFkBkgEg+GUU9qKs/RuMF30Zei70yZ14/ZXWz8m6E3lLFRHOVHrq2TH+P0OjZa8+lPFHFlO4txsmM1F3wajxZRFbiG8KQWzgNs2S9pKUpd0TvtrnRKTSyfhXmZh1ZhMjn6PulnrWUe3Dwl3ejN9W6d39Qf+g0zxYi5dLKYj4XhxV2vT3hajtBJtosYIs61K0jXLTTNDuAWzBIs+Gq0kzomFU2mNHWw/Z4t/SxM8ZeP2V1Ufk5liS6DtvcxEymyovSUJV+zE/7Gi02A5J4GLxWIQ3y+2CBd3yL++IswCbtss7ISNFluSdI/MrPicTz65pe4XlhFClKnUOR8DsAiHpRwaH8KioWJEFRMp3kzf1mnVdBUnWrC0thA+yJoicpj2J0iG4NeUZupc/PT0uZX+lyBJnp9XopsmH8wsqQzbHlYZSpy7NXZwqkjf7aR/KBu3v6r6mLf0ofWcVqwS59MtZmlvSfTjJ0fJcb5L1o0/VuZpm4OupthCeFMaZgG3Xmfhv8rIF3gi2L2tllkUsU1UTB94xajMIn9Il5hI8WbeLIp3aa2bL3l+rr2mjmILkZYG4gcZLQaHU6gHObTMcp5qeRQhAYGQ6E0XE4JZzsXPIY9Xc8VcPDjdsoOTGX69wurGGq+2fQx57CCvKXYT/1ij5RR5JZo2JBJkr9EvhGBKPDJiC+FNcZgFDM4sOcXkNruM1EncOrIhY0zUj6K1hllYNFSMqWIixZvb3pXTmHjn8fs7mMW62oKj01p6SS5UTO467Z5k5AZmyQjxHa3bWr2RVDE329ksisY9zOIRHB0he2G1q1mEYbRkzpCJGt6eW5M0hwwWE0Ev3c3yQBvMAgZtFtt58fzc1y2msMkPO5olLPlEVcFtM4tmnSWsekLxLvW6Kdxyfr2tlj7IWox53W+TdDMTjhtkQ+ct6ZZX2lXt7lA2bn9V9TGSL6w55ZxbjWzII26Yl+x2Z9HHmqQyJiYmhVmQDYGBxyzedI86i6I42cksQVk+0eL0Fc0SVM/TUL7Lm9b8uGuaRf4gM18TsXv9s9qb9rYYkSq4u20VXI9glrfCltCQheVW9mKiozuUjdtfVX2MR0xDVcGcVMFtb+kupsluN+bSbCw8lTGz+ExhFlRwwcDNEo71arzLkneDPxzOFMNhjWluzmKOjeh66ShpwnA1syje3PYucd1iQhwVvIlZWj9IuTtaN033qHNy1x9O0P6aS4T9O+mir6NZlI3bX1V9jOALS66oqN+KZtFsec4uKCK7iXprh2RDb5MppVmmM8UoRp3BQM0S/7VXYxs/uz8pdG+NGEKeg6ac3a/PLJ72mXLSu8R1mxLm2FhvYhZP55ly7Ztm2VHPlJvl1yycEebw8TPlTMHk+XmGlZl3k7nzXMLTOd9RNtZ4VfUxUvYWNbSZRbNlgi3DX2QxnmknfZ6LTivNgplyV8N1eXkZwm64Gbnek+n5KxJ1cfMrEnWs23XrLP3R8eAI3/zKcfR5mOWuOO/dXQZ6F4We62a2es6t1gkwi7p+C2CW0SKcO18dqXXzd8jJxswsTn/ixteNwywwCxh+BmuWcDG3i31+l2Z5GDr5cvKbGfscgAkxy633efopR6eXlwhdANDGNIZmuf0+Tz/l8uvnz/S/OZxEAMh869o4Ov7y9fLrl+PQhuv+OJnl9vs8+5QNgyHE/2eYD1m0ms2Hjr8e4VQDk8O9jU+Xao42xqNgoLPP9+FTPpH/N8j/v9H/T7WbnRwdwyxgYpgPnV62cxJ6OCZm0dHn+/ApIcX/oaNOqeYRzAImBEvoq2STL6cnp1/kvzZGv+qis8/391OYqF2aLWEWMCEsHAsaOQq5HtIJ0cb5jdCRIJtP82Nmli59vn+fYlz4ElpYuAezgMnFLAQsxxvfqp5/+NuJELYYR3sD9ff5Pvpr7nKhU0uYBUwC946YPz672v1hcvHBTGi0K7n6+3wfP8V1Kcjr/rwIzAImTixfO8whuxfiR4lGWi2d+vytfspvJ8LzG1LNCmYBk4OFieVz529xPmwJjXIdt1Ofv9VP6aIPmAWMPywmOer2Jf7t51GfsK6/z/eR4xDMAiYXFqofdZ84dv/T7Qym3BXHA7Hkp0+uBa3K972NjU/HGxv3cO6BMebhaa+IhUUtNCE6Hpu+0KnP9zlQOv6qOSFvjq+54MoiMMYYaZHltPc02/kv43QBb6c+DwDoXwGCXUmjK2lawA4DAOjJC2gupCcxMLGW2GEAgN4s0Am2+i45nKdzXh5ilwEAehK6QvXkCLdKAwAIkUZoo8vlhPe/dCienMjTRSVoSebUPBobBgC4TeZOSQoT6tgFaVn2s0GnWUwnQzSnpceGAQBuE/6KlY5dMNRpYEjLLJ1bD9+GAQBuk5BwJVyHLvip00iypllcQzQ61GPDAACD6IDaXdD0hTxv0W2Wh/TmlSOxYQCAAXVArS4436nMom0WI70Q4NtR2LARxrRx9BmAYaflntmf77elNy3jyPfmGMQs/APVpUJHyuTJdTS8GzYm3wUAjAonbWXQkFZlVGaj1Szi4NDC1yHesBHmGCcpGEVMNzFLSGGW34Z5w0aYI5yjYAT50reYxTXMGzbCPPyEsxSMHF9dveos3Sq4qjqLMfRleDdspLn/EIBhR1UPPNmw6J2gom2WY9X9iizDu2EAgEGNNGh0v3tfLy9PTbrNcp9eOGQchQ0DAAymA2p3PxqEzOs2yzDOwYVXwKhgXHm9/N24bMxv3bvf1a4b2hii2yj8Bq+AEWPld8LBmMjF1b37bXSKQjTN8mmIrkh0wStgxHj1O+Pjq2XzGGzNxudPXbrfle4Tx+4/9+1obBgAQ8fr30U+vlr8Zsw3lo4j/6azbegS95QD4GbZkCSXg+Wx3liaVJzoi8063n8OAKCD5d/VjLVa2H3i9AUtoY4XRgMAemCcWlxpMcvBWG8wreF+1ROJ6P5hIgCAku8WV14dfPy9jfFOh+7RKS2fe+dD92lwc2TCaQKA/kDl8fLKwYffNfn4bMw3nt0NoWdh1khzoS+4eRsAegOVZ6+1AhWRV9+N/S4I6UhzjCHkQgDoY2p55VV7oPLh4PWB/MfyBOwHy3FPa/BiQS4EQFfMj0mg0iaVjwevny3SEGVlggIWyjwtoVyGOk87u8fEcoxfXgWgc/az8upAI1BZWX4sXcT7TDDN8qTslHl2U9njTiNELmaeE4gFAM1IZXFFK1B5tbLYEpos8oPNU5Oza/io5WvonsZr9/mrihGxAKARqiy/PtCoqCw/1pq9/90HOiRknKT9M/eZ6eO07ec1FoQ7xx1BLACoebzcVqjVCFRUQcvB68eTFtD9JtyK/2hjQYxc7rk2hHuyftlA8RYAmW8etw7/kEDl2WMz9kw7C5+le8oeH4VCoaNj6Wc/jjCPBQDpW3hxpWWiCsl+prBfOu+wDe2fuvmMgAUAnrayyseDrukPYBhdR60/T/YlhKubAaC0lVU+EKt8g/2ij4cboSPx1z5Oj0Ib32KXAKBRVnn17LERO6YnrpBi7Mc076LMY8cBYDBMPWsvq3yP3aIDEy2wfEV0AkBbsLKorqugrKKf+xsnl7jcEIBewQrKKldhXvoNVYwsA9ApWEFZ5UoYXUfSINAp9hsAPN8/e/VRmQE9e4x9cgUsG58Vw8tH2CEAtAcrrxcxsfZqPPysmriCMgsA36mmrHw8WEGwcnU21FPiMCEOTHhtYHEFwUo/cKnn2mIvAgQr0owVBCs3UHToEmUWAAyGxy3ByjJmrNwwH1JcJPQbdgeAVhCs9Ektsllc2BtgwrXy4RWClf7A3/6WvyXLPewOMGFMKbVCghXM6OoTD08U92DB7gATxXfPZK18RLDST77lf2aIr+OGsD/AZGrl9wNopa/c+yTMj2N1XJRZwMRoZRlauUXM7IqhEE0tXSf49UMwkVp5Bq30GwsvFl4oJvziB5iIr9NlxYWG0MrtieUI827BhGplBffav0WxYKQZTAjfLKq0gtlwt8M9Xiz3sSfAJGBcfP0BWhmcWBCxgEnguxVZKx+gFYgFgH6EK68UVxpCKxALAH0NVz68XsTkfYgFgD6EKwfy7H1oBWIBoA9MyeEKJq5ALAD0g2/kibYfUVwZBPxNtY8s2BNgfHmMcGXQzB9DLGBiwhWMBQ2KhVOIBYx3uCJPiTtYxrUrA8LFfmY1hP0NxhMzwpU7gb+d9m8YfQMIV0AfxcLudosfQgQIV0D/MLF7Un7BnePAWIYrH+Vw5RvsjwFiYWI5hVjA+CFfGYTrDQfNfTY/7mQeewKMGUY5DUK4MnD4+XHHuCUlGDPMzz5I4QruETdwXKe4zxMYQ+QrmQ+WMeQ5ePjRZlwqBMaLx6/FNOjVIvbGHcSLwg+V4Vc/wDgh3SEBVxzeDQ9Z7fYLprGAMUK+NujDCq44vBMW2C83ny5gT4CxQVFeeYa5tnfDBrtS6DMGhcD4eEWaxH+A+8TdESahxILaLRgXHkuz4l6hvHJX8LeP+7oBsYMxAWXbYYC/yxMm9IMxAWXb4YAvsRxjQj8YC5Sz4lC2vcNMiC+xYN4tGAumpIuZUba9UxaOMT0OjA3fv0bZdigw8pkQSixgLPIgMV75+BoXHd4p/C0TLo8wiwWMkVdQtr3zTIhNu/36GzIhMPpeWRG9gnuv3HkmxK5sPkEmBOAV0De+RSYExsYrwjjzh2fwyl3D3+MJ027ByGOWvYLpK3fNfX4SywmubAaj7pVn8MoQBSwnmB0HxoFvJK+swCvDErCcIhMCI+6V5Q8YZx6+gAWlWzDSGEWvfIRXhgDhMqEvCFjAiHvlAF4ZwoBlDrsCjIVXXsMrwxSwYNYtGGUW4ZXhClj465o/4U4sYBy88ju8MhTwv/qBgAWMi1dwPfMwYObvl3D5GQELGGEeH+D+K8OYCH3ZwHwiMLp89xpeGSq+5Su3mMMCRtor4gXN8MpwYNo4vcT9EsCII02MO4BXhoOFT3wihJ8pAyOMWLg9WMS+6JOqn/3x0/fXf/v90Fc+EULlFowuYuH2wzLmjvfN1X///fdf13WLmAjh6kMwwoh35MdE/n7y099/X9stwojQ1xBulwAGi/m7/iEXbq+/jGuMiX7z/XDx3dWjA+O9LvBmoW6Zvnc1FvipcZefXff6AsIeoC91WREnnQwTBytXqPx+/+yPv/4eOv786Qo/zmZyhU74SkgH/lde8P92bXjrfDkOLcAuoNf35Ovfh5XXek/fxb+HlT/05i4Pj3v15/9VLveO3YLb0IERFotutQyvWGjy0i9alpu8Y7V8glpAN1aEQZy+8fH33z/2YTH8aq3o2YRHQhf+s1/89fcocKKXr5dfTk/6CX/h0RE6D+gCLbF8+HHmh/7Rn2XN/EjlcqB70OSnxUd9Y3EkzPJfczqZX5jrLwsbtCT8FVcIgC7VWxoZ9NMrfTQUXTU9Vdw/qVge9ZOfRiBq+WPuDln4TNSyge4DuiZDBz8MJwf60iGaDP315NFQQsOpP4y9Of7Pf/6zMd+dn1ReWZq7UzaQDoGu0Prtj0Nqlh9pDVdf/faP4RQLy6v+1HEYTkly0Stn+Wl4vDI356LTY9B9AMxyNzzRaZYvl5df5vSa5e69QtIhesk0ug/oapb/HlKz/PdEmeVUp1mGwSswC4BZxsYsz4fHKzALgFnGxizzP/0xLF6BWQDMMjZmGSpgFgCzwCwwC4BZYBaYBcAsMAvMAgDMArPALABmgVlgFgCzwCwwCwAwC8wCswCYBWaBWQDMArPALABmgVlgFpgFwCwwC8wCYBaYBWYBMAvMArPALABmgVlgFgCzwCwwC4BZYBaYBWYBMAvMcjXi3BrMAmAWmOXqrMVfwiwAZoFZ+swmF4FZAMwyJGZ58gRmgVnA0JiF44mPslkOuTfxSvPNCJglzG3FKo3iZvc2lNScK1GqNwrv6VMpzpWq1TNrvFkS1UZ+HWYBw22WQ0qWi4y2WUqlaOT5SJilUIjGajWX1N1dEktSmYVLvX/vmwtcJCLREhdmZimkI4lmnpmlkIvGGxcLMAsY+mzoRTMzM9pmKT8ZjToLMQtRwp6c7oQ5iVRLNrQwT/8pl5lZEuTfBE2E4lyaPIxyAZgFDLtZntdKMz+Mtlkij0bFLDQEcTFRMFxbEmvtdRYS0SQ5FzULfXGP26Zm2SIP17kozAKG3Cwz5eryDyNuljcjYxbqhTk5PulSwV2IV1gss0bNssCeD4sV3DUuBrOA4TbLTL7x4geYZVBm2VSbRVFncbWYJcml3ge2UrxZ5lrNEodZwHCb5Yw7/AFmuSuzdKmz1HL03zTMAkbSLNF+DTjDLNcxi1ad5SWf6lTpUNBaA2YBo2iW580KG3d+AbPciVk0FVC/iLzz0WwoEq8VYRYwimZ5MSYz5cbJLHPbpQZpsZSoNIrv4jALGNGxIVw3hLsoAACzwCwwC4BZYBaYBcAsMAvMAmAWmAVmgVkAzAKzwCxgDM2Sr8Asw24WxSCzcpgaZgGjY5aZ+FWmxx1Gh9Msb+KLvZrEd8bHLOEozAKG3CzLV5oel68Op1niXM87PnGpETPLwkJHs+SrMAuAWW5ulp53tx1Hs7RP2oVZwN2aJc4ti854wR1GLxollvHM0FunvmBmOcxWGtWzZXFef568GC01apnnisSn3LiIHnLknc/PyvV6ni6Cv1UIfVu21igdDsIs4t1tn8TLjWqK+mMxSdY9f0i7v/jcGVuvQ9EK8Uqj8OaMo1lSmrRNkxbPWYsKXWChXs++uTOzLNB1zgXm5gJs1db4af6b541qjN49bi5y0Si/V2RD+yVyGJhZ1pL0MNC7yEl3bNnMkcMQhlnAXZildBGLXTSpF7JcOnJWu6BmyWdikbNGeeaH5SiXZVcipptnkVilLqnlkCtFYxclapZIKR7hF7FTrh0eHs78sNMsRCNZLjYQs7C72z7J1xOReK2y+OhRvh6PRM8SpPdLz73IcNHDQzFsOeOykXi9RM2SysbIw+rioyeHXP7wcIdEN810JFrueSPu2zLLwjmXjkbTCSKOXCySqFfp/Vi4UjUeybMbzUW586jyAsR3zXI0VilSswiHgTzaK9fev3+/NLdHD0Puard/gllAn8xSJ4+X6yX6MEGejXDULDO8PA6lbIg9Ju3SYmG3WiFtlmvULDP8E1kpG+If/5BpzAzCLOzuttHmC/Lv82b80SIXFV6Sn1NlQ8+5NI1WOGoWlkW94WJSNvSCvftJpXBHZonxN5gk4ckCf3kh1QLXXCd/Vwtzc64GvUPuelM0y0KlQtTjqlOzsDe4qjkpG1qoZmiYk264YBYweLMk6TNJ8swZe3amztdZZmZmlqlqBLNkqjOUbE26+jnGv++F2Jq9xJtlhzukjQ+5nUGYhd3dtlRYpJRLj540ssI4kPycyiwx/prnMsf/SVrUMpJZEs3n9D1n3OLdmKVUkeuy8y6Xq0bvlM2d0z8zNRKisMBlLieaxccHJEmhzrLgctFWglm2uXf0JnRhemNcmAUM2izslz4ixBDZBnuxRM3yItugqfqZZJayeE+zGTEZOhTf98NMskpfaUpmiYmNIwOps9D/GsInVh49ijSbhfgL9XNKsyR5a2SoWZ5n6rRFVjJLVlz153djlkZO+nXVNFu1nHQ7BWqSGOebE+/PT/9+x72bYzkSMYsrwR8GySxR6TDALGCAZnne2SzL9Up058ULpVkqL3g0zJJtJg9fvMhyCrNE+MbLgzNL4Q0P1UUkVWvGVM91MMtitRbbefOmmpfN0hDe8+SOzbJEVm0vsMVuGafPLLlm4l1gK8dJZiGHgb8PHbIhMBizMB8QqXTMhvgGzxVmybbUTBTZ0EzzjA04c8psaGCjzoJZShfqjp9vPlE+1yEb2mHjRU+aslmS3PM7HXWWsqFtlvcsNNVm6ZINuZqs1Tk1S46ZZY97j1FnMEizvOHoVNlMSwX3jVzB5c1yRs0yw53xMQo/rWW5vYLLm+VFk5MENFMt81XdmYGZJSb8mNCiMLeFGkJ+7lGUe6FVwX3DzBLjqFnqWb6Ceya+524ruLxZyKqpzNKlgrvEzLLZpGbJNOZZ2FNmv6jomodZwEDMMnPRiEeyhc6jzs8blVgkW2JSuahG6KhzistGI/FSWmPUmWRDkUS9xLE86IyNOjcq8Ugs3RicWZ7kuTRZv3L80fPaWTSSpGGI/BxRSFZr1JlkQ/FIqsKyoWwjesjypkIsEs/n72rUucBGneNzLpINRdKVlmyofdSZk0adc8JhYEJKvn+3NLdNDkOYHIYFmAUMxCw/PM83qgmhznIYqzRKOy0z5V4U6tWzZWaWF/kGnSn3QyRfr5fPXqhnyrHgZvmsWs+/OKNmmTmrNtlMuXS1UclGBmeWR0+ipUa9nHz+aDFRIivKrhOSniNxSaXZMlMu3aAhSrZeyzyvUI88z9bZTLmdfL1xkb6r+SxzS/GLZjW3RQKTXL2WXqu0mGUu2jJT7p00U86VqtbPt9izS6kqC2vW09VmJRdFzAIGZBZlveRGvyOU5K7zw4lDca1zqYy7KMAsYOjMwmooy7XSCN5FQZgel4RZYBYwdGZ5UY5H4tXmzgiaJZqPRZKN2nOYBWYBQ2eW5XSlwV+GOHJmeZOtNtlliDALzAJuySy4WyXMArMAmAVmgVkAzAKzwCwAZoFZYBaYBcAsMAvMAmAWmAVmATALzAKzAACzwCwwC4BZYBaYBcAsMAvMAgDMArPALABmgVlgFgCzwCwwC4BZYBaYBWYBMMvwmuWJxFPG6p9//vWnbXrKajEbYRYAs8AsndVBfLG66vF4vT6f3x94+/bXX3/dI+y/78H+3vZ2ILC1ubnp871cX19fcxOczlmH3Wa9gVkWftlcm4dZAMwySmZ58pSXiJdKJPC2tz6uz/9sbf7ycn1tbc3lci0s6HfFL+S9vyzALABmuWOzPPH6VruHJU+pTXz+wK/v74697cDm5i/rVDTdNbNNW2+vwSwAZrlbs3hJTwystttkldnk7TXCkv19kg2RpOgtIcCz6ec5JPg2N7cCge3t7b3raoZYhkjG5Vpqj00WhCYDDltgFtDbLD8OqVl+vB2zBFhP9D/lkx2Pl9hEb5ff+5WYw+/3eb0ej2d1dfXpkydPrjQ2ZLJYH0xP2+x2u8Mxu7TkdDrda+svNzf/R3coE2gJZFySfVyDNssxug/oyArpva+G1CyvyLqt9N4E1nuvbJb373/tLZRfA7xFqESe9pCIJs90jjqfXP7ni4uwtkZE8wsJcbZ7F4S3t355SdrLzwwybNkgZvmE7gM6f+GT3vthZijFMvOBrNti700w/0W677LegqzH28Mne283/cQmNCC5eQX4D7JqP+k4DCHSUUPqvju/sERNs/7LZmBbb9I0uLCFrTC6D+jIN7T7HgyjWmYOqPS+0bENtPv+2fW325+srnp8/s4llL23NDjpk00U/ETW7G8dcjS4SEf9stGxUju/QCXz8petXqHM5mDClvmNr2SFF9B9QPdCC3HLq2HjgK3Xaz2bQAstxC1//EvJT4zDw8Pd3Xfd+mL4kDT7163wx19svYw6NsFyeklLoiF9/POf//zHP7Q35x+hAXDEr60RvQd05vsPvw8vH77XswnGP5ha/vrzz//7vz/oYEwkHNY/7nL49+2yqOswuGgQcDW+np4cfzpq3ZzLQfHFhc4D+qeWf//734MTy0EvsRgf2B1LTvc6lcl1R3QjwyCWa6mF8p/W+XYQCxgWvls50N3XP4bfvwuHIzQw+NfBwcHHW/XKynedVtk07SA+8QX2+jAl7c9b1Mpf/3qi+zAshE6v08HVXjkekFdOQvPoOKA3j5efregi2NItd1ZuiWfLj7XKETZqlM2A7tls7359+4bnJwll2eWd4vm+82zxapUIk2vj6sij0Fu/bAyKBZRYQH/xtXbdAX2ukQQp65vbVwhFAj63027VWpYc6Gy7LaN+QBzC4Nb6rBlnJxhdnK0zKG79E822JRKl7HWaLdb+wv7WS/eSvbMyjJJ7nGPQGa1kB+y/XLLg1AQjjVkdNuzZb7PT2J1uX0B7Stimz9eeE+1trrtnbaZeOQffeGvJNBZHxOZesuK8BCOPWxUe3JZYHjjcL7WcEiDucLrd61v7bU5xOqZ1Jv+bdEbZLCoFAAzTV6SyQy/dRkFl1u1rr6fQcGTJ/sDhXA+0veJesl0p/Jhe99pxIAEYIixuZad3D0Iq25te5+y0yepwt0ll20ekgtgDgLHyyvv1PnZqq4ZUtsXRnQdLa1uQCgDjidmp7vqbfRpZMU47va3RSOCle/YBe9HWlv8QqcxOQyoAjAXGJaGDB9aF//sxImGyO9dbQpXAutthFV50v9yGVAAYY2w+cQ6IycLfeNV249zK4fbtqSeirDsFqbS/CKkAMHZY3Pwo7zabW0YHnvcdN1qgdda9qRo43n7plia3tb+47rSbcBQAGLNEaDag8IrBME2CFudNMqAWcQTWnWIxtr3mEvAuIVQBYAyZFhKhdamwYnNeez7ItFNVOtnfXOMrtQaNmsv+pnsW00sBGEvMbr7csXnzyWWW2TVlPLLnczssHYyjfhEAMGY4xETohnWOlhSIiEOunLQY5/32S5RVABhnHggjzOsPbrQY65Iqzdl0O6SpMMaWooui5gIAGE9meR9s3WgcaNrp21cO8yzJlppSF1a21pYeYKcDMOZY+N/I2nNfPzMx2tybqhRIjkfMDvfW+w7GAQCMLXa+9vFy+roLMDncivLJljIFsjmV0+D2fW47MiAAJgEjPzdue+ma7zfPKhKdfZ9TDkhaii6BtVmMAQEwIQhzWDavF7BYl14q7jW7LquDjhCp59ZOY18DMDHwpdv9a1VYLEuKiu32mpwDWZ0v91TT4DC0DMAkYeHHmgPXmBtncqzvKUorcvlk2qkcXA54MbkWgAlDKN2uX7n8YbSvbSsmrUgXQ7eOEGHGCgCTh5Mv3c5e9X02eSRIWbE12ZUjRMpJcgCAicHET2LxTV3tbdOKqGRT1op51rutDFaQAgEwkVjZmNC+80rpitUpayXglkZ7rEvr2iNEAIDJwsYSl+2rlG6NjvV9+cdMpZLtA2eHESIAwKQxy2KMzStkQg/kIsq21yGOIqsqtgFMsAVgkjHyP3+4rju8MM1KcYn8g+VGu/J6oE03xoEAmGjM/CwWt14TTMs/PuRzCjUUk0Nxp5V9H2bYAjDpPGAJzJ7OwWbzrE8urkxL0YpiIOglfsccAGBnUgjo+6kPm6SQfd+sSQxhAhgIAgCocLDarU9PmGFe2mwbYlaNO685cD0QANdk2uldfzkKrLt1dPRZVold02GEB3K4si4sWHkJIgaCALgBs5vvR4htd4/hHjahf1/HTwjZpbkrAbdVKLjI0+G216AVAG4ilv33o8XLrmpxspJrz5vdmiSf7q07mEKUlyDurSMJAmCyxELU0iWYcOsSi1Wq0AaEy39UlyAuoWQLwA3ZZKOqztmRYImfYdJxwj4/P67XhH7bmpjzCINB04r5cJu40hCAm2Nj8z4ejAw2akJ3J7Gwa5u3u442Gx3i5JU9L2uoHAracmM6HAD9wM1+2muEmKUpTIfayXrPaSwWZ0CqBNPYxLL0EkNBAPQf2hmdo2SWB7TMqlnD5Wf0B6a7lVfEGu3mkpnWbBVDQUIdFwDQD2hqMDtSZqElEa3fCbOwLGer80+ITYvllf11O8uCtt63XYIIAOibWRwjZRZaFdGIS8xMLJsdy682cfYKuzRIcSOWfekSRAAAzKJVY9m09PJKgGpEcSMWxd0oAQAwixp+VMjXQSx2cThoc9ZoMM1KRdtttw1nAAAwS0ezsHksm5rFEnmYedNhVF7F7FtCcQUAmKWLWZwdayxGaRa/z07vG9d2IxYAAMyibZYlVkHREItpSRz/Wber7hs3i8uCAIBZupuFXfq0rVHVFafF7a/bzEs+jd/6AADALB3MYt/TnNJvXBK8src2rbhv3EtcxQwAzNLbLOzWlHv2TvWVbfe0U3HfOIwxAwCz6DDLNBXLfuttExySVxxrivvGYQI/ADCLHrM8YCnPknqjxPkr2245XNnC3REAgFl0msXMzKG+NaXtpVhfkaore+u4jBkAmEWvWYxsTr/qdi3T62LuI13IjJs5AQCzXMUsbIbcmiIcmfYKM/d98m1u7TjKAMAsVzCLg2rEJ48iP1gTvLIZaLkrPwAAZtFpFjYsJE+9tbiF9CcgpUGYagsAzHJFs1i2lBNZpIlx8iAz0iAAYJarmoWv3i4J22EX6ip70hWHmBMHAMxydbO4FcNC0oCQNBqEGyQAALNcwyyz76XqrdWt+jW2fUxeAQBmuZ5ZbFL11uTcVv/uM65kBgBmuZ5ZrLRcu0evb3ZsKb0SwN2yAYBZrm0WdmHQrMFg8ym94sMlhwDALNc3i1C9ta4pCix7a7hdNgAwy03MQoXy0uxWFFgw2RaAiTBLmPPdnlmoSmYVBRZMtgUAZumHWfZ9ylFmHEcAYJa+mEUur2CUGQCY5cZsqWevoLwCwBiZxVaoOsl/yaa/o1n80Uqj0H+9bGP2CgDjG7O469kHD4JcvHPMUihEotWa49bMsrWEsi0AY5cNhbmos1qwdTGLjaonckvZEP3xdwDA+NVZ0o1C3d1FPGHyr6NzUHOjCq4Pw0EAjKlZHDUhICn7tOss9D8uqd0gUmikrm8WBw4cAONqliDHJej/9qaj89gQd6bdIBhM3MAsGGgGYFzNMlstJLjggwfORrNen+1ilg4NYjALADBLG5mG21aqEmOEMw+6xyzaDWAWAGCW9kIJLbK4G0QaiZj8LJfTMIuyAcwCAMzSGU8jI/ol/1Z61s6lNMwiNEhzPDALADBLbxRDz8Gmp3sDxCwAwCy6sHOyODTHe5QN5KsD7LGU3QazAACzdCBRr9mv3CBG86IzmAUAmGXIfiMRAACzwCwAwCwwCwAAZgEAwCwwCwAwC8wCAIBZAAAwC8wCAMwCswAAYBYAAMwCswAAs8AsAACYBQAAs8AsAMAsMAsAAGYBAMAsMAsAMAvMAgDMArMAAGAWmAUAmAVmAQBmgVkAADALAABmgVkAmCizzMIsAIC+sk766dJImSVA1tiCAwfAUOMm/XRtlMTyX2SF94w4cAAMNQ7SUbftI2QWGmSt47gBMNyYtklPDThtI+KVWSqW97M4bgCMQDpE45aRYJ+ta8CMwwbAkGP0vh8xAhgZAmAE1LIGsQAA+s8Dp297b38U2A647RgXAgAAAAAAAAAAAAAAAAAAAAAAAAAAAABw9zhj+WqjUcnGvfQSnx2OUb9IB03s5Qvyl4M+iJIHUV1LdJCWSf6tF9i/N+AqO1Dc6fq5+jv0kiVL9irOsESp3qiW0lGPwZDklGTZSnBNJ9+uyYknW49T9qxCmqaH5Ch5dXeMiWI62ZSOc1g2CyVjvh2z9P9IRNVn8oBgPUMDugt3htcs0moPyizBhnhGJTqYhYuzhnFOn1nsVdYw3cc9DbP0XSwFeoyqmXS+znERoVtcpNJlTjxoMMvdmSWRSiVG3iwOKpZCOlNmZgmnCCXyTIk+iApmqU2RhlM1nWYJk1aVdCoCswwxZ/SwBunlPZaf06JZyOlmoi+cwSx3a5ZbyW0GbZYI+SPIPi8cURyvqLzahF3ycJfTaRb69p/vbk/DLDpYpUmuR/zLKpvF4KfpUHez2CK5aqNaiNvoH55kuV4vx2e1zKLqgg4pFN7x8qeUsconYhdCM+/ZRaNeTnpUa2oKlxrVpENwyFQkVaqSRmdeVQLnaFkRw9N4qd6slpJhq8bGW3Yy1UatEHNIp4cjUWmUo/yNe6fJ1jWrGaHaJKBY3oX4oWRLI2eFSqNxkQ4KC+Kh67ZKSwzl5KruI2KkK1W/yMY88g6kGcTsbqFxEbMaVlPVetYrdSvyZ6Owo/KEOZiuNGr5yLTUyJOucn45wRJXm71jOnbRqMSnWNtkoVJvVDK7LAumH+rwZ2vCp0na1NNIZZYE+cPWrgaFWSokpiEPC+yRtlkU54R0uHc672l6xk1Fy41qwq7MoqLpUrVZLwmnlj1WqJGDmYoo29jiF41ybIpuAfvbkyjXGxdnXo1ThnSSXL2W8cAsGsS41kKY0izJrmbxVoXjSg6mMS48rvuvYBZrnbVzkscp/gWyfHNCeLmp/DDjGXuumuLPI3khMbVZ1CvirCmd05qt54XXan5BCJmaWA0wGNxiF8xMKSqHiuUpzSKVqs6MarNEhFeaYd0JkKImoTRLml8ZT50tThTqWUMqU4g73ZYVFlB2Co1SdCU6mCVT5pdLXypL1Q+r8KH8Tm8qraGrkcos9IhkvFNdzJIkC/UYPGSVk9qHSnVOaJtFvadptsXyfK6k+E7xiO1ZI3tF/FPxHWYrsWcKBcEsUfHQJk1tpwzLysjC4jCLdti6q2UWc0o8GzuZxUnP8Vo+XaFmoa/VMllynjdWe5jFnsoKWbaXfnyZP0BVgyHIH2Mqu0Yu31SvGYuU8+xZ3izVfCadb7C3eFneniVLtLesSIJl+PkLrdPVmGcFJvpW2pQJoZmnZ1TTIRQJC6zcdKbu9uLyEilmulSKnKVNujbZOgv7nSm64Dx5wcl2Zj1LhdX8WX9OU81kSvVWs3CVDN3aejNXFnYn61j1bIGTZZsUDulFmq5DeUrshqVM2S+VbqTV5vVcyDYFD5TrBbIVVJ4R8UNrmUpLzqerkcosQb7/FRJ+SyezROiqE0NFOphFdU5IhzvceU/zaqWngTJb8nCVfDpdIItpOPiVKKVz5abSLHQFGlleL8Jp18yz5cTaThknfbrMfx3BLC2UhIxVsLm6gps0djML/arKkDjS+LPDYCOdKk+i76c1KfroaBZlXkpTcDtZEjnWTtpt6xaDnUrBw8dMVbNqRUkX9gq9wCoMU/JHXK6ztKxIRghAHGFb26bTDyjZ+bM2JZjFz8tjh3+W5DbGBB+TCaiXJ2/WKkuZ7HW2JDn7N5MeV6aauuDDfR14hL1t9frVZslP8XYNGqzk2YaV/5i6k9/4jLTTf6bhjonvz2HBLDtCpqtRZ6F+EA/sKuv5U+TQ54UPLdvZN3tD8b2vq5HKLBbxi54rezqYhRz0BumnDZu2WVrPCelwd9zTQiAXVFeSbHyK/DO/axJCqGbfkT/R0eSlEeN7g7nKnxQeugL21lMmwYcyjguYRa9ZGI1do6GLWUw13vzS11KB1vqrzA66K7ge1lUuuLMm+S4qsSMtnQxZZZhKl1g28n2bnVRP4yRHFsYeFaday4qQY1+J/PzU1CntoGflFPFBzcRWKisIJ8J2TJMuJy98OUvvUSxPNos9lq/ya1NQnu9088p0KarygT3VjipmOQt6bFLqIpolyBfFSuTPFL+0HSFlstIjIe30hBC+pXnf7IipTocK7gXZFrewIFY344N94UNp0JhWd3ZdjdSjzlNxcdi5atc2C11OWfhfwyyt50S7WVr3NJUu+YKxtWz9aqIknDVxtpRa1O+0aH0SG6biF5s1SEeg5ZQpCysbgVk6Z0NO1hdVZuGqHimxnm03i104zaXYQ1Hs0G0WCzmAcdI6WCLfW03WhyNiV46LQwrimZMWnyUnlbeumBKhONVaVkSoi9TTGrkIdZRbtKudrVRcXrm6YjmJ1jqLsDypi65WpbYXyvM9qFwbT3uhSaatzlKK2dRmIV+kT4WdkJTNwooKBeVOzyiWWuYbRbuYhS7vKf9Ox4VqfZLC/lF3dl2NWmfKGWzBeKHJyZJuM4tH2EXaZmk9J9rN0rqnBceb1dFyUJ66lZTqLI1sUOOT+DpLUJxqwz/fcso0eLuyLyOYRSOBTclng1RncdATvDIt7mO3eFjDOszy9AqjzuRYFcjhsye4Cz9/TugzS4klvKlUV7M8JedtrMC+L5t+PWaJaptFUWhRLU86bTOs2JBK1buZxavPLMZgmvdU3qIyi0NOMnWbpcI32u0x6qyIdupZ6StG7OTqzq6rUZtZ2KdlZUm3mcXAKiaG/pjFK2+jyiw0uOMu0qmMsN32aL4uzRCFWfqLRx51VpmFL1bFxHoK2/V51enSlg1F2qdW9DYLOWLNM/LdShZALFEzd82GDFI2RKPcgpXXW7Y1G4q0jCs4/JW2jKAlG6qbWs1Czp26VXOXycuTTluyKyokxDC3msWjCnj0M+1J8Bvf0yza2ZBHXZDf0WeWgnBAS92koauR2izizZD93cwirOdNsqGExjaqzEKzvrSRbyxUX4yOn0uKb0j2SQld2VAd2VB32EiBv90srIfV7cITVa/VFhWnSrZUcA1eByuxVVmh0xkN96zgKk4DerCb5A8H/Y9FJXRR9VW+zNZSwQ1KFVxqlLzJYE0KS5YmY7WsSNBPV9iY408e9WpoVHAVZqHfjnGqlim/Qkrq5dUF29EHF1aDMSZkQ0HxTKMFwDrrAo6IzlNvKuIU5RvUYZb2Ci7drDw9LCZPwqNpFmm1W8xS4g/4LtdNGroaqc0SLezSzM6UkKODdrNYy9WyVV5OVhXHtZ4Tqi8SzT2taRYPf6SnhJjFG7QJ53FDVcGtOaUKrqXK1yFXO1ZwE0ZUcLXhx+8rmXSBU5uFHVwatFjZDAY+Q1XuP37UOZu+4IRaerOQzlZYmx5msZGFNUlETc4kU1UYu7iQsnA2wphlI4xh9ahzUx51vmDjffSyNKnsWkunYq0rEufqhTQb50q3rYbGqLPCLGzUuUp2S0N5iquXV+DLxR5hoLdMdxLdXlppbWRSSaEDltjEdp2TXYkzL7JpNsy5qsMs4qjzz9KrbLPqOTYw7NU0i7TaLWahi62S86DZTRq6GrEdkuVr0x7qgWYpw0am645OZlEsvt0sreeEZJaOe1rTLDTU4AoZVmun0xu5RiGTLnGqcbsk26fSqHO426jzahOjzt3UkpIT1JLSLLSL1ajVndLkqKTq9w6VM+VM0gQvHWYx8LO+uCnx4VM+AuKHd83iNWvNmPI9iplyHqkWFxGWPFURB2bUKyJOm+Nqq+2rYS8oJ9W1mMXgkeZRNZVmUS5PKOr42aAk/f4St5dfcNWgmGilNyuyK2uMOrKhettMOWk2VyezSKvdYpanfHk6k+0mDV2NDFn5nPIzDwjDjUHD9czSck7IF3N02tOaZhG2vBkRzSKu1s+t37QcndfEIplYU3nuq08ZcXlJmEUbd7xQbdYvMlGPQWkWVldhO2wqnJVm0qt6QTRfbSpn9zer+bjX1Nss0/GLpmCWMF9oZN85VSEhpzO5Gx1m9yeFkaqfs/V6Pigt2Zmi30SF1hVxRtLlWrNWiDuETqs6Aay75PtLeLHNLAZbJEt2SzkdUfQY1fIMxkipIcx3yNTqhbC0vY4kjaaq0jhnrZDwW/UdDEswQS8UqKTZtVw9zbLj7DC7v1HJRle16yzSareYhe7ERili6S4NXY1UZrF4Y9mLOt1rToNes5D+nVPX5pTnhGyWTnta2yyGYKFRy3qFj3TQK0Sa9VLCqfqmjVfo7H6pREhPp8ZFyqtxypBYOVsny8Ps/pHGIaVg5WsuYYev+o4Nw3E53u0cbBIVPL2TT7Y4DOrvVzDuFMrJWCzVuEFvOuOaq+O0R8bYLLuqGttAiwPNfCIWzwnFcTAJZhEz7cg1F2CsjlnIOsZmSXHZO/rdXps0T/Rn9LnJIHhWqqpy9YlnjM1yd1gimYt6o5pV3VkBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIab/wclDNKw91v/fAAAAABJRU5ErkJggg==" alt="A GRU cell: the previous hidden state runs along the top to a plus node producing the new h; below sit the update gate z, reset gate r, and tanh candidate n, fed by x and h; a label gives h = (1-z)n + z h_prev." />
+        <figcaption>The GRU cell. The update gate \(z\) cross-fades between the carried memory \(h_{t-1}\) and the candidate \(n\); \(z\approx1\) preserves memory across time.</figcaption>
+      </figure>
+
+      <!-- INTERACTIVE -->
+      <div class="widget" id="grulab">
+        <div class="wtitle">▶ Interactive · the cross-fade dial</div>
+        <div class="whint">A memory is written at step 0. Drag the single <strong>update gate</strong> \(z\) and watch the cross-fade: near 1 the old memory is carried forward; near 0 it's replaced by incoming content each step. One dial does what the LSTM used two gates for.</div>
+        <canvas id="grucanvas" width="620" height="220" aria-label="Interactive GRU update-gate playground"></canvas>
+        <div class="wrow">
+          <span class="wlab">Update gate z:</span>
+          <input type="range" min="0" max="1" value="1" step="0.01" id="gruz" class="wslider" style="flex:1;min-width:160px" />
+          <span class="wval" id="gruzv">1.00</span>
+        </div>
+        <div class="wreadout" id="gruread"></div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the update gate as a cross-fade</h3>
+        <p class="prose">Start with memory \(h_0 = 1\), and let a distracting candidate \(n = 0\) arrive each step. Compare two settings of the update gate.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Keep it (\(z=1\)):</strong> \(h_t = (1-1)\cdot 0 + 1\cdot h_{t-1} = h_{t-1}\). The memory stays at 1 every step — carried forward untouched, exactly like an LSTM with the forget gate open.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Overwrite it (\(z=0\)):</strong> \(h_t = (1-0)\cdot 0 + 0\cdot h_{t-1} = 0\). The old memory is instantly replaced by the incoming content. Great for "pay attention to what just arrived, forget the past."</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Blend (\(z=0.5\)):</strong> \(h_t = 0.5\cdot 0 + 0.5\cdot h_{t-1} = 0.5\,h_{t-1}\). The memory halves each step — a gradual fade, like a leaky bucket.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The point.</strong> <span class="wnote">One number \(z\) spans the whole range from "remember perfectly" to "replace completely." The LSTM needed a forget gate and an input gate to cover the same ground; the GRU ties them together into one, saving a gate's worth of parameters.</span></div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: two gates, one state</h2>
+      <pre><code>r = sigmoid(Wr @ [x, h])
+z = sigmoid(Wz @ [x, h])
+n = tanh(Wn @ [x, r*h])            # reset gate mixes the past into the candidate
+h = (1 - z)*n + z*h_prev           # update gate cross-fades old vs new</code></pre>
+
+      <div class="callout intuition ml-link">
+        <strong>Fewer parts, same job.</strong> A GRU uses three weight matrices where an LSTM uses four — about 25% fewer recurrent parameters for the same width. On a long-range memory task it still latches and holds the signal (we bias the update gate toward "carry," just like the LSTM's forget-bias trick). Whether LSTM or GRU wins is task-dependent and usually close — so the GRU's smaller size often makes it the practical default.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking one gate is strictly worse than three.</strong> The GRU's single update gate covers keep-vs-write together; on many tasks it loses nothing. Simpler isn't weaker here — it's often just as good and cheaper.</li>
+          <li><strong>Getting the update gate backwards.</strong> \(z\approx1\) means <em>keep</em> the old memory (because the old term is weighted by \(z\)). It's easy to assume "gate open = write new"; here open means carry.</li>
+          <li><strong>Ignoring the reset gate's separate role.</strong> The reset gate \(r\) doesn't decide keep-vs-write; it decides how much of the past feeds into the <em>candidate</em>. Small \(r\) lets a fresh candidate depend mostly on the new input.</li>
+          <li><strong>Assuming there's always a "best" cell.</strong> LSTM vs GRU has no universal winner — it depends on the data and budget. The professional move is to try both, not to argue about it.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>The GRU has two gates</strong> (update \(z\), reset \(r\)) and <strong>one state</strong> — a streamlined LSTM.</li>
+          <li><strong>Update gate cross-fades:</strong> \(h_t=(1-z)\,n + z\,h_{t-1}\). \(z\approx1\) carries memory forward (the gradient highway).</li>
+          <li><strong>Reset gate</strong> \(r\) controls how much past enters the candidate \(n\).</li>
+          <li><strong>~25% fewer parameters than an LSTM;</strong> often comparable accuracy, faster to train.</li>
+          <li><strong>LSTM vs GRU is task-dependent</strong> and usually close — try both; the GRU is a fine default.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> How does a GRU differ structurally from an LSTM?</p>
+          <ul class="quiz-options">
+            <li>It adds a third state.<div class="quiz-why">The GRU <em>removes</em> the separate cell state and uses fewer gates.</div></li>
+            <li>It merges the two states into one and uses two gates instead of three.<div class="quiz-why">Correct. That consolidation is what makes the GRU smaller than an LSTM.</div></li>
+            <li>It removes all gating.<div class="quiz-why">Gating is the whole point; the GRU keeps two gates.</div></li>
+            <li>It replaces tanh with ReLU everywhere.<div class="quiz-why">The GRU still uses sigmoid gates and a tanh candidate.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> In \(h_t=(1-z)\,n + z\,h_{t-1}\), what does \(z\approx1\) do?</p>
+          <ul class="quiz-options">
+            <li>Replaces the state with the candidate.<div class="quiz-why">That's \(z\approx0\); with \(z\approx1\) the candidate is weighted by \((1-z)\approx0\).</div></li>
+            <li>Erases the memory.<div class="quiz-why">It preserves the memory, not erases it.</div></li>
+            <li>Carries \(h_{t-1}\) forward almost unchanged.<div class="quiz-why">Correct. \(z\approx1\) weights the old state fully and the candidate near zero — memory persists and gradients flow.</div></li>
+            <li>Doubles the learning rate.<div class="quiz-why">Gates don't touch the optimizer's learning rate.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What does the reset gate \(r\) do?</p>
+          <ul class="quiz-options">
+            <li>It reveals the state as output.<div class="quiz-why">The GRU has no separate output gate; \(h_t\) is the state directly.</div></li>
+            <li>It sets the learning rate.<div class="quiz-why">Gates don't touch hyperparameters.</div></li>
+            <li>It decides keep-versus-write.<div class="quiz-why">That's the update gate's job; the reset gate does something narrower.</div></li>
+            <li>It controls how much of the old memory enters the candidate \(n\).<div class="quiz-why">Correct. \(n=\tanh(W_n[x, r\odot h])\): a small \(r\) lets the candidate lean on the new input and ignore the past.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> When might you prefer a GRU over an LSTM in practice?</p>
+          <ul class="quiz-options">
+            <li>When you want fewer parameters and faster training with usually comparable accuracy.<div class="quiz-why">Correct. The GRU's smaller size is its main practical draw; on many tasks accuracy is close, so it's a sensible default — but benchmark both.</div></li>
+            <li>When you need guaranteed higher accuracy.<div class="quiz-why">Neither is universally more accurate; it's task-dependent.</div></li>
+            <li>When the sequence has no order.<div class="quiz-why">If order doesn't matter you wouldn't use a recurrent model at all.</div></li>
+            <li>When you want to avoid gates.<div class="quiz-why">The GRU is a gated cell; avoiding gates means a plain RNN.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, find the update-gate value where the memory roughly halves each step. Confirm it against the formula.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It's \(z=0.5\): with an incoming candidate of 0, \(h_t = 0.5\,h_{t-1}\), so the memory halves every step (\(0.5^{16}\) after 16 steps — essentially gone). At \(z=1\) it never fades; at \(z=0\) it's replaced immediately. The update gate is a single continuous "memory half-life" dial, and the GRU learns where to set it for each unit.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Run <code>gru.py</code> and note its parameter count; compare to an LSTM of the same width. What's the ratio, and where does it come from?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The GRU has three weight matrices (\(W_r, W_z, W_n\)) versus the LSTM's four (\(W_f, W_i, W_g, W_o\)), so about 3/4 the recurrent parameters — a 25% reduction, purely from having one fewer gate. Fewer parameters means less memory, faster steps, and sometimes better generalization on small data — the reasons the GRU is often chosen when resources are tight.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> LSTMs and GRUs ruled sequence modeling for years, then Transformers replaced them for large language tasks. What limitation of <em>all</em> recurrent models did attention overcome?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Recurrence is inherently <em>sequential</em>: step \(t\) needs step \(t-1\), so you can't process a sequence in parallel — training is slow, and connecting two far-apart items still means passing through all the steps between them. Attention (Track&nbsp;5) lets every position look at every other <em>directly</em> and <em>all at once</em>, so the path between any two items is constant and the whole sequence runs in parallel on modern hardware. Gated cells solved <em>vanishing gradients</em>; Transformers solved the <em>sequential bottleneck</em> — which is why they took over at scale, even as LSTMs/GRUs remain great for smaller or streaming tasks.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">The GRU is a favourite whenever efficiency matters: mobile and embedded speech, real-time time-series, and as a lightweight building block inside bigger systems. Its design philosophy — question every component, keep only what earns its place — is exactly how research progresses, and it echoes forward: today's state-space models (Track&nbsp;24) are, in a sense, the next round of "what's the simplest recurrent rule that still remembers well and runs fast?" The GRU is a reminder that a smaller, well-chosen model often beats a bigger, fancier one — a lesson worth carrying into every architecture decision you'll make.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A GRU is a slimmed-down LSTM: one 'cross-fade' update gate blends old memory with new (keeping the gradient highway when it's near 1), plus a reset gate — two gates and one state instead of three and two, often just as good."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Cho et&nbsp;al. (2014), "Learning Phrase Representations using RNN Encoder–Decoder" — introduces the GRU. <a href="https://arxiv.org/abs/1406.1078" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Chung et&nbsp;al. (2014), "Empirical Evaluation of Gated Recurrent Neural Networks" — LSTM vs GRU. <a href="https://arxiv.org/abs/1412.3555" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Jozefowicz et&nbsp;al. (2015), "An Empirical Exploration of Recurrent Network Architectures." <a href="https://proceedings.mlr.press/v37/jozefowicz15.html" target="_blank" rel="noopener">mlr.press</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: these cells classify or tag a sequence. But translation and summarization must <em>output</em> a whole new sequence — <a href="04-seq2seq.html">sequence-to-sequence</a> models do exactly that, and reveal the flaw that led to attention.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('grucanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d');
+    var T=16, n=0.0;   // incoming candidate content each step
+    function draw(){
+      var z=parseFloat(document.getElementById('gruz').value);
+      document.getElementById('gruzv').textContent=z.toFixed(2);
+      ctx.clearRect(0,0,cv.width,cv.height);
+      var h=1.0, hs=[1.0];
+      for(var t=1;t<=T;t++){h=(1-z)*n+z*h;hs.push(h);}
+      var x0=45,y0=170,W=540,H=130;
+      ctx.strokeStyle='#d3d8e2';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y0-H);ctx.lineTo(x0,y0);ctx.lineTo(x0+W,y0);ctx.stroke();
+      ctx.fillStyle='#8a94a3';ctx.font='11px sans-serif';ctx.textAlign='right';
+      ctx.fillText('1.0',x0-6,y0-H+4);ctx.fillText('0',x0-6,y0+4);
+      ctx.textAlign='center';ctx.fillText('time step →',x0+W/2,y0+24);
+      var bw=W/(T+1);
+      for(var t2=0;t2<=T;t2++){
+        var v=Math.max(0,Math.min(1.1,hs[t2]));var bh=v/1.1*H;
+        ctx.fillStyle=t2===0?'#2563eb':'#6d28d9';
+        ctx.fillRect(x0+t2*bw+2,y0-bh,bw-4,bh);
+      }
+      var fin=hs[T];
+      var msg=fin>0.8?'carried forward ✓':(fin>0.2?'fading':'replaced by new input');
+      document.getElementById('gruread').textContent='update z='+z.toFixed(2)+'  →  after '+T+' steps the memory of step 0 = '+fin.toFixed(3)+'   ('+msg+')';
+    }
+    document.getElementById('gruz').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

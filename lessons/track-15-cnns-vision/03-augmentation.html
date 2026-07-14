@@ -11,53 +11,91 @@
   <aside id="sidebar"></aside>
   <main>
     <article class="lesson">
-      <h1>Data augmentation: more data for free</h1>
-      <p class="subtitle">The single cheapest way to make a vision model generalize better isn't a fancier architecture — it's inventing new training examples by transforming the ones you have in ways that don't change the label. A flipped cat is still a cat.</p>
+      <h1>Data augmentation: more training data, for free</h1>
+      <p class="subtitle">The cheapest way to make a vision model generalize better isn't a fancier architecture — it's inventing new training examples by changing the ones you have in ways that don't change the answer. A flipped photo of a cat is still a cat.</p>
       <div class="meta-row">
-        <span class="chip b">Track 15 · Lesson 3</span>
-        <span class="chip">Concept + code</span>
-        <span class="chip">~18 min</span>
-        <span class="chip">Builds on: Lesson 2, Track 3</span>
+        <span class="chip b">Track 7 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~20 min</span>
+        <span class="chip">Builds on: Lesson 2, Track 4</span>
       </div>
 
       <p class="lead prose">
-        Deep networks are hungry for data, and labels are expensive. <span class="newterm">Data augmentation</span> squeezes more out of what you have: apply random, <em>label-preserving</em> transformations — flips, shifts, rotations, crops, colour jitter, noise — so each image becomes many. The model sees more variety, can't memorize exact pixels, and is pushed to learn the invariances you know are true. It's regularization (Track&nbsp;3) delivered through the data instead of the loss.
+        Deep networks are hungry for examples, and labelling images by hand is slow and expensive. <span class="newterm">Data augmentation</span> is a clever way to get more mileage out of the labels you already have: take each training image and make many altered copies of it — flipped, shifted, slightly rotated, a little brighter, a touch of noise — while keeping the label the same. The network sees far more variety, so it can't just memorize exact pixels, and it's nudged to learn the things you <em>know</em> shouldn't matter, like whether the cat faces left or right. It's regularization (Track&nbsp;3) delivered through the data instead of through the loss function.
       </p>
 
-      <!-- CONCEPT -->
-      <h2><span class="sec-ico">💡</span> Concept: transform the inputs, keep the labels</h2>
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: same meaning, new picture</h2>
       <p class="prose">
-        The rule is simple and strict: a transformation is valid only if it does not change the correct answer. A horizontally flipped photo of a dog is still a dog, so horizontal flip is a valid augmentation for "dog vs cat." A small shift, rotation, zoom, or brightness change is usually fine too. Each epoch, you feed a <em>freshly randomized</em> version of every image, so the network effectively trains on a much larger, more varied dataset without a single new label.
+        Suppose you're teaching a child to recognize a dog from a single photo. If that's all they ever see, they might decide "a dog is a brown shape in the bottom-left corner facing right." Show them the same dog flipped, zoomed, in different light, and shifted around, and they learn the <em>real</em> idea of "dog," free of those accidental details. Augmentation does exactly this for a network. The one iron rule: an alteration is only allowed if it <strong>keeps the correct label true</strong>. Flipping a dog left-to-right is fine — still a dog. But flip the handwritten digit <em>6</em> left-to-right and it becomes a <em>9</em> — now the label is wrong, and you'd be teaching the network nonsense. Every epoch (one full pass through the data), you feed a freshly randomized version of each image, so the network effectively trains on a much bigger, more varied dataset without a single new label.
       </p>
-      <p class="prose">
-        This does two things at once. It <strong>enlarges</strong> the effective dataset, directly fighting overfitting (which bites hardest when data is scarce). And it <strong>teaches invariances by example</strong>: by seeing the same label under flips and shifts, the model learns that orientation and position shouldn't change its answer — the same invariance pooling gives architecturally, now reinforced by the data. The caution: the transformations must respect the task. Flipping a photo is fine for "cat vs dog"; flipping the digit&nbsp;<em>6</em> turns it into something like a <em>9</em>, so a left-right flip is <em>not</em> label-preserving there.
-      </p>
-      <pre><code>def augment(x):                       # a random label-preserving transform
-    o = x.copy()
-    if rng.random() < 0.5: o = o[:, ::-1]      # horizontal flip
-    if rng.random() < 0.5: o = o[::-1, :]      # vertical flip
-    o = np.roll(o, rng.integers(-1, 2),        # small shift
-                axis=rng.integers(0, 2))
-    return o + 0.1*rng.standard_normal(o.shape) # jitter
 
-# each epoch: train on augment(x) instead of x  ->  fresh variety every time</code></pre>
       <figure class="diagram">
         <img src="data:image/png;base64,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8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8tuh/PxhZbvVXdK0ok6z7W6o0833LQ7+grKP1Wm2rntTnfqxLmh+6rQm5VPmwkIfY1fDq9mfT2haVLdP3V/qNOAe3KOsr2ObH5RdVKeZ2Suao4Kf1Gmg08j5ufp4YaGPwVt/K9McUuiOtdQbY49mX7mj7jdN6rWJ8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8iiP8i/Y2c8p+1LdV5qW1Kkf65xGDw24H6uJsLamvOYJSaPZonr/uzquLqfuU01HVM3P9zF2NSKaXWxUU1XdIXWaZdTNMvVz3/yjLQ1ec/zS1vSFurubKq9pa4NfuKZMs8I1z34XNevsuTr1k83ftzSpVzTKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKb4vyakE1Yv2haV2dZlfQzK/rmo4q62tnv6xsVt2qJs2T1RV1msF/tpn6Uv6MsgPqLmt6ok7zPL1b3U5Nvypb6GPDW9PKflTX0qQZ4Q11Gug0y/Hj1gav2fKaQ4ppTd+r0yivPsS6cEwTyqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yqM8yr9a5RfUgmqm4D5NmsFrNNPMrzlNt5X1M98XvlOm2TWXNZ1X97k6DauaJ8YvjqjqS3n1E6Rm9zutaU2d+rGOao4lNE+ZJ04pm9/ahp9R19S0X92X6o6o0y2/ejfqa9ardxrN9L24uarqJtTp7vFDZfMoj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Ioj/Iovw3Ka3Z2tf/Xf9K0oe4XdZpdQfNTv0wrs/qZ7z8ru6Kupknj0jl1OXW651MljwsLfWx49dOqZuNe09RQp9FsTN1NTWqm+4HOmlWmmWxPNWlY0jxvqL29rZv16u2zReU/VveDJs3xYEXdGXWaw8Gv1FAsoDzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKozzKo/xmd/Zv1WnEOqfZ2T9Q95m6y5r+UNaP8pqbaOa0rel7deqn06O31F3StEtVXxtevUN/oe6Gpo46DdeaOfGHph3K+hn8glrQf9Rpdmv3jroL6u6pu6pJ/bTRz6yfVx+JqJ87v3uoSfMUp3linFSnoedb9QHDPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqjPMqj/GtV3rIebXf/U/foNWZZL9zklj2vbEHdvKayuvltz1Jm9zF4zZbXDF6n/ObW2SbXtHLh7Ve24XVpZv3mBmhperS1wauXR/OY/3udI9St6a3N+s1ted3G2HYNFja1OnWDX7AeDWjWwgs3OYNn7AyewQ/L4ImIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIjP8HawocPBbHSSgAAAAASUVORK5CYII=" alt="An original image of a vertical bar followed by five augmented versions showing horizontal and vertical flips, one-pixel shifts, and added noise — all still recognizably the same class." />
-        <figcaption>One labelled image becomes many. Every variant keeps the label but changes the pixels — free training data that forces robustness.</figcaption>
+        <figcaption>One labelled image becomes many. Every variant keeps the label but changes the pixels — free training data that forces the network to be robust.</figcaption>
       </figure>
+
+      <!-- INTERACTIVE -->
+      <div class="widget" id="auglab">
+        <div class="wtitle">▶ Interactive · manufacture new examples</div>
+        <div class="whint">The leftmost image is the original. Press <strong>Re-roll</strong> to generate fresh random augmentations — flips, shifts, and noise — of it. Notice every copy is different pixels but the <em>same</em> shape (label). That variety is what the network trains on.</div>
+        <canvas id="augcanvas" width="620" height="200" aria-label="Interactive data augmentation"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="augroll">↻ Re-roll augmentations</button>
+          <button class="wbtn" id="augshape">Change base shape</button>
+        </div>
+        <div class="wreadout" id="augread">Every copy keeps the label "L-shape" — only the pixels change.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: is this augmentation allowed?</h3>
+        <p class="prose">The whole skill is judging whether a transformation keeps the label true. Let's reason through a few, the way you would before adding them to a training pipeline.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Task: cat vs dog. Transformation: horizontal flip.</strong> A mirror-image cat is still obviously a cat. <strong>Allowed.</strong> Left-right flips are safe for almost all natural-photo tasks, which is why they're the most common augmentation.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Task: read handwritten digits. Transformation: horizontal flip.</strong> Flip a 6 and you get a 9; flip a 2 and it's gibberish. The label changes or breaks. <strong>Not allowed.</strong> <span class="wnote">Same transformation, opposite verdict — because "allowed" depends on the <em>task</em>, not the transformation. This is the judgment the worked example is training.</span></div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Task: read digits. Transformation: small rotation (±10°) or a 1-pixel shift.</strong> A slightly tilted or nudged 6 is still a 6. <strong>Allowed.</strong> Mild geometric changes preserve digit identity, so they're the go-to augmentations for handwriting.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Task: detect a skin lesion's colour. Transformation: heavy colour shift.</strong> If the diagnosis depends on colour, recolouring can flip the truth. <strong>Not allowed.</strong> The rule generalizes: never apply a change along the very dimension your label depends on.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: a random augmentation</h2>
+      <pre><code>def augment(x):                       # one random, label-preserving change
+    o = x.copy()
+    if rng.random() &lt; 0.5: o = o[:, ::-1]      # maybe flip left-right
+    if rng.random() &lt; 0.5: o = o[::-1, :]      # maybe flip top-bottom
+    o = np.roll(o, rng.integers(-1, 2),        # nudge by up to 1 pixel
+                axis=rng.integers(0, 2))
+    return o + 0.1 * rng.standard_normal(o.shape)   # sprinkle a little noise
+
+# each epoch: train on augment(x) instead of x  ->  fresh variety every pass</code></pre>
+      <p class="prose">
+        There is nothing clever in the code — it's a handful of random flips, a shift, and some noise. The intelligence is entirely in <em>choosing</em> transformations that keep the label true for your task. (Here we chose vertical <em>and</em> horizontal flips because a bar's orientation is what we're classifying and both flips preserve it; for photos of objects you'd usually flip left-right only.)
+      </p>
+
       <div class="callout intuition ml-link">
-        <strong>Measured effect.</strong> Train the tiny CNN on just <strong>60</strong> images and it reaches ~0.96 test accuracy; add augmentation and it reaches <strong>1.00</strong>. The gain is largest exactly when data is small — which is almost always the regime that matters in practice. When you're short on labels, augment before you reach for a bigger model.
+        <strong>Measured effect.</strong> Train our tiny CNN on just <strong>60</strong> images and it reaches about <strong>0.96</strong> test accuracy; turn on augmentation and it reaches <strong>1.00</strong>. The gain is biggest exactly when data is scarce — which, in the real world, is nearly always. When you're short on labels, augment before you reach for a bigger model.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Using a transformation that changes the label.</strong> The flip-a-6-into-a-9 trap. If a change can ever alter the correct answer, it's teaching the model wrong facts.</li>
+          <li><strong>Augmenting the test set.</strong> You evaluate on clean, untouched data to get an honest score. (Averaging predictions over augmented copies at test time is a deliberate, separate technique called test-time augmentation — not the same as accidentally distorting your test set.)</li>
+          <li><strong>Applying the same fixed augmentation every time.</strong> The point is fresh randomness each epoch. A single frozen variant just gives you one extra image, not endless variety.</li>
+          <li><strong>Over-augmenting into unrealism.</strong> Extreme rotations or noise can push images so far from anything real that the model wastes capacity on cases it will never see. Match the augmentations to variations that actually occur in your data.</li>
+        </ul>
       </div>
 
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
         <ul>
-          <li><strong>Augmentation = random label-preserving transforms</strong> applied to training inputs (flips, shifts, rotations, crops, colour, noise).</li>
-          <li><strong>It's regularization through data:</strong> it enlarges the effective dataset and teaches invariances, reducing overfitting.</li>
-          <li><strong>Biggest wins in the small-data regime</strong> — precisely where labels are expensive.</li>
-          <li><strong>Transforms must respect the task:</strong> a flip is fine for animals but changes a 6 into a 9. Choose augmentations that truly preserve the label.</li>
-          <li><strong>Apply it at training time only,</strong> freshly randomized each epoch; evaluate on clean data (or average over augmentations — "test-time augmentation").</li>
+          <li><strong>Augmentation = random, label-preserving changes</strong> to training inputs (flips, shifts, rotations, crops, colour, noise).</li>
+          <li><strong>It's regularization through data:</strong> more effective variety, less memorizing, better generalization.</li>
+          <li><strong>Biggest gains when data is scarce</strong> — the regime that matters most in practice.</li>
+          <li><strong>The transformation must fit the task:</strong> a flip is fine for animals but turns a 6 into a 9.</li>
+          <li><strong>Training time only,</strong> re-randomized each epoch; evaluate on clean data.</li>
         </ul>
       </div>
 
@@ -68,21 +106,21 @@
         <div class="quiz-sub">Answer from memory, then read why.</div>
 
         <div class="quiz-q" data-correct="2">
-          <p class="quiz-stem"><span class="qn">Q1.</span> What is the defining requirement of a valid data augmentation?</p>
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is the one defining requirement of a valid augmentation?</p>
           <ul class="quiz-options">
-            <li>It must make the image look worse.<div class="quiz-why">Quality isn't the criterion; some augmentations barely change appearance.</div></li>
-            <li>It must add new labels.<div class="quiz-why">The point is to avoid needing new labels — the label is reused unchanged.</div></li>
-            <li>It must not change the correct label.<div class="quiz-why">Correct. Label-preservation is the whole rule; a transform that flips the answer teaches the model something false.</div></li>
-            <li>It must be a rotation.<div class="quiz-why">Rotation is one option among many; the requirement is label-preservation, not a specific transform.</div></li>
+            <li>It must make the image look worse.<div class="quiz-why">Quality isn't the point; many augmentations barely change how an image looks.</div></li>
+            <li>It must add new labels.<div class="quiz-why">The whole idea is to reuse the existing label, not create new ones.</div></li>
+            <li>It must not change the correct label.<div class="quiz-why">Correct. Label-preservation is the rule; a change that flips the answer teaches something false.</div></li>
+            <li>It must be a rotation.<div class="quiz-why">Rotation is just one option; the requirement is label-preservation.</div></li>
           </ul>
         </div>
 
         <div class="quiz-q" data-correct="0">
           <p class="quiz-stem"><span class="qn">Q2.</span> Why does augmentation help most when the dataset is small?</p>
           <ul class="quiz-options">
-            <li>Because overfitting is worst with little data, and augmentation adds effective variety.<div class="quiz-why">Correct. Scarce data lets a model memorize; manufactured variety combats that memorization most where it's most severe.</div></li>
-            <li>Because small images are easier to flip.<div class="quiz-why">Image size and dataset size are different things; the effect is about quantity of data.</div></li>
-            <li>Because large datasets can't be augmented.<div class="quiz-why">They can be — the marginal benefit is just smaller when you already have lots of variety.</div></li>
+            <li>Overfitting is worst with little data, and augmentation adds effective variety.<div class="quiz-why">Correct. Scarce data lets a model memorize; manufactured variety fights that hardest where it's most severe.</div></li>
+            <li>Because small images are easier to flip.<div class="quiz-why">Image size and dataset size are different things.</div></li>
+            <li>Because large datasets can't be augmented.<div class="quiz-why">They can — the marginal benefit is just smaller when variety is already high.</div></li>
             <li>Because it reduces the number of classes.<div class="quiz-why">Augmentation doesn't change the classes.</div></li>
           </ul>
         </div>
@@ -90,20 +128,20 @@
         <div class="quiz-q" data-correct="3">
           <p class="quiz-stem"><span class="qn">Q3.</span> For a handwritten-digit classifier, which augmentation is <em>risky</em>?</p>
           <ul class="quiz-options">
-            <li>Small rotations (±10°).<div class="quiz-why">Mild rotation keeps a digit's identity — usually safe.</div></li>
-            <li>Small shifts.<div class="quiz-why">Translating a digit keeps its label; safe.</div></li>
-            <li>A little added noise.<div class="quiz-why">Light noise preserves the digit; a common, safe augmentation.</div></li>
-            <li>Horizontal flip.<div class="quiz-why">Correct. Flipping can turn a 6 into a 9 (and mangles most digits), so it violates label-preservation for this task.</div></li>
+            <li>Small rotations (±10°).<div class="quiz-why">A slightly tilted digit keeps its identity — safe.</div></li>
+            <li>Small shifts.<div class="quiz-why">Nudging a digit keeps its label — safe.</div></li>
+            <li>A little added noise.<div class="quiz-why">Light noise preserves the digit — a common, safe choice.</div></li>
+            <li>Horizontal flip.<div class="quiz-why">Correct. Flipping can turn a 6 into a 9 and mangles most digits — it breaks label-preservation for this task.</div></li>
           </ul>
         </div>
 
         <div class="quiz-q" data-correct="1">
           <p class="quiz-stem"><span class="qn">Q4.</span> Where in the pipeline is augmentation normally applied?</p>
           <ul class="quiz-options">
-            <li>To the test set, to make evaluation harder.<div class="quiz-why">You evaluate on clean data for a fair measure (or average predictions over augmentations, deliberately — "test-time augmentation").</div></li>
-            <li>To the training inputs, re-randomized each epoch.<div class="quiz-why">Correct. Fresh random transforms each epoch maximize variety and prevent the model from memorizing any single version.</div></li>
-            <li>To the labels.<div class="quiz-why">Labels are preserved, not transformed.</div></li>
-            <li>To the weights during backprop.<div class="quiz-why">Augmentation acts on data, not on the gradient step.</div></li>
+            <li>To the test set, to make evaluation harder.<div class="quiz-why">You evaluate on clean data for a fair measure; distorting the test set gives a misleading score.</div></li>
+            <li>To the training inputs, re-randomized each epoch.<div class="quiz-why">Correct. Fresh random changes each pass maximize variety and prevent memorizing any single version.</div></li>
+            <li>To the labels.<div class="quiz-why">Labels are kept, not transformed.</div></li>
+            <li>To the weights during training.<div class="quiz-why">Augmentation acts on the data, not on the gradient step.</div></li>
           </ul>
         </div>
       </div>
@@ -112,29 +150,41 @@
       <h2><span class="sec-ico">✍️</span> Practice</h2>
       <div class="practice">
         <div class="problem">
-          <p class="problem-stem"><strong>1.</strong> Run <code>augmentation.py</code> and vary the training-set size (e.g. 30, 60, 150, 400). Plot the augmentation gain vs training size. What trend do you expect?</p>
+          <p class="problem-stem"><strong>1. (warm-up)</strong> Run <code>augmentation.py</code> at training sizes 30, 60, 150, and 400. What happens to the <em>gap</em> between augmented and non-augmented accuracy as the dataset grows?</p>
           <details class="solution"><summary>Show solution</summary>
             <div class="solution-body">
-              <p>The gap between augmented and non-augmented shrinks as data grows: with 30–60 images augmentation helps a lot; by 400 both are near ceiling and the benefit is small. That's the general law — augmentation is a <em>data multiplier</em>, so it matters most when you have little to multiply. It also means benchmark numbers on huge datasets can understate how valuable augmentation is for your real, smaller problem.</p>
+              <p>The gap shrinks. With 30–60 images augmentation helps a lot; by 400 both are near the ceiling and the benefit is small. Augmentation is a <em>data multiplier</em>, so it matters most when there's little to multiply. A practical warning hides here too: benchmark numbers on huge datasets can make augmentation look unimportant, when for your smaller, real problem it may be the single biggest lever you have.</p>
             </div>
           </details>
         </div>
         <div class="problem">
-          <p class="problem-stem"><strong>2.</strong> Add an augmentation that is <em>not</em> label-preserving for this task (e.g. blank out the whole image, or set the label randomly) and retrain. What happens?</p>
+          <p class="problem-stem"><strong>2. (transfer)</strong> Deliberately add a <em>bad</em> augmentation — say, randomly blanking the whole image while keeping its label — and retrain. What breaks, and why?</p>
           <details class="solution"><summary>Show solution</summary>
             <div class="solution-body">
-              <p>Accuracy drops, because you're now feeding the model contradictory or content-free examples — you've injected label noise. This is the failure mode of careless augmentation: a transform that sometimes changes the true class trains the model to ignore the very signal it should use. It's a concrete reminder that augmentation encodes <em>your</em> assumptions about invariances; wrong assumptions teach wrong lessons, so pick transforms you can justify.</p>
+              <p>Accuracy drops, because you're now feeding content-free images paired with real labels — pure label noise. The model is being told "this blank square is a vertical bar," which is false, and it learns to distrust the very signal it should use. This is the failure mode of careless augmentation: any transformation that sometimes destroys or changes the true class actively teaches wrong lessons. It drives home that augmentation encodes <em>your</em> assumptions about what shouldn't matter — wrong assumptions do real damage.</p>
             </div>
           </details>
         </div>
         <div class="problem">
-          <p class="problem-stem"><strong>3.</strong> Conceptual: augmentation and pooling both aim at invariance to shifts. Why use both — isn't one redundant?</p>
+          <p class="problem-stem"><strong>3. (stretch)</strong> Pooling (Lesson&nbsp;1) and augmentation both aim at invariance to shifts. Why use both — isn't one redundant?</p>
           <details class="solution"><summary>Show solution</summary>
             <div class="solution-body">
-              <p>They attack it from different directions and cover different transforms. Pooling builds a <em>little</em> shift invariance into the architecture (up to window sizes) and only for translation. Augmentation can instill invariance to transformations pooling can't express — rotation, brightness, scale, flips — and to larger translations, all learned from examples. Combining an architectural bias with a data-driven one is generally stronger and more flexible than either alone: the architecture gives you a head start; the data fills in the rest.</p>
+              <p>They attack the goal from different directions and cover different changes. Pooling builds a <em>little</em> shift-tolerance into the architecture itself, and only for translation. Augmentation can teach invariance to things pooling can't express — rotation, brightness, scale, flips — and to larger shifts, all learned from examples. Combining an architectural bias (pooling) with a data-driven one (augmentation) is stronger and more flexible than either alone: the architecture gives a head start, the data fills in the rest. Great systems usually stack complementary tricks rather than betting on one.</p>
             </div>
           </details>
         </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Every serious vision model is trained with augmentation — random crops and flips are standard on ImageNet. Researchers have pushed the idea far: <em>AutoAugment</em> uses search to <em>discover</em> the best augmentation policy for a dataset; <em>mixup</em> and <em>CutMix</em> blend two images (and their labels) together, which sounds absurd but reliably improves accuracy and calibration; and in self-supervised learning (Track&nbsp;17), augmentation becomes the <em>core</em> of the method — a model learns by being asked to recognize that two different augmentations of the same image belong together. What began as a cheap trick to stretch small datasets turned out to be one of the deepest ideas in modern representation learning.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Data augmentation makes free extra training data by changing images in ways that keep the answer the same — flips, shifts, noise — so the model learns the real idea instead of memorizing exact pixels."</p>
       </div>
 
       <!-- DEEP DIVE -->
@@ -143,12 +193,64 @@
         <ul class="refs">
           <li><span class="src-type">paper</span> Shorten &amp; Khoshgoftaar (2019), "A survey on Image Data Augmentation for Deep Learning." <a href="https://journalofbigdata.springeropen.com/articles/10.1186/s40537-019-0197-0" target="_blank" rel="noopener">springeropen.com</a></li>
           <li><span class="src-type">paper</span> Cubuk et&nbsp;al. (2019), "AutoAugment: Learning Augmentation Strategies from Data." <a href="https://arxiv.org/abs/1805.09501" target="_blank" rel="noopener">arxiv.org</a></li>
-          <li><span class="src-type">paper</span> Zhang et&nbsp;al. (2018), "mixup: Beyond Empirical Risk Minimization" — augmenting by blending examples. <a href="https://arxiv.org/abs/1710.09412" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Zhang et&nbsp;al. (2018), "mixup: Beyond Empirical Risk Minimization" — augment by blending examples. <a href="https://arxiv.org/abs/1710.09412" target="_blank" rel="noopener">arxiv.org</a></li>
         </ul>
       </div>
+
+      <p class="bridge">Next: augmentation stretches a small dataset. But the most powerful shortcut for scarce data is to borrow a network someone else already trained — <a href="04-transfer-learning.html">transfer learning</a>.</p>
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('augcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d');
+    var N=8, shapeType=0;
+    function baseShape(){
+      var g=[];for(var y=0;y<N;y++){g[y]=[];for(var x=0;x<N;x++)g[y][x]=0;}
+      if(shapeType===0){for(var y=1;y<6;y++)g[y][2]=1;for(var x=2;x<6;x++)g[5][x]=1;}  // L
+      else if(shapeType===1){for(var y=1;y<7;y++)g[y][3]=1;}                            // vertical bar
+      else {for(var x=1;x<7;x++){g[3][x]=1;} for(var y=1;y<7;y++)g[y][1]=1;}            // corner
+      return g;
+    }
+    var labels=['L-shape','vertical bar','corner'];
+    function aug(g){
+      var o=[];for(var y=0;y<N;y++){o[y]=g[y].slice();}
+      if(Math.random()<0.5) o=o.map(function(r){return r.slice().reverse();});          // h flip
+      if(Math.random()<0.5) o=o.slice().reverse();                                       // v flip
+      var sh=Math.floor(Math.random()*3)-1, ax=Math.floor(Math.random()*2);
+      var p=[];for(var y=0;y<N;y++){p[y]=[];for(var x=0;x<N;x++){
+        var sy=ax===0?(y-sh+N)%N:y, sx=ax===1?(x-sh+N)%N:x; p[y][x]=o[sy][sx];
+      }}
+      return p;
+    }
+    var cell=20, pad=16, top=44, gapB=18;
+    function drawGrid(g,ox,oy,noise){
+      for(var y=0;y<N;y++)for(var x=0;x<N;x++){
+        var v=g[y][x]; if(noise) v=Math.max(0,Math.min(1,v+ (Math.random()-0.5)*0.5));
+        ctx.fillStyle= v>0.55?'#1f2733': (v>0.15?'#7d8896':'#eef2f7');
+        ctx.fillRect(ox+x*cell,oy+y*cell,cell-2,cell-2);
+      }
+    }
+    function render(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.font='12px -apple-system,Segoe UI,Roboto,sans-serif';ctx.textAlign='center';
+      var base=baseShape();
+      ctx.fillStyle='#2563eb';ctx.fillText('original',pad+N*cell/2,top-12);
+      drawGrid(base,pad,top,false);
+      var bx=pad+N*cell+30;
+      for(var k=0;k<3;k++){
+        var ox=bx+k*(N*cell+22);
+        ctx.fillStyle='#8a94a3';ctx.fillText('aug '+(k+1),ox+N*cell/2,top-12);
+        drawGrid(aug(base),ox,top,true);
+      }
+      document.getElementById('augread').textContent='Every copy keeps the label "'+labels[shapeType]+'" — only the pixels change (flips, shifts, noise).';
+    }
+    document.getElementById('augroll').onclick=render;
+    document.getElementById('augshape').onclick=function(){shapeType=(shapeType+1)%3;render();};
+    render();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

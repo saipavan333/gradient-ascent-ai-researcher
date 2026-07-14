@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t16-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sequence-to-sequence · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Sequence-to-sequence: from one answer to a whole output</h1>
+      <p class="subtitle">Translation, summarization, and speech-to-text turn one sequence into another. The encoder–decoder design does this by squeezing the whole input into a single "context" vector and unrolling it back out — and the weakness of that squeeze is exactly what led to attention and the Transformer.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 8 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~22 min</span>
+        <span class="chip">Builds on: Lessons 0–3</span>
+      </div>
+
+      <p class="lead prose">
+        So far our RNNs read a sequence and produce <em>one</em> answer — a label, a yes/no. But the most valuable sequence tasks produce a whole new sequence: give it an English sentence, get back the French; give it an article, get back a summary. These are <span class="newterm">sequence-to-sequence</span> (seq2seq) problems. The classic solution has two RNNs. An <span class="newterm">encoder</span> reads the entire input and boils it down into a single fixed-length summary — the <span class="newterm">context vector</span>. A <span class="newterm">decoder</span> then starts from that summary and generates the output one item at a time, feeding each thing it produces back in as the next input.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: read it all, then retell it from memory</h2>
+      <p class="prose">
+        Imagine a translator who must listen to an entire sentence, hold it all in their head, and only <em>then</em> start speaking the translation — no glancing back at the original. The "hold it all in their head" part is the context vector: one fixed-size memory that has to capture everything about the input. The "start speaking" part is the decoder, producing the translation word by word, each word informed by what it already said. This works, and it's a beautiful idea — but you can already feel the strain: cramming a 50-word sentence into one fixed memory is hard, and the longer the input, the more gets lost. That strain is the story of this lesson.
+      </p>
+      <p class="prose">
+        During training we use a shortcut called <span class="newterm">teacher forcing</span>: instead of feeding the decoder its own (possibly wrong) previous guess, we feed it the <em>correct</em> previous word. This makes training faster and more stable. At test time the decoder has no answer key, so it must feed itself — a small mismatch between training and use that we'll flag as a known gotcha.
+      </p>
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="An encoder RNN reads x0,x1,x2 and compresses to a single highlighted context vector; a decoder RNN initialized from it emits y0,y1,y2. A note marks the context vector as the bottleneck that attention was invented to remove." />
+        <figcaption>Encoder → context vector → decoder. The whole input must pass through one fixed vector — the "bottleneck" that motivated attention.</figcaption>
+      </figure>
+
+      <!-- INTERACTIVE -->
+      <div class="widget" id="s2slab">
+        <div class="wtitle">▶ Interactive · encode, squeeze, decode</div>
+        <div class="whint">Press <strong>Run</strong> to watch the encoder read a sequence left to right into a single context vector, and the decoder unroll it back out <em>reversed</em>. Notice everything passes through that one middle box — the bottleneck. Press <strong>Re-roll</strong> for a new sequence.</div>
+        <canvas id="s2scanvas" width="620" height="240" aria-label="Interactive sequence-to-sequence demonstration"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="s2srun">▶ Run</button>
+          <button class="wbtn" id="s2sroll">🎲 Re-roll sequence</button>
+        </div>
+        <div class="wreadout" id="s2sread">Press Run to encode then decode (reverse) the sequence.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: reverse [3, 1, 4] step by step</h3>
+        <p class="prose">Our from-scratch model learns to <em>reverse</em> a short sequence — a clean stand-in for translation (input sequence in, different sequence out). Let's trace it on \([3, 1, 4]\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Encode.</strong> The encoder reads 3, then 1, then 4, updating its memory each time. After the last item, its memory (the context vector) holds a squeezed summary of the whole input.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Start decoding.</strong> The decoder begins from that context and a "start" signal, and outputs the first item: <strong>4</strong> (the last input, since we're reversing).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Feed it back.</strong> That 4 becomes the decoder's next input; combined with its memory, it outputs <strong>1</strong>. Then 1 feeds back and it outputs <strong>3</strong>.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result: \([4, 1, 3]\).</strong> <span class="wnote">It worked — 100% on short sequences in our code. But make the input longer and accuracy drops, because that single context vector has to hold more and more in the same fixed space. Watching your own model degrade with length is the most convincing argument for why attention was needed.</span></div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: encode once, decode step by step</h2>
+      <pre><code>context = encoder(src)             # final memory = fixed-length summary
+h = context
+for k in range(out_len):           # generate one item at a time
+    h = decoder_step(prev_token, h)
+    p = softmax(Wout @ h)          # a probability for each possible output
+    prev_token = argmax(p)         # feed the prediction back in (greedy)</code></pre>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking the context vector grows with the input.</strong> It's a <em>fixed</em> size no matter how long the input is — which is precisely why long inputs overflow it. That's the bottleneck.</li>
+          <li><strong>Confusing the encoder's and decoder's jobs.</strong> The encoder only <em>reads</em> and summarizes; the decoder only <em>writes</em>, one item at a time, from that summary. Two RNNs, two roles.</li>
+          <li><strong>Forgetting the train/test mismatch.</strong> Teacher forcing feeds the correct previous word during training, but at test time the model feeds itself — so early mistakes can snowball (called "exposure bias").</li>
+          <li><strong>Assuming greedy decoding is optimal.</strong> Always taking the single most likely next item can miss a better overall sequence. Beam search (keeping several partial candidates) usually does better.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Seq2seq maps an input sequence to an output sequence</strong> via encoder → context vector → decoder.</li>
+          <li><strong>The decoder generates one item at a time,</strong> feeding each output back in as the next input.</li>
+          <li><strong>Teacher forcing:</strong> during training, feed the <em>true</em> previous item (faster, more stable).</li>
+          <li><strong>The context bottleneck:</strong> squeezing an arbitrarily long input into one fixed vector loses information, especially for long inputs.</li>
+          <li><strong>Attention removed the bottleneck</strong> (let the decoder look back at all encoder states); the Transformer then dropped recurrence entirely (Track&nbsp;5).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is the "context vector" in an encoder–decoder model?</p>
+          <ul class="quiz-options">
+            <li>The output sequence.<div class="quiz-why">The output is produced by the decoder; the context is the input summary that seeds it.</div></li>
+            <li>The attention weights.<div class="quiz-why">Basic seq2seq has no attention; the context is just the encoder's final memory.</div></li>
+            <li>The encoder's fixed-size summary of the whole input, used to start the decoder.<div class="quiz-why">Correct. It's a fixed-length vector (usually the encoder's last memory) that carries the input's information into decoding.</div></li>
+            <li>The vocabulary.<div class="quiz-why">The vocabulary is the set of possible items, not a per-input summary.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What does "generate autoregressively" mean for the decoder?</p>
+          <ul class="quiz-options">
+            <li>Each output item is produced using the items generated before it.<div class="quiz-why">Correct. The decoder feeds its own prior outputs back in, building the sequence one step at a time.</div></li>
+            <li>All output items appear at once, independently.<div class="quiz-why">That's non-autoregressive generation; standard decoders are sequential.</div></li>
+            <li>The model regresses to the average.<div class="quiz-why">Unrelated; "auto-regressive" here means conditioning on prior outputs.</div></li>
+            <li>The encoder runs twice.<div class="quiz-why">The encoder runs once; autoregression is about the decoder.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> "Teacher forcing" during training means…</p>
+          <ul class="quiz-options">
+            <li>Freezing the encoder.<div class="quiz-why">It's about decoder inputs, not freezing weights.</div></li>
+            <li>Using a larger learning rate.<div class="quiz-why">Unrelated to learning rate.</div></li>
+            <li>Training only on the hardest examples.<div class="quiz-why">That's a different idea; not teacher forcing.</div></li>
+            <li>Feeding the true previous item (not the model's own guess) as the next decoder input.<div class="quiz-why">Correct. Using ground-truth history stabilizes and speeds training; at test time the model must use its own outputs, a gap called exposure bias.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Why does the basic encoder–decoder struggle with long inputs?</p>
+          <ul class="quiz-options">
+            <li>The decoder runs out of vocabulary.<div class="quiz-why">Vocabulary size is unrelated to input length.</div></li>
+            <li>The whole input is squeezed into one fixed-length vector, losing information.<div class="quiz-why">Correct. A single context vector can't preserve all the detail of a long input — the bottleneck attention was designed to relieve.</div></li>
+            <li>RNNs can't process long inputs at all.<div class="quiz-why">They can; the issue is compressing them into one vector (plus fading memory).</div></li>
+            <li>Softmax fails for long sequences.<div class="quiz-why">Softmax works regardless of length; the bottleneck is the context vector.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> Run <code>seq2seq.py</code>, then increase the sequence length (e.g. to 6, then 8). What happens to accuracy, and how does that dramatize the bottleneck?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Longer sequences are harder: the single context vector must encode more items in the same number of dimensions, so accuracy falls (and training needs more capacity/epochs). This is the bottleneck made tangible — the very experiment that motivated attention, where the decoder, instead of relying on one summary, builds a fresh weighted mix of <em>all</em> the encoder's states at each output step. Watching your own model degrade with length is the most convincing case for why attention was needed.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Our decoder uses teacher forcing in training but feeds itself at test time. Name the mismatch this creates and one way to reduce it.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The mismatch is <span class="newterm">exposure bias</span>: in training the decoder always sees correct previous items, but at test time it sees its own (sometimes wrong) guesses, and errors can compound. Remedies include <em>scheduled sampling</em> (sometimes feed the model's own prediction during training), training against sequence-level rewards, and better search at inference (beam search instead of greedy). It's a clean example of a gap between how a model is trained and how it's used — exactly the kind of thing honest evaluation (Track&nbsp;9) exists to catch.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Connect this lesson to Track&nbsp;5. What exactly did attention add to the encoder–decoder, and what did the Transformer then remove?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Attention added a learned "look-back": instead of one frozen context vector, the decoder computes at each output step a weighted blend of <em>all</em> the encoder's states, focusing on the relevant input positions — removing the bottleneck and giving direct access to any part of the input. The Transformer then took the bold next step: if attention can connect any positions directly, you don't need recurrence at all — replace the RNNs with stacked self-attention, gaining full parallelism and constant-length paths between items. This whole track's arc (RNN → gates → seq2seq → bottleneck) is exactly the historical path that made the Transformer the obvious next move.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Encoder–decoder is still the shape of modern translation and summarization systems — but with attention baked in, and usually with Transformers instead of RNNs (Track&nbsp;5). The context-bottleneck story is one of the most important in AI history: Bahdanau and colleagues' 2014 fix (attention) directly enabled the 2017 Transformer, which enabled GPT and the entire large-language-model era. So this humble "read it all, then retell it" model is the direct ancestor of the systems writing code and essays today. Understanding its one weakness — and the elegant fix — is understanding the hinge on which modern AI turned.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A seq2seq model uses one RNN to squeeze an input sequence into a single summary vector and a second RNN to unroll a new sequence out of it — and the fact that everything must fit through that one vector is the bottleneck attention was invented to fix."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Sutskever, Vinyals &amp; Le (2014), "Sequence to Sequence Learning with Neural Networks" — the encoder–decoder. <a href="https://arxiv.org/abs/1409.3215" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Bahdanau, Cho &amp; Bengio (2015), "Neural Machine Translation by Jointly Learning to Align and Translate" — attention removes the bottleneck. <a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Vaswani et&nbsp;al. (2017), "Attention Is All You Need" — drop recurrence entirely. <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes the sequence-models track — you can now give a network memory, fix its vanishing gradients, and make it read and write sequences. It sets up <a href="../track-5-transformers/00-sequences-attention.html">Transformers</a> (Track&nbsp;5), which replace recurrence with attention.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('s2scanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d');
+    var pal=['#2563eb','#059669','#d97706','#dc2626','#6d28d9'];
+    var seq=[3,1,4,2];
+    var phase=0, k=0, timer=null;   // phase 0 idle, 1 encode, 2 decode
+    var cell=42, encY=60, decY=170, x0=40, ctxX=270, ctxY=115;
+    function drawTok(v,x,y,active){
+      ctx.fillStyle=active?pal[v% pal.length]:'#eef2f7';
+      ctx.fillRect(x,y,cell-6,cell-6);
+      ctx.fillStyle=active?'#fff':'#8a94a3';ctx.font='700 18px sans-serif';ctx.textAlign='center';
+      ctx.fillText(v,x+(cell-6)/2,y+(cell-6)/2+6);
+    }
+    function draw(){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.font='12px -apple-system,Segoe UI,Roboto,sans-serif';ctx.fillStyle='#8a94a3';ctx.textAlign='left';
+      ctx.fillText('ENCODER reads input →',x0,encY-12);
+      ctx.fillText('DECODER writes output (reversed) →',x0,decY-12);
+      // encoder tokens
+      for(var i=0;i<seq.length;i++) drawTok(seq[i], x0+i*cell, encY, phase>=1 && (phase>1 || i<=k));
+      // context box
+      var lit = phase>=1 && (phase>1 || k>=seq.length-1);
+      ctx.fillStyle=lit?'#fde68a':'#f1f5f9';ctx.strokeStyle='#b45309';ctx.lineWidth=2;
+      ctx.fillRect(ctxX,ctxY-6,90,44);ctx.strokeRect(ctxX,ctxY-6,90,44);
+      ctx.fillStyle='#b45309';ctx.font='700 12px sans-serif';ctx.textAlign='center';
+      ctx.fillText('context',ctxX+45,ctxY+10);ctx.fillText('vector',ctxX+45,ctxY+24);
+      ctx.fillStyle='#8a94a3';ctx.font='10px sans-serif';ctx.fillText('(one fixed box = bottleneck)',ctxX+45,ctxY+50);
+      // decoder tokens (reversed), revealed up to k during decode
+      var rev=seq.slice().reverse();
+      for(var j=0;j<rev.length;j++){
+        var show = phase===2 && j<=k;
+        drawTok(rev[j], x0+j*cell, decY, show);
+      }
+    }
+    function tick(){
+      if(phase===1){ if(k<seq.length-1){k++;} else {phase=2;k=-1;} draw();
+        document.getElementById('s2sread').textContent='Encoding… reading item '+(Math.min(k+1,seq.length))+' of '+seq.length+' into the context vector.';
+      } else if(phase===2){ if(k<seq.length-1){k++; draw();
+          document.getElementById('s2sread').textContent='Decoding… the single context vector is unrolled into output '+(k+1)+' of '+seq.length+' (reversed).';
+        } else { clearInterval(timer);timer=null;phase=0;
+          document.getElementById('s2sread').textContent='Done: input ['+seq.join(', ')+'] → output ['+seq.slice().reverse().join(', ')+'].  Everything passed through one context vector.';
+        }
+      }
+    }
+    function run(){ if(timer)clearInterval(timer); phase=1;k=0;draw();timer=setInterval(tick,650); }
+    document.getElementById('s2srun').onclick=run;
+    document.getElementById('s2sroll').onclick=function(){ if(timer){clearInterval(timer);timer=null;} seq=[]; for(var i=0;i<4;i++)seq.push(Math.floor(Math.random()*5)); phase=0;k=0;draw();document.getElementById('s2sread').textContent='New sequence ['+seq.join(', ')+']. Press Run.'; };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

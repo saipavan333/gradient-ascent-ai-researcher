@@ -4,3 +4,10 @@
 
 __pycache__/
 *.pyc
+
+# scratch
+**/_*.js
+**/_*.py
+**/_*.html
+**/*.out.html
+**/*.tmpl.html

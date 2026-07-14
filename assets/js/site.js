@@ -46,111 +46,7 @@
       ],
     },
     {
-      n: 3, id: "t3", title: "ML Theory",
-      desc: "Why learning generalizes: bias–variance, regularization, and PAC intuition.",
-      lessons: [
-        { id: "t3-l00", title: "The learning problem & generalization", file: "lessons/track-3-ml-theory/00-generalization.html", status: "done" },
-        { id: "t3-l01", title: "Bias–variance decomposition",          file: "lessons/track-3-ml-theory/01-bias-variance.html", status: "done" },
-        { id: "t3-l02", title: "Regularization (L1/L2) geometrically",  file: "lessons/track-3-ml-theory/02-regularization.html", status: "done" },
-        { id: "t3-l03", title: "PAC learning & VC dimension intuition", file: "lessons/track-3-ml-theory/03-pac-vc.html", status: "done" },
-      ],
-    },
-    {
-      n: 4, id: "t4", title: "Deep Learning from Scratch",
-      desc: "Build a working autograd engine, backprop, optimizers, and train MLPs.",
-      lessons: [
-        { id: "t4-l00", title: "The neuron & the computational graph", file: "lessons/track-4-deep-learning/00-neuron-graph.html", status: "done" },
-        { id: "t4-l01", title: "Backpropagation by hand",              file: "lessons/track-4-deep-learning/01-backpropagation.html", status: "done" },
-        { id: "t4-l02", title: "Build an autograd engine",             file: "lessons/track-4-deep-learning/02-autograd-engine.html", status: "done" },
-        { id: "t4-l03", title: "MLPs, activations & initialization",   file: "lessons/track-4-deep-learning/03-mlp-activations.html", status: "done" },
-        { id: "t4-l04", title: "Optimizers & training loops",          file: "lessons/track-4-deep-learning/04-training-loop.html", status: "done" },
-      ],
-    },
-    {
-      n: 5, id: "t5", title: "Transformers from Scratch",
-      desc: "Attention, positional encodings, and a small GPT you implement and train.",
-      lessons: [
-        { id: "t5-l00", title: "From sequences to attention",   file: "lessons/track-5-transformers/00-sequences-attention.html", status: "done" },
-        { id: "t5-l01", title: "Self-attention, step by step",  file: "lessons/track-5-transformers/01-self-attention.html", status: "done" },
-        { id: "t5-l02", title: "Multi-head attention & MLP block", file: "lessons/track-5-transformers/02-multihead-block.html", status: "done" },
-        { id: "t5-l03", title: "Positional encodings",          file: "lessons/track-5-transformers/03-positional-encoding.html", status: "done" },
-        { id: "t5-l04", title: "Build & train a small GPT",     file: "lessons/track-5-transformers/04-build-gpt.html", status: "done" },
-      ],
-    },
-    {
-      n: 6, id: "t6", title: "Generative Models",
-      desc: "VAEs, GANs, diffusion, and autoregressive models — theory and code.",
-      lessons: [
-        { id: "t6-l00", title: "What is a generative model?",  file: "lessons/track-6-generative/00-what-is-generative.html", status: "done" },
-        { id: "t6-l01", title: "Autoregressive models",        file: "lessons/track-6-generative/01-autoregressive.html", status: "done" },
-        { id: "t6-l02", title: "Variational autoencoders",     file: "lessons/track-6-generative/02-vae.html", status: "done" },
-        { id: "t6-l03", title: "GANs",                         file: "lessons/track-6-generative/03-gan.html", status: "done" },
-        { id: "t6-l04", title: "Diffusion models",             file: "lessons/track-6-generative/04-diffusion.html", status: "done" },
-      ],
-    },
-    {
-      n: 7, id: "t7", title: "Reinforcement Learning",
-      desc: "MDPs, value & policy methods, policy gradients, and RLHF.",
-      lessons: [
-        { id: "t7-l00", title: "MDPs & the RL problem",        file: "lessons/track-7-rl/00-mdps.html", status: "done" },
-        { id: "t7-l01", title: "Value iteration & Q-learning", file: "lessons/track-7-rl/01-value-q-learning.html", status: "done" },
-        { id: "t7-l02", title: "Policy gradients (REINFORCE)", file: "lessons/track-7-rl/02-policy-gradients.html", status: "done" },
-        { id: "t7-l03", title: "Actor–critic & PPO",           file: "lessons/track-7-rl/03-actor-critic-ppo.html", status: "done" },
-        { id: "t7-l04", title: "RLHF: aligning language models", file: "lessons/track-7-rl/04-rlhf.html", status: "done" },
-      ],
-    },
-    {
-      n: 8, id: "t8", title: "Reading & Reproducing Papers",
-      desc: "How to dissect, reproduce, and critique research papers.",
-      lessons: [
-        { id: "t8-l00", title: "How to read a paper (3-pass method)", file: "lessons/track-8-papers/00-how-to-read.html", status: "done" },
-        { id: "t8-l01", title: "Reproducing results faithfully",      file: "lessons/track-8-papers/01-reproducing.html", status: "done" },
-        { id: "t8-l02", title: "Critiquing claims & evidence",        file: "lessons/track-8-papers/02-critiquing.html", status: "done" },
-      ],
-    },
-    {
-      n: 9, id: "t9", title: "Research Methods",
-      desc: "Experiment design, ablations, honest evaluation, and writing up results.",
-      lessons: [
-        { id: "t9-l00", title: "Designing experiments",     file: "lessons/track-9-methods/00-designing-experiments.html", status: "done" },
-        { id: "t9-l01", title: "Ablations & controls",      file: "lessons/track-9-methods/01-ablations.html", status: "done" },
-        { id: "t9-l02", title: "Honest evaluation & pitfalls", file: "lessons/track-9-methods/02-honest-evaluation.html", status: "done" },
-        { id: "t9-l03", title: "Writing the paper",         file: "lessons/track-9-methods/03-writing.html", status: "done" },
-      ],
-    },
-    {
-      n: 10, id: "t10", title: "Research Capstones",
-      desc: "Projects that actually run: reproduce a classic, match a result, run an honest novel experiment.",
-      lessons: [
-        { id: "t10-l00", title: "Capstone A: ship a from-scratch GPT", file: "lessons/track-10-capstones/00-capstone-namegen.html", status: "done" },
-        { id: "t10-l01", title: "Capstone B: reproduce a classic, live", file: "lessons/track-10-capstones/01-capstone-ddlab.html", status: "done" },
-        { id: "t10-l02", title: "Capstone C: a live RL agent", file: "lessons/track-10-capstones/02-capstone-gridworld.html", status: "done" },
-      ],
-    },
-    {
-      n: 11, id: "t11", title: "Large Language Models",
-      desc: "From toy GPT to modern LLMs: BPE, scaling laws, LoRA, efficient inference, and RAG.",
-      lessons: [
-        { id: "t11-l00", title: "Tokenization at scale: BPE",        file: "lessons/track-11-llms/00-tokenization-bpe.html", status: "done" },
-        { id: "t11-l01", title: "Scaling laws & the training recipe", file: "lessons/track-11-llms/01-scaling-laws.html", status: "done" },
-        { id: "t11-l02", title: "Fine-tuning & LoRA",                 file: "lessons/track-11-llms/02-lora-finetuning.html", status: "done" },
-        { id: "t11-l03", title: "Efficient inference: KV-cache & quantization", file: "lessons/track-11-llms/03-efficient-inference.html", status: "done" },
-        { id: "t11-l04", title: "Retrieval-augmented generation",     file: "lessons/track-11-llms/04-rag.html", status: "done" },
-      ],
-    },
-    {
-      n: 12, id: "t12", title: "Classical ML",
-      desc: "The tabular-data workhorses: k-NN, trees, random forests, gradient boosting, and SVMs.",
-      lessons: [
-        { id: "t12-l00", title: "k-Nearest Neighbors",     file: "lessons/track-12-classical-ml/00-knn.html", status: "done" },
-        { id: "t12-l01", title: "Decision trees",          file: "lessons/track-12-classical-ml/01-decision-trees.html", status: "done" },
-        { id: "t12-l02", title: "Random forests",          file: "lessons/track-12-classical-ml/02-random-forests.html", status: "done" },
-        { id: "t12-l03", title: "Gradient boosting",       file: "lessons/track-12-classical-ml/03-gradient-boosting.html", status: "done" },
-        { id: "t12-l04", title: "SVMs & the kernel trick", file: "lessons/track-12-classical-ml/04-svm.html", status: "done" },
-      ],
-    },
-    {
-      n: 13, id: "t13", title: "Information Theory",
+      n: 3, id: "t13", title: "Information Theory",
       desc: "The math glue under ML: entropy, cross-entropy, KL divergence, mutual information, and compression.",
       lessons: [
         { id: "t13-l00", title: "Entropy",              file: "lessons/track-13-information-theory/00-entropy.html", status: "done" },
@@ -161,7 +57,212 @@
       ],
     },
     {
-      n: 14, id: "t14", title: "AI Safety & Interpretability",
+      n: 4, id: "t3", title: "ML Theory",
+      desc: "Why learning generalizes: bias–variance, regularization, and PAC intuition.",
+      lessons: [
+        { id: "t3-l00", title: "The learning problem & generalization", file: "lessons/track-3-ml-theory/00-generalization.html", status: "done" },
+        { id: "t3-l01", title: "Bias–variance decomposition",          file: "lessons/track-3-ml-theory/01-bias-variance.html", status: "done" },
+        { id: "t3-l02", title: "Regularization (L1/L2) geometrically",  file: "lessons/track-3-ml-theory/02-regularization.html", status: "done" },
+        { id: "t3-l03", title: "PAC learning & VC dimension intuition", file: "lessons/track-3-ml-theory/03-pac-vc.html", status: "done" },
+      ],
+    },
+    {
+      n: 5, id: "t12", title: "Classical ML",
+      desc: "The tabular-data workhorses: k-NN, trees, random forests, gradient boosting, and SVMs.",
+      lessons: [
+        { id: "t12-l00", title: "k-Nearest Neighbors",     file: "lessons/track-12-classical-ml/00-knn.html", status: "done" },
+        { id: "t12-l01", title: "Decision trees",          file: "lessons/track-12-classical-ml/01-decision-trees.html", status: "done" },
+        { id: "t12-l02", title: "Random forests",          file: "lessons/track-12-classical-ml/02-random-forests.html", status: "done" },
+        { id: "t12-l03", title: "Gradient boosting",       file: "lessons/track-12-classical-ml/03-gradient-boosting.html", status: "done" },
+        { id: "t12-l04", title: "SVMs & the kernel trick", file: "lessons/track-12-classical-ml/04-svm.html", status: "done" },
+      ],
+    },
+    {
+      n: 6, id: "t4", title: "Deep Learning from Scratch",
+      desc: "Build a working autograd engine, backprop, optimizers, and train MLPs.",
+      lessons: [
+        { id: "t4-l00", title: "The neuron & the computational graph", file: "lessons/track-4-deep-learning/00-neuron-graph.html", status: "done" },
+        { id: "t4-l01", title: "Backpropagation by hand",              file: "lessons/track-4-deep-learning/01-backpropagation.html", status: "done" },
+        { id: "t4-l02", title: "Build an autograd engine",             file: "lessons/track-4-deep-learning/02-autograd-engine.html", status: "done" },
+        { id: "t4-l03", title: "MLPs, activations & initialization",   file: "lessons/track-4-deep-learning/03-mlp-activations.html", status: "done" },
+        { id: "t4-l04", title: "Optimizers & training loops",          file: "lessons/track-4-deep-learning/04-training-loop.html", status: "done" },
+      ],
+    },
+    {
+      n: 7, id: "t15", title: "Convolutional Networks & Vision",
+      desc: "How machines see: convolution, pooling, a CNN built and trained from scratch, augmentation, and transfer learning.",
+      lessons: [
+        { id: "t15-l00", title: "Convolution from scratch",     file: "lessons/track-15-cnns-vision/00-convolution.html", status: "done" },
+        { id: "t15-l01", title: "Pooling & stride",             file: "lessons/track-15-cnns-vision/01-pooling-stride.html", status: "done" },
+        { id: "t15-l02", title: "A ConvNet from scratch",       file: "lessons/track-15-cnns-vision/02-convnet.html", status: "done" },
+        { id: "t15-l03", title: "Data augmentation",            file: "lessons/track-15-cnns-vision/03-augmentation.html", status: "done" },
+        { id: "t15-l04", title: "Transfer learning",           file: "lessons/track-15-cnns-vision/04-transfer-learning.html", status: "done" },
+      ],
+    },
+    {
+      n: 8, id: "t16", title: "Sequence Models (RNN/LSTM/GRU)",
+      desc: "Memory over time: recurrent nets, the vanishing-gradient problem, LSTMs and GRUs, and encoder–decoder seq2seq.",
+      lessons: [
+        { id: "t16-l00", title: "Recurrent neural networks",    file: "lessons/track-16-sequence-models/00-rnn.html", status: "done" },
+        { id: "t16-l01", title: "Vanishing & exploding gradients", file: "lessons/track-16-sequence-models/01-vanishing-gradients.html", status: "done" },
+        { id: "t16-l02", title: "LSTM: gated memory",           file: "lessons/track-16-sequence-models/02-lstm.html", status: "done" },
+        { id: "t16-l03", title: "GRU: streamlined gating",      file: "lessons/track-16-sequence-models/03-gru.html", status: "done" },
+        { id: "t16-l04", title: "Sequence-to-sequence",         file: "lessons/track-16-sequence-models/04-seq2seq.html", status: "done" },
+      ],
+    },
+    {
+      n: 9, id: "t5", title: "Transformers from Scratch",
+      desc: "Attention, positional encodings, and a small GPT you implement and train.",
+      lessons: [
+        { id: "t5-l00", title: "From sequences to attention",   file: "lessons/track-5-transformers/00-sequences-attention.html", status: "done" },
+        { id: "t5-l01", title: "Self-attention, step by step",  file: "lessons/track-5-transformers/01-self-attention.html", status: "done" },
+        { id: "t5-l02", title: "Multi-head attention & MLP block", file: "lessons/track-5-transformers/02-multihead-block.html", status: "done" },
+        { id: "t5-l03", title: "Positional encodings",          file: "lessons/track-5-transformers/03-positional-encoding.html", status: "done" },
+        { id: "t5-l04", title: "Build & train a small GPT",     file: "lessons/track-5-transformers/04-build-gpt.html", status: "done" },
+      ],
+    },
+    {
+      n: 10, id: "t11", title: "Large Language Models",
+      desc: "From toy GPT to modern LLMs: BPE, scaling laws, LoRA, efficient inference, and RAG.",
+      lessons: [
+        { id: "t11-l00", title: "Tokenization at scale: BPE",        file: "lessons/track-11-llms/00-tokenization-bpe.html", status: "done" },
+        { id: "t11-l01", title: "Scaling laws & the training recipe", file: "lessons/track-11-llms/01-scaling-laws.html", status: "done" },
+        { id: "t11-l02", title: "Fine-tuning & LoRA",                 file: "lessons/track-11-llms/02-lora-finetuning.html", status: "done" },
+        { id: "t11-l03", title: "Efficient inference: KV-cache & quantization", file: "lessons/track-11-llms/03-efficient-inference.html", status: "done" },
+        { id: "t11-l04", title: "Retrieval-augmented generation",     file: "lessons/track-11-llms/04-rag.html", status: "done" },
+      ],
+    },
+    {
+      n: 11, id: "t6", title: "Generative Models",
+      desc: "VAEs, GANs, diffusion, and autoregressive models — theory and code.",
+      lessons: [
+        { id: "t6-l00", title: "What is a generative model?",  file: "lessons/track-6-generative/00-what-is-generative.html", status: "done" },
+        { id: "t6-l01", title: "Autoregressive models",        file: "lessons/track-6-generative/01-autoregressive.html", status: "done" },
+        { id: "t6-l02", title: "Variational autoencoders",     file: "lessons/track-6-generative/02-vae.html", status: "done" },
+        { id: "t6-l03", title: "GANs",                         file: "lessons/track-6-generative/03-gan.html", status: "done" },
+        { id: "t6-l04", title: "Diffusion models",             file: "lessons/track-6-generative/04-diffusion.html", status: "done" },
+      ],
+    },
+    {
+      n: 12, id: "t7", title: "Reinforcement Learning",
+      desc: "MDPs, value & policy methods, policy gradients, and RLHF.",
+      lessons: [
+        { id: "t7-l00", title: "MDPs & the RL problem",        file: "lessons/track-7-rl/00-mdps.html", status: "done" },
+        { id: "t7-l01", title: "Value iteration & Q-learning", file: "lessons/track-7-rl/01-value-q-learning.html", status: "done" },
+        { id: "t7-l02", title: "Policy gradients (REINFORCE)", file: "lessons/track-7-rl/02-policy-gradients.html", status: "done" },
+        { id: "t7-l03", title: "Actor–critic & PPO",           file: "lessons/track-7-rl/03-actor-critic-ppo.html", status: "done" },
+        { id: "t7-l04", title: "RLHF: aligning language models", file: "lessons/track-7-rl/04-rlhf.html", status: "done" },
+      ],
+    },
+    {
+      n: 13, id: "t17", title: "Learning Paradigms",
+      desc: "Beyond supervised labels: self-supervised & contrastive learning, semi-supervised, transfer, and active learning.",
+      lessons: [
+        { id: "t17-l00", title: "Self-supervised learning", file: "#", status: "soon" },
+        { id: "t17-l01", title: "Contrastive learning (SimCLR)", file: "#", status: "soon" },
+        { id: "t17-l02", title: "Semi-supervised learning", file: "#", status: "soon" },
+        { id: "t17-l03", title: "Transfer learning", file: "#", status: "soon" },
+        { id: "t17-l04", title: "Active learning", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 14, id: "t20", title: "Graph Neural Networks",
+      desc: "Learning on graphs: message passing, GCNs and GATs from scratch, and node/graph tasks.",
+      lessons: [
+        { id: "t20-l00", title: "Graphs as data", file: "#", status: "soon" },
+        { id: "t20-l01", title: "Message passing", file: "#", status: "soon" },
+        { id: "t20-l02", title: "Graph convolutions (GCN)", file: "#", status: "soon" },
+        { id: "t20-l03", title: "Attention on graphs (GAT)", file: "#", status: "soon" },
+        { id: "t20-l04", title: "Applications", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 15, id: "t21", title: "Probabilistic & Bayesian ML",
+      desc: "Reasoning with uncertainty: Bayesian inference, MCMC, variational inference, Gaussian processes, and calibration.",
+      lessons: [
+        { id: "t21-l00", title: "Bayesian inference", file: "#", status: "soon" },
+        { id: "t21-l01", title: "MCMC sampling", file: "#", status: "soon" },
+        { id: "t21-l02", title: "Variational inference", file: "#", status: "soon" },
+        { id: "t21-l03", title: "Gaussian processes", file: "#", status: "soon" },
+        { id: "t21-l04", title: "Uncertainty & calibration", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 16, id: "t19", title: "Meta, Few-Shot & Continual Learning",
+      desc: "Learning to learn and learning without forgetting: MAML, prototypical nets, and continual learning.",
+      lessons: [
+        { id: "t19-l00", title: "Few-shot learning", file: "#", status: "soon" },
+        { id: "t19-l01", title: "MAML (learning to learn)", file: "#", status: "soon" },
+        { id: "t19-l02", title: "Prototypical networks", file: "#", status: "soon" },
+        { id: "t19-l03", title: "Catastrophic forgetting", file: "#", status: "soon" },
+        { id: "t19-l04", title: "Continual learning (EWC/replay)", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 17, id: "t18", title: "Federated & Privacy-Preserving ML",
+      desc: "Train without pooling data: federated averaging, non-IID data, differential privacy, and DP-SGD.",
+      lessons: [
+        { id: "t18-l00", title: "Federated averaging (FedAvg)", file: "#", status: "soon" },
+        { id: "t18-l01", title: "The non-IID challenge", file: "#", status: "soon" },
+        { id: "t18-l02", title: "Differential privacy", file: "#", status: "soon" },
+        { id: "t18-l03", title: "DP-SGD", file: "#", status: "soon" },
+        { id: "t18-l04", title: "Secure aggregation", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 18, id: "t22", title: "Causal Inference",
+      desc: "Beyond correlation: confounding, the do-operator, backdoor adjustment, and treatment effects.",
+      lessons: [
+        { id: "t22-l00", title: "Correlation vs causation", file: "#", status: "soon" },
+        { id: "t22-l01", title: "Confounding", file: "#", status: "soon" },
+        { id: "t22-l02", title: "The do-operator", file: "#", status: "soon" },
+        { id: "t22-l03", title: "Backdoor adjustment", file: "#", status: "soon" },
+        { id: "t22-l04", title: "Estimating treatment effects", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 19, id: "t23", title: "Efficient & Scalable ML",
+      desc: "Making models small and training fast: distillation, pruning, quantization, and parallelism.",
+      lessons: [
+        { id: "t23-l00", title: "Knowledge distillation", file: "#", status: "soon" },
+        { id: "t23-l01", title: "Pruning", file: "#", status: "soon" },
+        { id: "t23-l02", title: "Quantization", file: "#", status: "soon" },
+        { id: "t23-l03", title: "Data & model parallelism", file: "#", status: "soon" },
+        { id: "t23-l04", title: "Mixed precision", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 20, id: "t24", title: "Frontier Architectures & Agents",
+      desc: "The cutting edge: mixture-of-experts, state-space models, multimodal models, and LLM agents.",
+      lessons: [
+        { id: "t24-l00", title: "Mixture of Experts", file: "#", status: "soon" },
+        { id: "t24-l01", title: "State-space models (Mamba)", file: "#", status: "soon" },
+        { id: "t24-l02", title: "Multimodal models (CLIP)", file: "#", status: "soon" },
+        { id: "t24-l03", title: "LLM agents & tool use", file: "#", status: "soon" },
+        { id: "t24-l04", title: "Planning & memory", file: "#", status: "soon" },
+      ],
+    },
+    {
+      n: 21, id: "t8", title: "Reading & Reproducing Papers",
+      desc: "How to dissect, reproduce, and critique research papers.",
+      lessons: [
+        { id: "t8-l00", title: "How to read a paper (3-pass method)", file: "lessons/track-8-papers/00-how-to-read.html", status: "done" },
+        { id: "t8-l01", title: "Reproducing results faithfully",      file: "lessons/track-8-papers/01-reproducing.html", status: "done" },
+        { id: "t8-l02", title: "Critiquing claims & evidence",        file: "lessons/track-8-papers/02-critiquing.html", status: "done" },
+      ],
+    },
+    {
+      n: 22, id: "t9", title: "Research Methods",
+      desc: "Experiment design, ablations, honest evaluation, and writing up results.",
+      lessons: [
+        { id: "t9-l00", title: "Designing experiments",     file: "lessons/track-9-methods/00-designing-experiments.html", status: "done" },
+        { id: "t9-l01", title: "Ablations & controls",      file: "lessons/track-9-methods/01-ablations.html", status: "done" },
+        { id: "t9-l02", title: "Honest evaluation & pitfalls", file: "lessons/track-9-methods/02-honest-evaluation.html", status: "done" },
+        { id: "t9-l03", title: "Writing the paper",         file: "lessons/track-9-methods/03-writing.html", status: "done" },
+      ],
+    },
+    {
+      n: 23, id: "t14", title: "AI Safety & Interpretability",
       desc: "Alignment, reward hacking, mechanistic interpretability, evaluation & red-teaming, adversarial robustness.",
       lessons: [
         { id: "t14-l00", title: "The alignment problem",       file: "lessons/track-14-safety/00-alignment-problem.html", status: "done" },
@@ -172,16 +273,15 @@
       ],
     },
     {
-      n: 15, id: "t15", title: "Convolutional Networks & Vision",
-      desc: "How machines see: convolution, pooling, a CNN built and trained from scratch, augmentation, and transfer learning.",
+      n: 24, id: "t10", title: "Research Capstones",
+      desc: "Projects that actually run: reproduce a classic, match a result, run an honest novel experiment.",
       lessons: [
-        { id: "t15-l00", title: "Convolution from scratch",     file: "lessons/track-15-cnns-vision/00-convolution.html", status: "done" },
-        { id: "t15-l01", title: "Pooling & stride",             file: "lessons/track-15-cnns-vision/01-pooling-stride.html", status: "done" },
-        { id: "t15-l02", title: "A ConvNet from scratch",       file: "lessons/track-15-cnns-vision/02-convnet.html", status: "done" },
-        { id: "t15-l03", title: "Data augmentation",            file: "lessons/track-15-cnns-vision/03-augmentation.html", status: "done" },
-        { id: "t15-l04", title: "Transfer learning",           file: "lessons/track-15-cnns-vision/04-transfer-learning.html", status: "done" },
+        { id: "t10-l00", title: "Capstone A: ship a from-scratch GPT", file: "lessons/track-10-capstones/00-capstone-namegen.html", status: "done" },
+        { id: "t10-l01", title: "Capstone B: reproduce a classic, live", file: "lessons/track-10-capstones/01-capstone-ddlab.html", status: "done" },
+        { id: "t10-l02", title: "Capstone C: a live RL agent", file: "lessons/track-10-capstones/02-capstone-gridworld.html", status: "done" },
       ],
     },
+  
   ];
 
   /* expose for any page that wants it */
@@ -462,7 +562,7 @@
         '<div class="tc-desc">' + t.desc + "</div>" +
         '<div class="tprog"><span style="width:' + pct + '%"></span></div>' +
         '<div class="tc-foot"><span class="tc-stat">' + done + " / " + total + " lessons" + (ready ? "" : " planned") + "</span>" +
-        '<span class="pill ' + (ready ? "ready" : "soon") + '">' + (ready ? "Start ▸" : "Coming soon") + "</span></div>";
+        '<span class="pill ' + (ready ? "ready" : "soon") + '">' + (ready ? "Start \u25B8" : "Coming soon") + "</span></div>";
       grid.appendChild(card);
     });
   }

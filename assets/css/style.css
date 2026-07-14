@@ -425,3 +425,55 @@ details.solution[open] > summary { color: var(--text-muted); }
 .nowrap { white-space: nowrap; }
 .spacer { height: 1rem; }
 ::selection { background: var(--primary); color: #fff; }
+
+/* ============================================================================
+   MASTERCLASS sections (worked examples, mistakes, interactive, frontier, recap)
+   ========================================================================== */
+.worked{background:var(--teal-weak);border:1px solid var(--border);border-left:4px solid var(--teal);
+  border-radius:var(--radius);padding:1.1rem 1.25rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.worked h3{margin:.1rem 0 .7rem;font-size:1.02rem;color:var(--teal);display:flex;gap:.5rem;align-items:center}
+.worked .wstep{display:flex;gap:.7rem;margin:.55rem 0;align-items:flex-start}
+.worked .wstep .n{flex:0 0 1.5rem;height:1.5rem;border-radius:50%;background:var(--teal);color:#fff;
+  font-size:.8rem;font-weight:700;display:grid;place-items:center;margin-top:.1rem}
+.worked .wnote{color:var(--text-muted);font-style:italic}
+
+.mistake{background:var(--red-weak);border:1px solid var(--border);border-left:4px solid var(--red);
+  border-radius:var(--radius);padding:1rem 1.2rem;margin:1.5rem 0}
+.mistake h3{margin:.1rem 0 .6rem;font-size:1.02rem;color:var(--red);display:flex;gap:.5rem;align-items:center}
+.mistake ul{margin:.3rem 0 0;padding-left:0;list-style:none}
+.mistake li{margin:.55rem 0;padding-left:1.5rem;position:relative}
+.mistake li::before{content:"\26A0";position:absolute;left:0;color:var(--red)}
+.mistake li strong{color:var(--red)}
+
+.frontier{background:var(--violet-weak);border:1px solid var(--border);border-left:4px solid var(--violet);
+  border-radius:var(--radius);padding:1rem 1.2rem;margin:1.5rem 0}
+.frontier h3{margin:.1rem 0 .6rem;font-size:1.02rem;color:var(--violet);display:flex;gap:.5rem;align-items:center}
+
+.recap{background:linear-gradient(180deg,var(--green-weak),transparent);border:1px solid var(--border);
+  border-left:4px solid var(--green);border-radius:var(--radius);padding:1rem 1.2rem;margin:1.6rem 0}
+.recap .rk{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);font-weight:700}
+.recap p{margin:.35rem 0 0;font-size:1.06rem;line-height:1.55}
+.bridge{color:var(--text-muted);border-top:1px dashed var(--border-strong);margin-top:1.8rem;padding-top:1rem;font-style:italic}
+
+/* interactive widgets */
+.widget{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);
+  padding:1.1rem;margin:1.6rem 0;box-shadow:var(--shadow-lg)}
+.widget .wtitle{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--primary);
+  font-weight:700;margin-bottom:.1rem;display:flex;gap:.5rem;align-items:center}
+.widget .whint{color:var(--text-faint);font-size:.86rem;margin:.15rem 0 .8rem}
+.widget canvas{max-width:100%;display:block;border-radius:var(--radius-sm);background:var(--bg)}
+.wrow{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.7rem 0}
+.wbtn{font:inherit;font-size:.85rem;font-weight:600;border:1px solid var(--border-strong);background:var(--surface);
+  color:var(--text);border-radius:999px;padding:.34rem .9rem;cursor:pointer;transition:.15s}
+.wbtn:hover{border-color:var(--primary);color:var(--primary)}
+.wbtn.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.wbtn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.wbtn.primary:hover{background:var(--primary-ink);color:#fff}
+.wreadout{font-family:var(--mono);font-size:.82rem;color:var(--text-muted);background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:.55rem .7rem;margin-top:.6rem;
+  white-space:pre-wrap;line-height:1.5;min-height:1.2rem}
+.wslider{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:var(--border-strong);outline:none}
+.wslider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;border:2px solid #fff;box-shadow:var(--shadow)}
+.wslider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;border:2px solid #fff}
+.wlab{font-size:.85rem;color:var(--text-muted);font-weight:600}
+.wval{font-family:var(--mono);font-size:.85rem;color:var(--primary);font-weight:700}

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t16-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LSTM · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>LSTM: a memory the gradient can travel</h1>
+      <p class="subtitle">The LSTM solved long-term memory with one elegant idea: a memory lane that updates by addition, not by repeated multiplication — so the learning signal has a highway to travel back on. Small "gates" decide what to keep, what to write, and what to read.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 8 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~28 min</span>
+        <span class="chip">Builds on: Lessons 0–1</span>
+      </div>
+
+      <p class="lead prose">
+        Vanishing gradients doomed the plain RNN on long sequences. The <span class="newterm">Long Short-Term Memory</span> cell — LSTM, from Hochreiter &amp; Schmidhuber in 1997 — fixes it with a second memory called the <span class="newterm">cell state</span>. Unlike the ordinary hidden state, the cell state is changed only by gentle, mostly-additive edits as it flows through time, instead of being run through a fresh multiplication-and-squash every step. That additive path is a "highway" the gradient can travel without shrinking, and it's what finally let recurrent networks remember things hundreds of steps back.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: a conveyor belt with three valves</h2>
+      <p class="prose">
+        Picture a conveyor belt running left to right through the cell — that belt is the cell state, carrying memory forward. Three little valves control it, and each valve is a <span class="newterm">gate</span>: a number between 0 (fully closed) and 1 (fully open), computed by the network. The <strong>forget gate</strong> decides how much of what's on the belt to keep versus wipe. The <strong>input gate</strong> decides how much new information to place onto the belt. The <strong>output gate</strong> decides how much of the belt's contents to reveal as this step's answer. Because the belt is mostly just <em>carried</em> forward (and only nudged by these valves), information — and the gradient — can ride it a long way without fading.
+      </p>
+      <p class="prose">
+        The gates are each a <span class="newterm">sigmoid</span> (written \(\sigma\)) — a function that squashes any number into the 0-to-1 range, perfect for a "how open is this valve?" dial. The candidate new content is a \(\tanh\). Here are the four little computations from the current input \(x\) and previous answer \(h\):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ f=\sigma(W_f[x,h]),\; i=\sigma(W_i[x,h]),\; g=\tanh(W_g[x,h]),\; o=\sigma(W_o[x,h]) \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        And here is the one line that matters most — how the belt updates and what gets read off it (\(\odot\) just means "multiply element by element"):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ c_t = f\odot c_{t-1} + i\odot g, \qquad h_t = o\odot\tanh(c_t). \]</span>
+        <span class="eqn-num">(2.2)</span>
+      </div>
+      <p class="prose">
+        Read \(c_t = f\odot c_{t-1} + i\odot g\) in words: "new memory = (how much to keep) × old memory + (how much to write) × new stuff." When the network wants to remember, it opens the forget gate (\(f\approx1\)) and the old memory is passed forward almost untouched — added to, not multiplied-and-squashed. That means the step-to-step factor for the gradient is about \(f\approx 1\): the highway the previous lesson said we needed.
+      </p>
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="An LSTM cell: the cell state runs left to right along the top as a green highway, edited by a multiply (forget) and an add (input); below sit the forget, input, candidate, and output gates fed by x and h; the output gate times tanh of the cell state produces the new h." />
+        <figcaption>The LSTM cell. The green "conveyor belt" (cell state) is edited only by × (forget) and + (input); the gates below control the edits and the readout.</figcaption>
+      </figure>
+
+      <!-- INTERACTIVE -->
+      <div class="widget" id="lstmlab">
+        <div class="wtitle">▶ Interactive · the gate playground</div>
+        <div class="whint">A memory is written at step 0. Then drag the <strong>forget gate</strong> and <strong>input gate</strong> and watch what happens to that memory over 16 steps, while distracting inputs keep arriving. Open the forget gate (near 1) to carry the memory; close it and watch it fade. Open the input gate to let distractions overwrite it.</div>
+        <canvas id="lstmcanvas" width="620" height="230" aria-label="Interactive LSTM gate playground"></canvas>
+        <div class="wrow">
+          <span class="wlab">Forget gate f:</span>
+          <input type="range" min="0" max="1" value="1" step="0.01" id="lstmf" class="wslider" style="flex:1;min-width:120px" />
+          <span class="wval" id="lstmfv">1.00</span>
+        </div>
+        <div class="wrow">
+          <span class="wlab">Input gate i:</span>
+          <input type="range" min="0" max="1" value="0" step="0.01" id="lstmi" class="wslider" style="flex:1;min-width:120px" />
+          <span class="wval" id="lstmiv">0.00</span>
+        </div>
+        <div class="wreadout" id="lstmread"></div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: keep a memory for 5 steps</h3>
+        <p class="prose">Let one memory cell hold the value 1, written at step 0. Say the network learned to <em>keep</em> it: forget gate \(f=1\), input gate \(i=0\) (write nothing new). Watch the belt.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Step 1:</strong> \(c_1 = f\cdot c_0 + i\cdot g = 1\cdot 1 + 0 = 1\). Unchanged.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Steps 2–5:</strong> the same each time — \(c = 1\cdot 1 + 0 = 1\). After 5 steps the memory is still exactly 1. After 500 steps it would <em>still</em> be exactly 1.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Compare to a plain RNN.</strong> There the memory was multiplied-and-squashed each step (0.96 → 0.74 → 0.63 …), fading toward zero. Here, addition with \(f=1\) means <em>no fade at all</em>.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The gradient rides along.</strong> Because \(\partial c_t/\partial c_{t-1} = f = 1\), the learning signal passes back through every step with factor 1 — no vanishing. <span class="wnote">That single design choice — carry the memory by addition, gated by a value the network can set to 1 — is the whole reason the LSTM works. Everything else is bookkeeping.</span></div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: the update, in two lines</h2>
+      <pre><code>c = f*c_prev + i*g          # additive memory update  ->  gradient highway
+h = o*np.tanh(c)            # gated readout: reveal part of the memory
+
+# backward: d c_{t-1} = dc * f   (near 1 when the network chooses to remember)</code></pre>
+
+      <div class="callout intuition ml-link">
+        <strong>The payoff, measured.</strong> On the "remember the first bit across 30 steps" task — where our plain RNN scored about <strong>0.66</strong> (barely better than a coin flip) — the from-scratch LSTM reaches <strong>1.00</strong>. Same task, same training budget; the only difference is the additive cell state. A small trick makes it reliable: start the forget gate biased open (toward 1), so the cell remembers <em>by default</em>.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking the LSTM has more "memory" because it's bigger.</strong> It's not the size — it's the <em>additive</em> update. A plain RNN with the same number of units still forgets, because it multiplies-and-squashes instead of adding.</li>
+          <li><strong>Mixing up the two states.</strong> The cell state (\(c\)) is the protected long-term belt; the hidden state (\(h\)) is what gets read off it and passed out each step. They're different things.</li>
+          <li><strong>Reading gates as on/off switches.</strong> Gates are smooth dials between 0 and 1 (they're sigmoids), and they're <em>learned</em> — the network decides, per step and per unit, how far to open each one.</li>
+          <li><strong>Ignoring the forget-gate bias.</strong> Initializing the forget gate to open (bias ≈ 1) is a small, well-known trick that makes long-range learning reliable. Skip it and the memory half-fades before the network learns to keep it.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>The LSTM adds a cell state</strong> updated by \(c_t = f\odot c_{t-1} + i\odot g\) — additive, so gradients survive.</li>
+          <li><strong>Three gates (0–1 dials):</strong> forget \(f\) (keep old memory), input \(i\) (write new), output \(o\) (read out). All learned.</li>
+          <li><strong>\(\partial c_t/\partial c_{t-1} = f\):</strong> set \(f\approx 1\) and the gradient's per-step factor is ≈1 — the cure for vanishing.</li>
+          <li><strong>Forget-bias open</strong> (remember by default) makes long-range training reliable.</li>
+          <li><strong>Result:</strong> LSTMs learn dependencies hundreds of steps long, and powered a decade of language and speech models.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is the single most important reason the LSTM avoids vanishing gradients?</p>
+          <ul class="quiz-options">
+            <li>It uses more parameters.<div class="quiz-why">More parameters don't fix gradient flow; the update rule does.</div></li>
+            <li>It uses ReLU instead of tanh.<div class="quiz-why">LSTMs still use sigmoid and tanh; the fix isn't the activation.</div></li>
+            <li>Its cell state updates by addition (\(c_t=f\,c_{t-1}+i\,g\)), giving the gradient a near-constant path.<div class="quiz-why">Correct. The additive carry makes the per-step factor ≈ \(f\); with \(f\approx1\) the gradient neither vanishes nor explodes.</div></li>
+            <li>It reads the sequence backwards.<div class="quiz-why">Direction doesn't solve vanishing; the additive memory does.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> A unit's forget gate is close to 1. What does that unit do?</p>
+          <ul class="quiz-options">
+            <li>Carries its old memory forward almost unchanged.<div class="quiz-why">Correct. \(c_t \approx c_{t-1}\) when \(f\approx1\) and little is written — the unit preserves what it stored.</div></li>
+            <li>Erases its memory.<div class="quiz-why">Erasing happens when \(f\approx0\); this is the opposite.</div></li>
+            <li>Doubles its memory each step.<div class="quiz-why">The gate scales by at most 1; it can't amplify the stored value this way.</div></li>
+            <li>Stops producing any output.<div class="quiz-why">Output is controlled by the separate output gate, not the forget gate.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Which gate decides how much of the memory becomes this step's output \(h_t\)?</p>
+          <ul class="quiz-options">
+            <li>The forget gate \(f\).<div class="quiz-why">\(f\) controls what old memory to keep, not what to reveal.</div></li>
+            <li>The input gate \(i\).<div class="quiz-why">\(i\) controls writing new information, not reading out.</div></li>
+            <li>The candidate \(g\).<div class="quiz-why">\(g\) is the proposed new content, not a gate.</div></li>
+            <li>The output gate \(o\), via \(h_t=o\odot\tanh(c_t)\).<div class="quiz-why">Correct. The output gate decides how much of the (squashed) cell state to expose.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Why initialize the forget-gate bias so it starts open (near 1)?</p>
+          <ul class="quiz-options">
+            <li>To make the model smaller.<div class="quiz-why">Bias initialization doesn't change model size.</div></li>
+            <li>So units remember by default, giving the gradient an open highway early in training.<div class="quiz-why">Correct. A positive forget bias makes \(f\) start near 1, so memory persists and long-range gradients flow before the gates have learned — a well-known, effective trick.</div></li>
+            <li>To force the model to forget everything.<div class="quiz-why">That's the opposite; open forget gate means remember.</div></li>
+            <li>Because sigmoid requires it.<div class="quiz-why">Sigmoid works with any bias; this is about training dynamics.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, set the forget gate to 1 and the input gate to 0, and note the memory after 16 steps. Now lower the forget gate to 0.8. Roughly what's left after 16 steps, and why?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At \(f=1,\,i=0\) the memory stays at 1 forever — perfect retention. At \(f=0.8\) it decays like \(0.8^{16}\approx0.03\), nearly gone, because each step keeps only 80% of what was there. This is the forget gate acting as a "memory half-life" dial: 1 means keep forever, lower means fade. The LSTM's power is that the network can <em>learn</em> to set \(f\) near 1 for the things worth remembering and lower for the rest.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Run <code>lstm.py</code> — it trains both a plain RNN and an LSTM at length 30. Then set the LSTM's forget-bias to 0 (edit <code>self.bf</code>) and retrain. What changes?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>With forget-bias 0, the forget gate starts around 0.5, so memory half-fades each step (\(0.5^{30}\) is about a billionth) and early training struggles to connect step 0 to step 30 — accuracy is lower and learning slower, though it can eventually recover as it learns to open the gate. With the bias open it starts in the "remember" regime and learns fast and reliably. The experiment shows initialization isn't cosmetic: for long dependencies it can be the difference between learning and not.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> The cell-state update \(c_t=f\,c_{t-1}+i\,g\) looks a lot like a residual/skip connection. Explain the parallel and why it matters.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A residual block computes \(x + F(x)\): the input flows through untouched (a factor-1 path) while \(F\) adds a correction. The LSTM does the same across time — the old memory \(c_{t-1}\) flows forward (scaled by \(f\approx1\)) while \(i\,g\) adds new content. Both create an <em>additive highway</em> that lets the gradient skip the squashing nonlinearity, the universal remedy for vanishing gradients — whether the depth is in layers (ResNet) or in time (LSTM). Recognizing these as one idea in two costumes is exactly the sort of insight that makes later designs (highway networks, the Transformer's residual stream) feel natural rather than arbitrary.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">From roughly 2014 to 2018, LSTMs were the workhorse of applied sequence modeling — Google Translate ran on them, as did much of speech recognition and text generation. Transformers have largely replaced them for very large language models, but LSTMs remain excellent where sequences are long-but-streaming or compute is tight (on-device speech, time-series forecasting, control systems). And the core lesson — protect a memory with an additive, gated path — never went away: it lives on in the residual connections at the heart of every Transformer, and in the gated update rules of today's state-space models (Track&nbsp;24). Few 1997 ideas are still this load-bearing in 2020s AI.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"An LSTM adds a protected memory belt that's carried forward by addition and nudged by three learned valves — keep, write, read — so both information and the learning signal can travel across hundreds of steps without fading."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Hochreiter &amp; Schmidhuber (1997), "Long Short-Term Memory" — the original. <a href="https://www.bioinf.jku.at/publications/older/2604.pdf" target="_blank" rel="noopener">jku.at</a></li>
+          <li><span class="src-type">blog</span> Christopher Olah, "Understanding LSTM Networks" — the classic visual explainer. <a href="https://colah.github.io/posts/2015-08-Understanding-LSTMs/" target="_blank" rel="noopener">colah.github.io</a></li>
+          <li><span class="src-type">paper</span> Greff et&nbsp;al. (2017), "LSTM: A Search Space Odyssey" — which parts actually matter. <a href="https://arxiv.org/abs/1503.04069" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: the LSTM works but carries a lot of machinery. <a href="03-gru.html">The GRU</a> keeps the gating idea with fewer parts — two gates, one state — and often matches it.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('lstmcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d');
+    var T=16, g=0.5;   // distractor content arriving each step
+    function draw(){
+      var f=parseFloat(document.getElementById('lstmf').value), i=parseFloat(document.getElementById('lstmi').value);
+      document.getElementById('lstmfv').textContent=f.toFixed(2);document.getElementById('lstmiv').textContent=i.toFixed(2);
+      ctx.clearRect(0,0,cv.width,cv.height);
+      var c=1.0, cs=[1.0];               // memory written at step 0
+      for(var t=1;t<=T;t++){c=f*c+i*g;cs.push(c);}
+      var x0=45,y0=180,W=540,H=140;
+      ctx.strokeStyle='#d3d8e2';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y0-H);ctx.lineTo(x0,y0);ctx.lineTo(x0+W,y0);ctx.stroke();
+      ctx.fillStyle='#8a94a3';ctx.font='11px sans-serif';ctx.textAlign='right';
+      ctx.fillText('1.0',x0-6,y0-H+4);ctx.fillText('0',x0-6,y0+4);
+      ctx.textAlign='center';ctx.fillText('time step →',x0+W/2,y0+24);
+      ctx.save();ctx.translate(x0-30,y0-H/2);ctx.rotate(-Math.PI/2);ctx.fillText('memory value',0,0);ctx.restore();
+      // bars
+      var bw=W/(T+1);
+      for(var t2=0;t2<=T;t2++){
+        var v=Math.max(0,Math.min(1.3,cs[t2]));var bh=v/1.3*H;
+        ctx.fillStyle=t2===0?'#2563eb':'#059669';
+        ctx.fillRect(x0+t2*bw+2,y0-bh,bw-4,bh);
+      }
+      var fin=cs[T];
+      var msg = fin>0.8?'memory preserved ✓ — the network is remembering':(fin>0.2?'memory fading':'memory lost — this is the plain-RNN failure');
+      document.getElementById('lstmread').textContent='forget f='+f.toFixed(2)+', input i='+i.toFixed(2)+'  →  after '+T+' steps the memory of step 0 = '+fin.toFixed(3)+'   ('+msg+')';
+    }
+    document.getElementById('lstmf').oninput=draw;
+    document.getElementById('lstmi').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
