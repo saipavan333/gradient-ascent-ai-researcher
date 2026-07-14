@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t19-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catastrophic forgetting · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Catastrophic forgetting: the network that erases itself</h1>
+      <p class="subtitle">Teach a neural network task A, then task B, and something alarming happens: it forgets task A almost completely. This "catastrophic forgetting" is the central obstacle to building machines that learn continuously, the way humans do.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 16 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~17 min</span>
+        <span class="chip">Builds on: Track 6</span>
+      </div>
+
+      <p class="lead prose">
+        Here's a property of neural networks that feels almost broken once you see it. Train a network to do task A — say, classify one set of things — and it does great. Now train that same network on a new task B, without showing it any task-A data. It learns B fine, but when you check task A again, its accuracy has <em>collapsed</em>, often to near-random. It didn't just get a little rusty; it <em>overwrote</em> the very weights that solved A while learning B. This is <span class="newterm">catastrophic forgetting</span>, and it's the single biggest obstacle to <span class="newterm">continual learning</span> — the goal of a model that keeps learning new things over its lifetime without erasing the old, the way you learn a new language without forgetting your native one. Humans and animals do this naturally; standard neural networks catastrophically fail at it. This lesson makes the failure vivid — you'll watch task-A accuracy nosedive in real time as the network learns task B — and explains exactly why it happens, setting up the fixes in the final lesson.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: one whiteboard, two lessons</h2>
+      <p class="prose">
+        Imagine a network's weights as a single whiteboard. To learn task A, it covers the board with the notes that solve A. Now you ask it to learn task B on the <em>same</em> board — but it has no instinct to preserve the old notes, so gradient descent freely erases and overwrites whatever helps it do B, scribbling over A's notes in the process. By the time B is learned, A's notes are mostly gone. The network never chose to forget A; it just had no reason to protect A's weights, and the pressure to fit B pushed those weights wherever B needed them. Nothing holds the old knowledge in place.
+      </p>
+      <p class="prose">
+        The mechanism is plain gradient descent. When training on task B, the loss and its gradients depend <em>only</em> on B's data:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}_B(\theta) \qquad \text{— no term for task A, so nothing preserves A's weights} \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the update moves the weights \(\theta\) purely to reduce task B's loss \(\mathcal{L}_B\); task A appears nowhere in the objective. If the weights that were important for A happen to be useful (or in the way) for B, gradient descent will happily change them. There's no penalty for destroying A-relevant weights, because A's loss isn't being watched. Sharing one set of weights across sequential tasks, with each task's training blind to the others, is the whole disease.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A line plot over gradient steps while learning task B: task B accuracy (green) shoots up to 1.0, while task A accuracy (red) steadily collapses from 1.0 toward about 0.1." />
+        <figcaption>Catastrophic forgetting: as the network learns task B (green rising), its task-A accuracy (red) collapses — the shared weights are overwritten.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="cflab">
+        <div class="wtitle">▶ Interactive · watch a network forget in real time</div>
+        <div class="whint">A real little network. First press <strong>Train on A</strong> (the left task) — its accuracy shoots up. Then press <strong>Train on B</strong> (the right task, with the opposite up/down rule) and watch, live, as the network learns B while its <strong>task-A accuracy collapses</strong>. The background shows the decision regions being overwritten. No task-A data is shown during B — that's the whole point.</div>
+        <canvas id="cfcanvas" width="640" height="330" aria-label="Interactive catastrophic forgetting"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="cfa">① Train on A</button>
+          <button class="wbtn primary" id="cfb">② Train on B</button>
+          <button class="wbtn" id="cfreset">↻ Reset</button>
+        </div>
+        <div class="wreadout" id="cfread">Press ① Train on A to begin.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: forgetting on two blob tasks</h3>
+        <p class="prose">From <code>forgetting.py</code>: task A and task B live in nearby regions with <em>opposite</em> labelling rules, so learning B pulls the shared weights away from A.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Learn A.</strong> Train the network on task A alone. Task-A accuracy: <strong>0.995</strong>. It's mastered.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Learn B (no A data).</strong> Now train only on task B. Task-B accuracy climbs to <strong>0.99</strong> — B is mastered too.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Re-check A.</strong> Task-A accuracy has crashed to <strong>0.07</strong> — worse than random guessing (the weights flipped toward B's opposite rule). Catastrophic.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The diagnosis.</strong> Because the tasks share weights and B's training ignored A, the gradient steps for B overwrote A's solution. The network can hold one rule at a time on these overlapping regions, and B won.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: demonstrating the collapse</h2>
+      <pre><code>net = MLP()
+net.train(XA, yA);   a_before = net.acc(XA, yA)   # 0.995  — task A mastered
+net.train(XB, yB)                                 # learn B, with NO access to A
+a_after = net.acc(XA, yA)                         # 0.07   — task A forgotten!
+b_after = net.acc(XB, yB)                         # 0.99   — task B fine
+
+assert a_before > 0.95 and a_after < 0.5 and b_after > 0.95   # the collapse is real</code></pre>
+      <p class="prose">
+        There's no trick here — it's an ordinary MLP trained ordinarily. The forgetting isn't a bug in the code; it's an inherent consequence of shared weights plus task-blind gradient descent. Any standard network trained sequentially will do this.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why brains don't do this (as much).</strong> Biological learning has mechanisms neural nets lack: the brain seems to protect and consolidate important memories (partly during sleep), replay past experiences (the hippocampus replays memory traces), and allocate different neurons to different tasks. Standard artificial networks have none of this by default — every weight is fair game for every task. The fixes in the next lesson are, tellingly, artificial versions of exactly these biological tricks: protect important weights, and replay old data.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Assuming a bigger network won't forget.</strong> More capacity helps a little, but large networks still forget catastrophically when trained sequentially. Capacity isn't the cure.</li>
+          <li><strong>Thinking forgetting means the tasks conflict.</strong> Even <em>compatible</em> tasks that could coexist get forgotten, because nothing forces the network to preserve the old solution while learning the new one.</li>
+          <li><strong>Confusing it with overfitting.</strong> Forgetting is about losing <em>old</em> knowledge when learning new data, not about generalizing poorly on the current task. It's a sequential-learning problem.</li>
+          <li><strong>Expecting a low learning rate to fix it.</strong> A tiny learning rate slows forgetting but also slows learning B; it trades one problem for another rather than solving it.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Catastrophic forgetting:</strong> learning task B on a network erases its ability to do task A.</li>
+          <li><strong>Cause:</strong> shared weights + task-blind gradient descent — B's loss has no term protecting A's weights (eq 3.1).</li>
+          <li><strong>It's dramatic:</strong> task-A accuracy can crash from ~1.0 to below chance after learning B.</li>
+          <li><strong>Not fixed by</strong> more capacity or (fully) by smaller learning rates.</li>
+          <li><strong>It's the core obstacle to continual (lifelong) learning</strong> — the subject of the next lesson.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is catastrophic forgetting?</p>
+          <ul class="quiz-options">
+            <li>A network failing to learn any task.<div class="quiz-why">It learns each task fine; the problem is losing old ones.</div></li>
+            <li>Overfitting the current task.<div class="quiz-why">That's a different issue; forgetting is about old knowledge.</div></li>
+            <li>Learning a new task erases the network's ability to do an earlier one.<div class="quiz-why">Correct. Task B's training overwrites task A's weights.</div></li>
+            <li>Running out of memory.<div class="quiz-why">It's about weights being overwritten, not RAM.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why does it happen?</p>
+          <ul class="quiz-options">
+            <li>Task B's gradient steps change shared weights with no term protecting task A.<div class="quiz-why">Correct. A's loss isn't in the objective during B, so A's weights are fair game.</div></li>
+            <li>Because networks can't represent two tasks.<div class="quiz-why">They often can represent both; the issue is sequential training overwriting.</div></li>
+            <li>Because of the random seed.<div class="quiz-why">It's systematic, not a seed artifact.</div></li>
+            <li>Because task B has more data.<div class="quiz-why">It happens even with equal data; the cause is task-blind updates.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Does using a much bigger network fix catastrophic forgetting?</p>
+          <ul class="quiz-options">
+            <li>Yes, completely.<div class="quiz-why">Big networks still forget when trained sequentially.</div></li>
+            <li>Yes, if it has dropout.<div class="quiz-why">Dropout doesn't address sequential overwriting.</div></li>
+            <li>Only for images.<div class="quiz-why">Forgetting is domain-general.</div></li>
+            <li>No — more capacity helps a little but forgetting persists.<div class="quiz-why">Correct. Capacity isn't the cure; you need mechanisms that protect or rehearse old knowledge.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> How does catastrophic forgetting differ from overfitting?</p>
+          <ul class="quiz-options">
+            <li>They're the same thing.<div class="quiz-why">They're distinct failure modes.</div></li>
+            <li>Forgetting is losing old-task knowledge when learning new data; overfitting is poor generalization on the current task.<div class="quiz-why">Correct. One is about sequential tasks, the other about a single task's generalization.</div></li>
+            <li>Overfitting only happens in RNNs.<div class="quiz-why">Overfitting happens in any model.</div></li>
+            <li>Forgetting improves accuracy.<div class="quiz-why">It destroys old-task accuracy.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, train A fully, then train B and stop it early (a few steps in). Is task A already damaged? What does that tell you about how fast forgetting sets in?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Yes — even a few steps of task-B training already dent task-A accuracy, and it degrades steadily from there (as the forgetting-curve figure shows). Forgetting isn't a slow drift that only matters after long training; it begins immediately, because the very first B-gradients already push the shared weights toward B and away from A. This is why continual learning is hard: you can't just "train a bit on the new task and be fine" — you need an explicit mechanism working from the first update to protect or rehearse the old knowledge, which is exactly what the next lesson provides.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> One "obvious" fix is to keep all past data and retrain on everything (A + B together) each time a new task arrives. Why isn't that a real solution to continual learning?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Retraining on all past data (joint training) does avoid forgetting — but it defeats the purpose of continual learning. It requires storing <em>every</em> example ever seen (infeasible for a lifelong learner with unbounded task streams, and often impossible for privacy or storage reasons), and retraining from scratch on the entire history for each new task, which gets slower and more expensive without bound. True continual learning wants to absorb new tasks <em>incrementally</em> — with bounded memory and compute, ideally without revisiting all old data. Joint training is the "cheating" upper bound you compare against; the real challenge is getting close to it while storing little and training only on the new task plus, at most, a small memory. That's what replay and regularization methods (next lesson) aim for.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Based on the whiteboard intuition, propose two different <em>strategies</em> to reduce forgetting — one that touches the data, one that touches the weights.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p><em>Data strategy — replay/rehearsal:</em> keep a small buffer of old-task examples and mix them into training on the new task, so the gradients still "see" task A and keep its notes on the whiteboard. (This is the next lesson's main method.) <em>Weight strategy — protect important weights:</em> figure out which weights matter most for task A and penalize changing them while learning B (add a term to the loss that anchors those weights near their A-values) — this is Elastic Weight Consolidation (EWC), an artificial version of memory protection. A third family, <em>architectural</em>, gives each task some dedicated capacity so tasks don't share (and overwrite) the same weights. All three map onto the biological tricks from the callout — replay, consolidation, and dedicated neurons — and the next lesson builds the replay version and sketches EWC.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Catastrophic forgetting is why deploying a model that keeps learning from new data is genuinely hard: a recommendation or fraud model updated on this week's data can silently lose last month's patterns; a robot learning a new skill can forget an old one. It's a live constraint on large language models too — naively fine-tuning on new data degrades previously learned abilities, so practitioners use careful mixing, adapters, and replay. Overcoming forgetting is essential for any AI that must adapt over time rather than being frozen after training, and it connects to deep questions about memory, stability, and plasticity that the field is still actively working out. The next lesson shows the practical fixes that make continual learning workable.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Train a network on task A then task B, and it forgets A — often falling below chance — because B's gradient steps overwrite the shared weights with no term protecting A. It's not overfitting and it's not fixed by a bigger network; it's the core obstacle to lifelong learning. Brains avoid it with replay and memory protection, which are exactly the fixes we'll build next."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> McCloskey &amp; Cohen (1989), "Catastrophic Interference in Connectionist Networks" — the original finding. <a href="https://www.sciencedirect.com/science/article/abs/pii/S0079742108605368" target="_blank" rel="noopener">sciencedirect</a></li>
+          <li><span class="src-type">paper</span> Kirkpatrick et&nbsp;al. (2017), "Overcoming catastrophic forgetting in neural networks" (EWC). <a href="https://arxiv.org/abs/1612.00796" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">survey</span> Parisi et&nbsp;al. (2019), "Continual Lifelong Learning with Neural Networks: A Review." <a href="https://arxiv.org/abs/1802.07569" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: the fix. <a href="04-continual-learning.html">Continual learning</a> keeps old knowledge alive while learning new tasks — with a small replay buffer or by protecting important weights (EWC) — turning a forgetting network into a lifelong learner.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('cfcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height, plot=430;
+    // ---- data: task A (left region) up->1 ; task B (right region) up->0 (reversed) ----
+    function rnd(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0;}
+    function blob(cx,cy,lab,n,arr){ for(var i=0;i<n;i++) arr.push({x:cx+rnd()*0.6,y:cy+rnd()*0.7,l:lab}); }
+    var A=[],B=[]; blob(-2,-2.2,0,40,A); blob(-2,2.2,1,40,A); blob(2,2.2,0,40,B); blob(2,-2.2,1,40,B);
+    // ---- tiny MLP 2-16-2 ----
+    var Hn=16,W1,b1,W2,b2;
+    function init(){ W1=[];b1=[];W2=[];b2=[0,0];
+      for(var i=0;i<2;i++){W1.push([]); for(var j=0;j<Hn;j++) W1[i].push((Math.random()-0.5)*0.8);}
+      for(var j=0;j<Hn;j++){b1.push(0); W2.push([(Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8]);}
+    }
+    function fwd(x){ var h=[]; for(var j=0;j<Hn;j++){var s=b1[j]+x[0]*W1[0][j]+x[1]*W1[1][j]; h.push(s>0?s:0);}
+      var o=[b2[0],b2[1]]; for(var j=0;j<Hn;j++){o[0]+=h[j]*W2[j][0]; o[1]+=h[j]*W2[j][1];}
+      var m=Math.max(o[0],o[1]); var e0=Math.exp(o[0]-m),e1=Math.exp(o[1]-m),Z=e0+e1; return {h:h,p:[e0/Z,e1/Z]}; }
+    function trainStep(data,lr){
+      var gW1=[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],gb1=new Array(Hn).fill(0),gW2=[],gb2=[0,0];
+      for(var j=0;j<Hn;j++)gW2.push([0,0]);
+      for(var n=0;n<data.length;n++){ var d=data[n]; var f=fwd([d.x,d.y]); var dy=[f.p[0]-(d.l===0?1:0),f.p[1]-(d.l===1?1:0)];
+        for(var j=0;j<Hn;j++){ gW2[j][0]+=f.h[j]*dy[0]; gW2[j][1]+=f.h[j]*dy[1]; }
+        gb2[0]+=dy[0]; gb2[1]+=dy[1];
+        for(var j=0;j<Hn;j++){ var dh=(dy[0]*W2[j][0]+dy[1]*W2[j][1])*(f.h[j]>0?1:0); gW1[0][j]+=d.x*dh; gW1[1][j]+=d.y*dh; gb1[j]+=dh; }
+      }
+      var N=data.length;
+      for(var j=0;j<Hn;j++){ W2[j][0]-=lr*gW2[j][0]/N; W2[j][1]-=lr*gW2[j][1]/N; W1[0][j]-=lr*gW1[0][j]/N; W1[1][j]-=lr*gW1[1][j]/N; b1[j]-=lr*gb1[j]/N; }
+      b2[0]-=lr*gb2[0]/N; b2[1]-=lr*gb2[1]/N;
+    }
+    function acc(data){ var c=0; for(var n=0;n<data.length;n++){ var f=fwd([data[n].x,data[n].y]); if((f.p[1]>f.p[0]?1:0)===data[n].l)c++; } return c/data.length; }
+    var timer=null;
+    function stop(){ if(timer){clearInterval(timer);timer=null;} }
+    function toX(x){ return plot/2 + x*(plot/12); } function toY(y){ return H/2 - y*(H/10); }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // decision background (coarse grid)
+      for(var gx=0;gx<plot;gx+=14) for(var gy=0;gy<H;gy+=14){
+        var xx=(gx-plot/2)/(plot/12), yy=(H/2-gy)/(H/10); var f=fwd([xx,yy]);
+        ctx.fillStyle = f.p[1]>f.p[0] ? 'rgba(37,99,235,0.10)' : 'rgba(220,38,38,0.10)';
+        ctx.fillRect(gx,gy,14,14);
+      }
+      [A,B].forEach(function(D){ D.forEach(function(d){ ctx.fillStyle=d.l===1?'#2563eb':'#dc2626'; ctx.beginPath(); ctx.arc(toX(d.x),toY(d.y),3.5,0,7); ctx.fill(); }); });
+      ctx.fillStyle='#64748b'; ctx.font='11px system-ui'; ctx.fillText('task A (left)',10,16); ctx.fillText('task B (right)',plot-90,16);
+      // accuracy bars
+      var aA=acc(A), aB=acc(B), bx=plot+18;
+      ctx.fillStyle='#0f172a'; ctx.font='bold 12px system-ui'; ctx.fillText('accuracy',bx,24);
+      function bar(y,lab,v,col){ ctx.fillStyle='#e5e7eb'; ctx.fillRect(bx,y,170,20); ctx.fillStyle=col; ctx.fillRect(bx,y,170*v,20); ctx.fillStyle='#0f172a'; ctx.font='11px system-ui'; ctx.fillText(lab+' '+(v*100).toFixed(0)+'%',bx,y-3); }
+      bar(50,'Task A',aA,'#dc2626'); bar(100,'Task B',aB,'#2563eb');
+      return {aA:aA,aB:aB};
+    }
+    function trainA(){ stop(); var i=0; timer=setInterval(function(){ trainStep(A,0.3); var r=draw(); i++; document.getElementById('cfread').textContent='Training on A… task A '+(r.aA*100).toFixed(0)+'%'; if(i>=120){stop(); document.getElementById('cfread').textContent='Task A mastered ('+(r.aA*100).toFixed(0)+'%). Now press ② Train on B and watch A collapse.';} },20); }
+    function trainB(){ stop(); var i=0; timer=setInterval(function(){ trainStep(B,0.3); var r=draw(); i++; document.getElementById('cfread').textContent='Training on B (no A data)… task B '+(r.aB*100).toFixed(0)+'%, task A '+(r.aA*100).toFixed(0)+'%  ← forgetting!'; if(i>=160){stop(); document.getElementById('cfread').textContent='Done. Task B '+(r.aB*100).toFixed(0)+'%, but task A crashed to '+(r.aA*100).toFixed(0)+'% — catastrophic forgetting.';} },20); }
+    document.getElementById('cfa').onclick=trainA;
+    document.getElementById('cfb').onclick=trainB;
+    document.getElementById('cfreset').onclick=function(){ stop(); init(); draw(); document.getElementById('cfread').textContent='Reset. Press ① Train on A to begin.'; };
+    init(); draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

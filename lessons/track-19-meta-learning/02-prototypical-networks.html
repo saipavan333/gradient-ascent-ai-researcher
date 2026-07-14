@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t19-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prototypical networks · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Prototypical networks: few-shot by nearest prototype</h1>
+      <p class="subtitle">MAML adapts with gradient steps. Prototypical networks take a simpler, elegant route: learn an embedding where each class is just the average of its examples, and you classify by nearest prototype. Simple, fast, and a remarkably strong few-shot method.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 16 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Lesson 0</span>
+      </div>
+
+      <p class="lead prose">
+        Lesson&nbsp;0 classified by nearest centroid but relied on whatever embedding you happened to have. Lesson&nbsp;1's MAML learned to adapt with gradient steps, which is powerful but fiddly. <span class="newterm">Prototypical networks</span> (protonets) find a sweet spot between them: keep the dead-simple nearest-centroid rule, but <em>meta-learn the embedding itself</em> so that the rule works beautifully. The whole model is one idea — represent each class by a single <span class="newterm">prototype</span>, the mean of its few examples in the embedding space, and classify a new example by which prototype it's closest to, turning the distances into class probabilities with a softmax. There's no per-task inner loop, no second derivatives — just embed, average, compare. And by training the embedding across thousands of few-shot episodes to make nearest-prototype classification succeed, protonets often match or beat the far more complex MAML. This lesson shows why such a simple recipe is so effective, and what "meta-learning the embedding" really buys you.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: one representative per class</h2>
+      <p class="prose">
+        Suppose each class elects a single representative — the "average member" — and to classify a newcomer, you just see which representative they most resemble. That's a prototype. The insight protonets add over Lesson&nbsp;0 is that you can <em>shape the space</em> so this works: train the embedding so members of a class cluster tightly around their mean and different classes' means sit far apart. In such a space, the mean is an excellent summary and "nearest prototype" is nearly always right. The distances to the prototypes become a natural measure of confidence — very close to one prototype and far from the rest means high certainty; roughly equidistant means the model is unsure.
+      </p>
+      <p class="prose">
+        Formally, embed the support, average each class into a prototype \(c_k\), and convert the query's distances to prototypes into probabilities with a softmax over the negative distances:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ c_k = \frac{1}{K}\sum_{i \in k} f(x_i), \qquad p(y=k \mid x_q) = \frac{\exp\!\big(-\lVert f(x_q)-c_k\rVert^2\big)}{\sum_{k'}\exp\!\big(-\lVert f(x_q)-c_{k'}\rVert^2\big)} \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        The prototype \(c_k\) is the mean embedding of class \(k\)'s support. For a query \(x_q\), we measure its squared distance to each prototype; the <em>negative</em> distance is a similarity score (closer = higher), and the softmax turns those scores into class probabilities that sum to 1. Nearest prototype gets the most probability. Training minimizes the cross-entropy of this on query examples across many episodes — which pushes the embedding \(f\) to make prototypes clean and well-separated.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="An embedding space with five colour-coded classes, each shown as a cluster of support points with a large star marking the class prototype (their mean); a query marked X is classified by its nearest prototype." />
+        <figcaption>A prototypical network: each class becomes one prototype (★), the mean of its support embeddings, and a query is labelled by its nearest prototype.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="ptlab">
+        <div class="wtitle">▶ Interactive · distances become class probabilities</div>
+        <div class="whint">Four class prototypes (★) sit in the embedding space. <strong>Drag the query</strong> (the ✚) around and watch the bars: each class's probability is the softmax of its <em>negative distance</em> to the query. Near a prototype, that class dominates; halfway between two, the model is unsure and splits its probability. This is equation (2.1) live.</div>
+        <canvas id="ptcanvas" width="640" height="330" aria-label="Interactive prototypical network"></canvas>
+        <div class="wrow">
+          <button class="wbtn" id="ptnew">↻ New prototypes</button>
+        </div>
+        <div class="wreadout" id="ptread">Drag the ✚ query near a ★ prototype and watch its probability rise.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: softmax over distances</h3>
+        <p class="prose">A query sits at these squared distances from three prototypes: \(d = [1,\ 4,\ 9]\). Turn them into class probabilities via equation (2.1).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Negate the distances</strong> (closer should score higher): scores \(=-d=[-1,-4,-9]\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Exponentiate:</strong> \(e^{-1}=0.368,\ e^{-4}=0.018,\ e^{-9}=0.0001\). Sum \(=0.386\).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Normalize:</strong> \(p=[0.953,\ 0.047,\ 0.0003]\). The nearest prototype (distance 1) gets 95% of the probability; the far one is negligible.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Read it as confidence.</strong> A clear winner means a confident, well-separated query. If the two nearest distances were close (say \(d=[1,1.2,9]\)), the probability would split — the model honestly reporting uncertainty. In the validated run, 5-way 5-shot protonets reach <strong>100%</strong> accuracy on well-separated classes, assigning near-1 probability to the true class.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: prototypical classification</h2>
+      <pre><code>def proto_classify(S, Sy, Q, n_way):
+    protos = np.array([S[Sy == c].mean(0) for c in range(n_way)])   # mean embedding per class
+    d = ((Q[:, None] - protos[None])**2).sum(2)                     # squared dist to each proto
+    logits = -d                                                    # nearer = higher score
+    p = softmax(logits)                                            # distances -> probabilities
+    return p.argmax(1), p                                          # predict + confidence
+
+# 5-way 5-shot accuracy ~1.00;  avg probability on the true class ~1.00</code></pre>
+      <p class="prose">
+        The classifier is four lines and has <em>no trainable parameters of its own</em> — the only thing that's learned is the embedding \(f\) that produced <code>S</code> and <code>Q</code>. That's the elegance: all the intelligence lives in the representation, and the decision rule is a transparent softmax over distances. It's also why protonets are so fast at test time.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why averaging is the right call.</strong> Using the mean as the prototype isn't arbitrary — under the squared-Euclidean distance in equation (2.1), the class mean is provably the point that minimizes the total distance to that class's examples (the same fact behind k-means, Track&nbsp;13). And the softmax-over-negative-squared-distance is exactly the posterior you'd get from a Gaussian model with equal, spherical covariance per class. So protonets have a clean probabilistic interpretation: they're doing simple Gaussian classification in a learned space. Simple method, principled roots.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking the classifier is what's learned.</strong> The nearest-prototype rule has no parameters; the embedding \(f\) is the entire learned model. Improve the embedding, not the rule.</li>
+          <li><strong>Using the wrong distance.</strong> Protonets rely on squared-Euclidean distance (which makes the mean the optimal prototype). Swapping in cosine or other metrics changes what the prototype should be.</li>
+          <li><strong>Assuming one prototype fits every class.</strong> A single mean assumes each class is a single blob. Multi-modal classes (e.g., "dog" spanning very different breeds) may need multiple prototypes per class.</li>
+          <li><strong>Ignoring that prototypes shift with the support.</strong> Different sampled support examples give slightly different prototypes — more shots stabilize them, exactly as in Lesson&nbsp;0.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Prototype</strong> = the mean embedding of a class's support examples.</li>
+          <li><strong>Classify by nearest prototype;</strong> softmax over negative squared distances gives class probabilities (eq 2.1).</li>
+          <li><strong>The classifier has no parameters</strong> — only the embedding \(f\) is meta-learned (across many episodes).</li>
+          <li><strong>Principled:</strong> the mean is optimal for squared distance; the softmax is Gaussian classification in the learned space.</li>
+          <li><strong>Simpler than MAML, often as good</strong> — no inner loop, no second derivatives.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> In a prototypical network, what is a class prototype?</p>
+          <ul class="quiz-options">
+            <li>A trainable weight vector.<div class="quiz-why">It's computed from the support, not a free parameter.</div></li>
+            <li>The mean embedding of that class's support examples.<div class="quiz-why">Correct. Average the few examples in the embedding space.</div></li>
+            <li>The query point.<div class="quiz-why">The query is what you classify against prototypes.</div></li>
+            <li>The output layer.<div class="quiz-why">There's no trained output layer; the rule is parameter-free.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does a protonet turn distances into class probabilities?</p>
+          <ul class="quiz-options">
+            <li>By counting neighbours.<div class="quiz-why">That's k-NN; protonets use prototypes and a softmax.</div></li>
+            <li>By thresholding the nearest distance.<div class="quiz-why">It uses a smooth softmax, not a hard threshold.</div></li>
+            <li>Softmax over the negative squared distances to the prototypes.<div class="quiz-why">Correct. Closer = higher score; softmax normalizes to probabilities.</div></li>
+            <li>By training a logistic regression.<div class="quiz-why">No extra classifier is trained; the rule is parameter-free.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What is actually learned in a prototypical network?</p>
+          <ul class="quiz-options">
+            <li>The embedding \(f\), trained so nearest-prototype classification works.<div class="quiz-why">Correct. The decision rule has no parameters; the embedding is the model.</div></li>
+            <li>The prototypes directly.<div class="quiz-why">Prototypes are computed from support at test time, not learned weights.</div></li>
+            <li>The softmax temperature only.<div class="quiz-why">The core learned object is the embedding.</div></li>
+            <li>Nothing is learned.<div class="quiz-why">The embedding is meta-learned across episodes.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Why is the mean a good choice for the prototype?</p>
+          <ul class="quiz-options">
+            <li>It's the largest example.<div class="quiz-why">It's an average, not an extreme.</div></li>
+            <li>It's random.<div class="quiz-why">It's deterministic and principled.</div></li>
+            <li>It maximizes distance to the class.<div class="quiz-why">The opposite — it minimizes distance to the class's examples.</div></li>
+            <li>Under squared distance, the mean minimizes total distance to the class's examples.<div class="quiz-why">Correct. That's why averaging is optimal, and it links to Gaussian classification.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, drag the query to sit exactly between two prototypes. What do the probability bars show, and what does that represent?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The two nearest prototypes get roughly equal, large probabilities and the far ones get almost none — the model splits its confidence 50/50 between the two plausible classes. This is the softmax honestly reporting uncertainty: equidistant from two prototypes means the evidence genuinely doesn't favour either. It's a nice property of protonets — the distances give not just a prediction but a calibrated-feeling confidence (Track 15), and a near-tie is a signal you might want more shots or a better embedding to separate those classes.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Protonets and MAML both do few-shot learning. Give one advantage of each.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p><em>Protonet advantages:</em> dramatically simpler — no inner-loop adaptation, no second derivatives, one forward pass to embed and classify; fast at test time; and a clean probabilistic interpretation. <em>MAML advantages:</em> more flexible — it actually adapts the network's weights to the new task, so it can handle tasks where a fixed embedding plus nearest-prototype isn't enough (e.g., tasks requiring the features themselves to change, or non-classification tasks like regression and RL where "prototype" doesn't apply). In practice, for few-shot <em>classification</em> protonets are a strong, simple default that often matches MAML; MAML's edge shows on harder or non-classification adaptation. The general lesson: prefer the simplest method that works (protonet), reach for the more powerful, complex one (MAML) only when the simple one demonstrably falls short.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> A single mean prototype assumes each class is one blob. Describe a realistic class that breaks this, and how you'd extend protonets to handle it.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A class like "chair" is multi-modal: office chairs, armchairs, bar stools, and beanbags occupy very different regions of feature space, so their single mean lands in a no-man's-land representative of none of them, and a genuine chair query might be far from that mean. Extensions: use <em>multiple prototypes per class</em> (cluster each class's support with k-means and keep several sub-prototypes, classifying by the nearest of any of a class's prototypes), or learn a richer per-class density instead of a single point. This trades protonets' simplicity for expressiveness when classes really are multi-modal. It's the same lesson as k-means vs a mixture model (Track 13/15): one centroid is a strong, cheap assumption, but multi-modal data needs more than one representative to be captured faithfully.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Prototypical networks are a standard, strong baseline for few-shot classification and are widely used in practice for their simplicity and speed — in vision, text classification, and drug discovery, wherever new categories appear with few examples. Their "compare to a class prototype in a learned space" idea also underlies metric-learning systems everywhere: face recognition (each identity is a prototype embedding), speaker verification, and retrieval. The broader lesson protonets teach is that a great representation plus a trivial decision rule often beats a mediocre representation plus a clever classifier — a theme that recurs across modern AI, from contrastive learning (Track&nbsp;13) to the frozen-embedding few-shot systems built on today's foundation models.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A prototypical network represents each class by one prototype — the mean of its few examples in a learned embedding — and classifies a query by nearest prototype, using a softmax over negative distances for probabilities. The decision rule has no parameters; only the embedding is meta-learned, trained across episodes so the simple rule works. It's much simpler than MAML and often just as accurate."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Snell et&nbsp;al. (2017), "Prototypical Networks for Few-shot Learning." <a href="https://arxiv.org/abs/1703.05175" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Sung et&nbsp;al. (2018), "Learning to Compare: Relation Network for Few-Shot Learning." <a href="https://arxiv.org/abs/1711.06025" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Snell &amp; Zemel (2021), "Bayesian Few-Shot Classification with One-vs-Each Pólya-Gamma." <a href="https://arxiv.org/abs/2007.10417" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: meta-learning masters <em>new</em> tasks — but what happens to the <em>old</em> ones? <a href="03-catastrophic-forgetting.html">Catastrophic forgetting</a> reveals a disturbing failure: neural networks erase what they knew when they learn something new.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('ptcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cols=['#2563eb','#059669','#d97706','#6d28d9'], protos=[], q={x:W/2,y:H/2}, drag=false;
+    function newP(){ protos=[]; for(var i=0;i<4;i++) protos.push({x:120+Math.random()*(W-320), y:70+Math.random()*(H-140)}); q={x:W-140,y:H/2}; draw(); }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // compute softmax over -dist^2 (scaled)
+      var d=protos.map(function(p){ var dx=(p.x-q.x)/70,dy=(p.y-q.y)/70; return dx*dx+dy*dy; });
+      var mx=Math.max.apply(null,d.map(function(v){return -v;}));
+      var ex=d.map(function(v){return Math.exp(-v-mx);}); var Z=ex.reduce(function(a,b){return a+b;},0);
+      var p=ex.map(function(e){return e/Z;});
+      // lines
+      protos.forEach(function(pr,i){ ctx.strokeStyle=cols[i]; ctx.globalAlpha=0.3+0.6*p[i]; ctx.lineWidth=1+p[i]*6; ctx.beginPath(); ctx.moveTo(q.x,q.y); ctx.lineTo(pr.x,pr.y); ctx.stroke(); ctx.globalAlpha=1; });
+      // prototypes
+      protos.forEach(function(pr,i){ ctx.fillStyle=cols[i]; star(pr.x,pr.y,14); });
+      // query
+      ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(q.x-9,q.y);ctx.lineTo(q.x+9,q.y);ctx.moveTo(q.x,q.y-9);ctx.lineTo(q.x,q.y+9); ctx.stroke();
+      // probability bars
+      var bx=W-120, by=20;
+      for(var i=0;i<4;i++){ ctx.fillStyle='#e5e7eb'; ctx.fillRect(bx,by+i*26,100,18); ctx.fillStyle=cols[i]; ctx.fillRect(bx,by+i*26,100*p[i],18);
+        ctx.fillStyle='#0f172a'; ctx.font='11px system-ui'; ctx.fillText('class '+(i+1)+': '+(p[i]*100).toFixed(0)+'%', bx, by+i*26-3); }
+      var win=p.indexOf(Math.max.apply(null,p));
+      document.getElementById('ptread').textContent='nearest prototype: class '+(win+1)+' ('+(p[win]*100).toFixed(0)+'% probability) — drag the ✚ to change the distances';
+    }
+    function star(x,y,r){ ctx.beginPath(); for(var i=0;i<10;i++){var a=Math.PI/5*i-Math.PI/2;var rr=i%2?r*0.45:r;ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#111'; ctx.lineWidth=1.2; ctx.stroke(); }
+    cv.addEventListener('mousedown',function(e){drag=true;mv(e);}); window.addEventListener('mousemove',function(e){if(drag)mv(e);}); window.addEventListener('mouseup',function(){drag=false;});
+    function mv(e){ var r=cv.getBoundingClientRect(); q.x=Math.max(10,Math.min(W-130,(e.clientX-r.left)*(W/r.width))); q.y=Math.max(10,Math.min(H-10,(e.clientY-r.top)*(H/r.height))); draw(); }
+    document.getElementById('ptnew').onclick=newP;
+    newP();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t19-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Continual learning · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Continual learning: learning without forgetting</h1>
+      <p class="subtitle">Catastrophic forgetting has fixes. The simplest and most effective is replay — rehearse a few old examples while learning the new task, and the old knowledge survives. This lesson builds it, sketches its main rival (EWC), and closes the track on lifelong learning.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 16 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Lesson 3</span>
+      </div>
+
+      <p class="lead prose">
+        Lesson&nbsp;3 showed the disease — a network forgets task A the moment it learns task B — because B's gradients overwrite the shared weights with nothing protecting A. <span class="newterm">Continual learning</span> (also called lifelong or incremental learning) is the cure: methods that let a network accumulate knowledge across a stream of tasks without erasing what came before, using bounded memory and compute (no cheating by retraining on all past data every time). There are two big families, and they mirror the biological tricks from last lesson. <span class="newterm">Replay</span> (rehearsal) keeps a small buffer of old examples and mixes them into training on the new task, so the gradients still "see" the old task and preserve its weights — the artificial version of the brain replaying memories. <span class="newterm">Regularization</span> methods like <span class="newterm">EWC</span> instead identify which weights were important for old tasks and penalize changing them — the artificial version of protecting consolidated memories. This lesson builds replay from scratch and watches it keep task A alive at 93% where naive training crashed it to 7%, then explains EWC and where the field is headed. It's the satisfying resolution to the track: from "networks can't learn continually" to "here's how they can."
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: study old flashcards while learning new ones</h2>
+      <p class="prose">
+        How do you learn a second language without forgetting your first? You keep <em>using</em> the first — a bit of practice keeps it fresh. Replay does exactly this for a network. Instead of training on task B alone, you keep a small stack of "flashcards" from task A and shuffle a few into every study session on B. Now each training batch contains both B's new material and a reminder of A, so the gradient can't drift away from A's solution — it's pulled back toward A on every step that includes a replayed example. A surprisingly tiny buffer (a few dozen examples) is enough, because those reminders keep the shared weights anchored where both tasks need them.
+      </p>
+      <p class="prose">
+        Concretely, replay changes the training data for task B from "B only" to "B plus a sample from the memory buffer":
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \theta \leftarrow \theta - \eta\,\nabla_\theta\,\mathcal{L}\big(\underbrace{B \;\cup\; \mathcal{M}_A}_{\text{new task + replayed old examples}}\big), \qquad |\mathcal{M}_A| \ll |A| \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        The only change from the forgetting equation (3.1) is what's inside the loss: instead of B alone, the gradient is computed on B <em>together with</em> a small memory buffer \(\mathcal{M}_A\) of old task-A examples (much smaller than all of A). Because A now appears in the objective, its weights are protected — the update can't sacrifice A to fit B. That one change turns a forgetting network into one that remembers.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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POSfejABEzDB9SZ8+lqjpb2RES8mYAIm1OG2Q9W1RnUa25/uMsaICZhQL2OMf36tUTtB5yoBmIAJmODWXO9ao3Z6KjcwMAETMMF9ud61Rid79dhiiz4MegkTMAETXJ1rXWt0W2ZXownzFIggJmACJrg617rW6LazD+J8VGACJmCCy3ONa40Gp5OZ47O99xOdAhMwAROIu4IJmEAIJmACIZiACYRgAiYQggmYQAgmYAKpzaH7LzWKCZhAPqe2pesvNYoJmEDqo7b/wARMINQ2JmACay21jQmYgAnUNiZgAiZQ25iACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZiACZhAMAETMIFgAiZgAsEE2g0TCCbQbphAMIF2wwSCCbQbJhBqGxMwgVDbmOAGEzomY+FBTMAETKh7E7qiB7lkUATyBcMoLGICJmBCnZvQvq8sMC760+eRych5IYQJmIAJ9W3CtLHc1/1yN10YUHcGjCVMwARMqG8TPu41q39Dxrp5b30XEzABE+rbhON3+t9WwxpJWDzDBEzAhPo2wZgvn7wpYAImYAImYAImYAImYAImYAImXGpCZkXHnuxiAiZgQr2bUBlMwARMqHMTnlUFEzABE+r82OavF0ygtjEBEzCB2sYETMAEahsTMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMOGzs1JMPDzaXvmYd2zzeD/6sHyWb2Lz6DQ9dw8TqG1McKkJhlGwz4BS/5+MVJCwIvcWE/JsoDTLn5Z7seiOzPVgArWNCe40oWPqLBzs7g6Gz6YCY4eF/rKHxmWyRYhBud9SnDUj481CNM7JD5hAbWOCO00IXdjdgIGLkOg3YqVHGrPS7A0syVLvYUP2md0FeeHBBGobE1xpQnLVubWaVOt82bWb++SWOX0qV4rz1hwT9ugnUNuY4E4TDsPOrfChEJGyFzEiI+a0W2aL8yacbYcJTKC2McGdJmRTzq2UWvVjpdVfTMkpa1eDlMUBhZYVuReL7OQnG4pP+2Dmd0ygtjHBHSZECxONetowYahuweZG6RGnM9Aopb84s2lOqqyVfY0cJlDbmOAqE7pyhZ3p0dHpnUKuS3Qa039uQsfGwVC7byAlx9l2oLYxwaXHMfZsGkahYBibPWozobv1z7cdVqTZQ7iXP+/EBGobE9x6bHPf+OzseF/N7EvGGDvkaYNtwxAmUNuY4FYTrqKidl9kwOEhKkcxgdrGhDoz4ZJjlu5JaW4zNG7LECZQ25jgUhOaekNPrVQ9UH5scyBl7rNclyutQninZc6HCdQ2JrjThLFcwUrN90CVnwPVJ6We9fBAHsSjO/IsxH4HahsT3GnCiHHxbvIXK9WPecdSJ1nrXGnbBNExnTo+3XnbLTCB2sYEd5qQOgl8jcVgArWNCS4x4XhZYAImYAImFLMbxgRMwARMKOXNtgcTMAETMKEYf2bGiwmYgAmY4GR8vrA1/3rcDCZgAiZggnOJVn2VVkzABEzAhGdlwQRMwARM+ErBBGobEzABE6htTMAETKC2McHFJszP+9X/pWACJmBCfZtgFLqEYbDfARMwAROs9PU1qf9LwQRMwATGExhPwARMwARMwARMwARMwARMwIRrpXV8ObVlJo0JmIAJmNCZKZ3wgAmYgAmYEDFiPS1sO2ACJmCCnWy6kfEETMAETCgmv8gYIyZgAiaUssY1WjEBEzChLE/PujEBEzABE0qZ2BvuwARMwARMsKO/E87OBSZgAiZgwvZWKZiACZiACV8pmEBtY4JLTBgZwgRMwARMKOUihgmYgAmYUEqG74vEBEzAhLKEtxswARMwAROK6TyYbcYETMAETHAyHi7shSf4vkhMwARMsML3RWICJmBCefi+SEzABEz4BsEEahsTMAETqG1MwARMoLYxwfUmtA9P8X2RmIAJmODk1WmhUDAMfc40JmACJmBC0NgZihf6RxLGJN8XiQmYgAkiftYp3ugewvhZABMwARMwIbsqxLw2wZOOYQImYAImnISFmC3ob30J72ECJmACJuzEhXhdeKhuLR1iAiZgAiYsfxRiwJgToutkHRMwARMwYdToFo0fC8lIrjCMCZiACZjQPtKt+gibhnExIzABEzABE+x0BVoFJmACJmDC1womUNuY4B4TfP2DAUzABEzABCut4bNCYV6IoYNeTMAETMAEX8pYnzaUCa3nU5iACZiACZPGhEdoE8T6OiZgAiZgQjqt/jFNWOTYZkzABEwQJ4tFE04wARMwAROyK44JyQwmYAImYMJyvt0yoessigmYgAmYEDLet2sT/B8KA5iACZiACWLBOHlvbC3n9bmRmIAJmIAJ4tWe/mK47KjABEzABEzQaegJhQJegQmYgAmY8NWCCdQ2JmACJlDbmOAyE8arggmYgAn1bYJRMMpT8z1Q3rHN4/3ow4p5nqFE9mQn0osJ1DYmuM+EZ1WpJmFF7i0m5Fn5cQstCbkfW0yejWMCtY0JdTeeMC6TLUIMyv2W0rx3cvKOmrR2YQK1jQn1ZkJjVvbo6ZIcKc4LyijjCdQ2JtSpCX1yy5w+lSvFeXHZhwnUNibUqQkjMmJOu2W22HU4urjT9cvcRB8mUNuYUH8mTEnrYmw+KZ0BhS65O3ohVd6Vhhg+mPkdE6htTHC7CXNywuocSOm3ZwXkuVzo8gUz8i0mUNuYgAnKBGtsoccwOtl2oLYxgW2HbikHzRtrcggTqG1McKUJ65HPGGNUPFjfDrMoxzCB2sYEV5pwFL7qkcv2RaaldVDjctkxC5hAbWOCm0zYXLrqkcuOWbK3J3wHMoAJ1DYmuNKEsXzHVQ+VH9scSKX0rI6j4z4h7oTlhgcTqG1McKUJjbF06M7lD5WfA9UnpTlv8KLwPpqRu5zvQG1jgktN2NouFAq7WzrpGhTGUidZ61xpxwQRiO6fbc20C0ygtjHBnSaUX0DhCxaDCdQ2Jrj++ARMwARMwARMwARMwARMwARMwITydE29/zgpRGCkFRMwARMwQYycGUZhXplQGMYETMAETBgwtoKt5nfN7y1hAiZgAibE853Wd82LeBoTMAETMOFgWdgmhPOYgAmYgAnHEceEeA4TMAETMOFj2jahIbOOCZiACZgwXRiyTBgpvMYETMAETPBnL2b7jWjv1FmG4xMwARMwQYhAxiioGJkegQmYgAm30oSf7n/VRmsZebeZio+2CEzABEzAhK8VTKC2McElJowHnVvBcUzABEy4XQ3X9vj5j09eKxMePX/+qFGIxkdPfnz+Q5N65PHju09+fPIf+kn31bzH6lbTI/Vk/yeXaR6aYGaugAmYgAm3quHaXjy5738w/utPzx+1//3FAyHuPLrfdv/JE48y4fmT+3efPFe3Hvz06O7dR37hffLkfvsPL/7j+ibMX2ACJmDCrWq4x3rt19sOP6jJD0+smZ7mn+6qh35UvYW7P7UJ74+PrPkPnqs5nic/XN+E1SwmYAIm3KaGa/zpgT2e8He9zv9obic8/+knffexFqL5p/umCxYgP3hUHj3588GE8XFjfdzMRKTAeZGYgAm3quGarLFFe4zxwU+6Y/DoblubpuLxY/sJ93/6m/XsJz+ZefHnnYSC+s/JbjcmYAIm3M5+gmOCuf3wtwoT2p1+wpPHbWb+dJHPnr00Es/MDPZ5BSZgAibczvGEChMeVJhQNp7w6XV8pF+IldGv0vKYQG1jwl+x3+Hxff/fx0sm/P2nB/4HTypMUPMe3b37wC/uPHlyv+3ugwefGl/cmsQETMCE23t8wo/Pn0yUTPA8eP7j48ptBz3u+OL547+Zxye8eP7D3T9b3vnb8v0OmIAJmHBLj2P8as2V2cAETMAETChlwdhaMTIrTpYxARMwob5NaI2dl+2LNDi2GRMwoc5NEMLbYSx2FIMJmIAJ9W4C4wmYgAmY8E2CCdQ2JmBCxat6+1z9++RFkxA/vGgT4sGLTiHuv3ikj6r4QYimF/rwqucv9Cmc+lzNRy/u6uc8EOKufs5/vHgshOdF5SIevbgvRKd+TsUihF7E34qL+Lv9a8xFNNiLuFO+CPMUUr9eRLO1iB/N51yxiEZ7EV79ayoW0a4X8TdrEc+dRfzwor18EW16EV77lTYW/1hnEeYfay3iR2sRzXoR/spFqF9zx15EQ2kRp3/89z/+++ef/+cf/2X/8/M//lP985//+J+ff/4v/Y/5cOk5zsM/2w+XnlO7iJ8vX8T/fKVF/PGff2GT/59fi6/0H1+rvb5Xk/9xer0q/+omNA2MWKdBjWMCJmACJohQVl+h1fyfbQe2Hdh2YNshcJ6bSBSGJtPG9DNMwARMwIRooUe8UT0E79xhFyZgAiZgwm5SmCYIbyaMCZiACZhwGtZXZ21WtxZ3MQETMAETMu+EmCjoSyzF+K55TMAETBCJDSGCxoQQ/twmJmACJmDCL4V7oilTWJzaKYxhAiZgAiZ0TgaECOwZhvHOiwmYgAmYYKV5YPDhFy0AE6htTOB8B0ygtjEBEzCB2sYETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETMAETLhW0qOtmIAJmIAJxRiF43AvJmACJmCCna7pA6OwOeLDBEzABEyw0vTyg1HIzwcwARMwARPsdM/kjML6cDMmYAImYILdWZg0CoXclB8TMAETMEEI7+BqwdiL5o1sABMwARPq3oTOyb2C8f6pV/gmCglMwARMqG8TGkLLF0Z+zr6iSjyPCZiACfVtwm7BSI20OPfmCpiACZhQ3yacR/rL7nX1YQImYEJ9m9D+dRaDCdQ2JrhrXyQmYAImYIKZgHMAY+CLjmTEBGobE1xiwtsj+7zI1uN5TMAETMCE9Hvn1vt09WPesc3j/WjNFz+8lnIYE6htTHCpCUfFb5gPVx+b4F2Re4sJeTZQObv7zMAEahsTXGvCwZJzaylX9dC4TLYIMSj3W8rnNqztRjGB2sYE15rwPmdfOsGXW6t8pDEre0wr5Ej57FEZWsAEahsTXGvCK2PJPEW6+V1htPKRPrllTp/KlbK5XcdRgQnUNia414Q768buzMjIzK6x0VT5yIiMWOMHMlua6Unk2jGB2sYENx+z1BY3jELBMOLV106YklPWRoWULWVQqA2JChM+mPkdE6htTHDNcYw9Y7OzYz01s+fkhDWuIGWRi47D9x5MoLYxoT6Pbb7MhPhplxBsO1DbmFCXJlyy7fBSvhaYQG1jgttNaO7utfLJMcao/LCqsivTqxOYQG1jgjtN6Fw6L9ipfOCSfZFRWUwUE6htTHClCR1ZI5EuhJNnheibykeuOGaJbQdqGxNcbcKcMSTeqB5CVzLVUvVQ+bHNgVQKEzABE+rBhC21rmsThD83WfVQ+TlQfVJiAiZgQj2YcBLRV2a9o27FLjlXOnWStc6VxgRMwIQ6MWFfmTBZuKduLR59wWIwgdrGBJeYsJ4UYqjwUnUKdrYwARMwAROmj32i7Sg3HIwV5jABEzABE3rXBoQYKRQKxo4fEzABEzDBSs/E3CufwARMwARMaGn5KovBBGobE1xigpHEBEzABEwoJRfGBEzABEwoJZHABEzABEwoJWT0YwImYAImFNMxczLT39VhBhMwARMwwSgYzuUTLjABEzABE1ZXSsEETMAETPhKwQRqGxMwAROobUzABEygtjHB5Sb0lgUTMAETMKG416Hmus2YgAmYUI8mLLzRWVjJGdXXbcYETMCEeh5PaI1ttmACJmACJhTj25/GBEzABEwoZSmDCZiACZhQZsIJJmACJmBCMZ2HaUzABEzAhKdWRqYPCuOYgAmYgAnO8QlGYc6DCZiACZjw+hczY886vmgxmEBtY4LrxhgxARMwARMwARMwARMq4+ttt2609/owARMwARMmCg+tGw/Z74AJmIAJQqynnFupNUzABEzAhGzMuRXbxwRMwARMOFp0bi1ybDMmYAImiHTxiOb0FiZgAiZgwmxh2LoxbMxhAiZgAiZ05i9melpaembO812YgAmYgAkimLfOd8gHBSZgAiZgghD3ZlJHR6npToEJmIAJmPC1ggnUNiZgAiZQ25jgQhO6x51jm8cZY8QETMAEMXvmnAN1PoMJmIAJmJBKOrfWNjEBEzABEw5LxzbnMAETMAETclHnVjSPCZiACZiwvt9k3Wja38AETMAETBg3rOs1e+YKE5iACZiACb6twsZoMDi6Udjm2muYgAmYIETnpvkVD8bmlxyegAnUNia45zhGT2h2aWk21CAwARMwARO+VjCB2sYETMAEahsTXGqCr8MKJmACJmCCaJ3ds79G9gITMAETMKE1XcjsGu/3jEJiBRMwARMwYdJ4Ld4UhOhPr3gxARMwARNS2x7TBNF5wnfDYQImYII4igoxV9BdhHgKEzABEzDhYFGIqYK+rkqY8yIxARMwQWy+F2K4EBLC8zGDCZiACZgwl2sSHeeZge7ZwiImYAImYEJwPyjEhFEoGLlOTMAETMAEK6Fw/Mu+9AUTqG1McJUJXxxMoLYxARMwgdrGhDozwTu2ebwffVg2p+eXxMF5JhLABGobE+rQBO+K3FtMyLOB4pxGKXPxxU1ZGMEEahsT6s+EcZlsEWJQ7rcUTVgL6SMeh+VFFyZQ25hQbyY0ZmWPni7Jml5BXP6CCdQ2JtSbCX1yy5w+lTUnUU/KOUygtjGh3kwYkRFz2i2z1Q9F5WtMoLYxod5MmJJT5tQnZUvlI12n8iEmUNuYUG8mzMkJZ2eDv3J/RFKGS/c+mPkdE6htTKhbE97ItA8TqG1MYNuhOMCY6fjrXhUmYAIm3LAxxjG51yUwgdrGBPZFOlLkHgpMoLYxgWOWrDwz8gGBCdQ2JtT9sc2BlHkF19DFcb/ABGobE+rThPJzoPqkVP/6T2VqwcwYJlDbmFB3JgjvWOoka50rbZlwTzpZxQRqGxPqz4TPCCZQ25iACZhAbWMCJmACtY0JmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJmIAJBBMwARMIJtBumEAwgXbDBIIJtBsmEEyg3TCBYALthgmE2sYETCDUNiZgwl/0qgbje6eZaPUX0DQOr2ZPdsLWV1VtF688L7cxARMwwdUm3InZK/uMp3y2L2nNNUYxARMwoa5MmFXr+c67PfXvaPnsuJqRWsqpf0P6SREzG+puBBMwARPcbEKXIWWySfi2pMz7SrMH1Nof9Yh7CoUdTwUUvZiACZjgZhMm1Go+qKZjajpcmh1Wd/VQwpya9pf7sc4YIyZggqtNSKiVvktN+9V0oTQ7I6VxR02H1ezXzswZdecpJmACJrjaBD2Q0KKm3WqaLM5tVvey+kZQ3Vh0hh3zUu56MQETMMHVJpyqlV4PGHTqMcXiXL8eeBR29yFuz3ylbv8iMAETMMH1JjRcakKmygTPlpQnfkzABExg28GaF6wcccAETMAEV48xDtSOMTZVjjGuqJsPMQETMMHlJkza+xLGK/dFLtbsi9QdiVWBCZiACS43wT5mqXXHPmbJXvN1tyHmEZ36mKUG84nz9iGNmIAJmOBqE6xjm2PFY5ud3oB5bPO7XBGC1mMptxowARMwwfUmVJ0D5ZhQPAdqzHqaPs7xlcAETMAE15ugz5XeP9uNDlh3iqMGjcOJg9OMfa60aMxIeejDBEzAhHowoe6CCZiACQQTMAETCCbQbphAMIF2wwSCCbQbJhBMoN0woSaHp7c4h9Q2JmDC1zbhVP7vrY2ktjEBE76+Cf/7f29t/pfaxgRMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwARMwATaDRMwARNoN0zABEyg3TABEzCBdsMETMAE2g0TMIHaxgRMwARqGxMwAROobUyoKxO8Y5vH+9GHFfNCiVwuEcIEahsT6tAE74rcW0zIs4GyeRPyJBY7kROYQG1jQv2ZMC6TLUIMyv2W4qxeedAlRNeBDGACtY0J9WZCY1b26OmSHCnOi8lRPRmVUUygtjGh3kzok1vm9KlccWY1HcsOPe2QR3cwgdrGhDozYURGzGm3zDqzuuW+dSMruzGB2saEOjNhSk6ZU5+UzoBCUK5bNzZk0HnaBzO///7r9fLPf/3z1uZf//z1r8s///X/bmtot2/ccL//9p1MmLP3LjRK6bdnDcqEdSMhB6tM+O3Xm5Br00RoN/c03G9vb5YJNyofPghCu9Fwf+22A28RpU3D1Uk+a4yRt4jSpuFcn8/aF8lbRGnTcK7PZx2zxFtEadNw7k/5sc2BVErPuvLYZt4iSpuGc3/Kz4Hqk9KcNyGPY7Hj2nOgCCH1gMJY6iRrnSvtmCBC7w8P34doG0IIIYQQQgghhBBCCCGEEEKIiyLLc+/Sp9yTq5fN9p/f1EMvaTf3Ndy2frqRXRlklf3mWdDZkGlz2vo5tf1KyrNW2o12+y4Nty3jCwvhpJQzrLPfJa/lwp88ekVtb8hM2WkbtBvt9i0bblv26UnQkA9ZX29qbT+UeyHn2g+0G+32fUwQCfmK9fX7vUW+kaWtk1zipTWvf2nndG99yl98i7ozF0NlPzMlp737N/SaD7Sb6xrOMSFinUZMvs9bFJQ7y+GVE2uLbVgWEuGlj7LXeYt6D47LLwTVuKc6cdNyknaj3b5Hw9kmNKblAOvr93uLOs2ztf3r5lnb24Z5r9thO3h80Fv+I0G5IUSPzDTQbrTbd2g40wRvV1iuN7C+fvfNu37zQyx/ULF5N1zIVHZ3rT7cZn2rTbt9t4bbtnZeGjM+Vtfv+RZ5+sZn3yxEZMwcy3nTXXqLXstUR8VPtJ5etKvJmFyk3Wi379Bw5r7IhfjB2YyX9fX7vUX+pH0kib5YZHdaymxsuNl8i87lQVvlT4zIuJ60F459tBvt9u0bzh5PaFmSs6yv3+8teidjgdYG0WWN+noHpjcMmbmn36KNdTnvqfiJpNxJ6JzIYdqNdvv2Defsd+iWF2w9fLe3qLmwZw7fDJT2Dre/031c1ZVrXZcL5e9RV+nw1A+0G+32zRuuaEKztC5zTL7HW9RuH0kTLjtiJCA3rSEf35p8WzbgOyHtr85qPpRdtBvt9q0brqyfUNcN953fooaDC93sLw39FjWPtFoPLNm7hnxJGS6+R55Mcdz8bT1fXJZ2+04NVxpPiMu0hxX2u23ejcrCSnhDTpjviDxfW1xMyXzAOYSk5X3pPeqXu87NAbnjod1ot2/bcKX9DjIXYH39fm+RCCVzuZUB8x1pHF5MHx6mpjtF8VDTloRcbBR2b2/a+dHGPdlPu9Fu37bhnOMT8pvTHayuhBBCCCGEEEIIIYQQQgghhBByKxP8xNk42/JPH34mQ7TZVVmwD8i9Ir6DGA1Hw924NKbSjV9iQsPHtJc2+/dKW4x/4nEajob7CzL8Kbk7P3HKycv6uzD58HVPdP5UabccJmk4Gu6mZeNLL+7Rkt+kzf7N0hZvZYCGo+FuVgLWRcDUexCI547eW4fgB+c2c8cfp1qL2w7d8qP19IfSBKA/tne2M9tuzQvL3npts/74gf4Kkp7FzNlu2OxP9cmFtrnMyccxb6m0H06u7Z1lwuaVxZakfS3iNfOhATlPw9FwNysTVm9uQU6er4fXpHnyqsjmk5HYjtxqK44nbNgsT5lXGJ2Q5+8jG3K3y+4QTtZpm80a6+FEtxi+kGuLSXnYa5Z2bCsbieXlUkOxtCMX6zHVXEf68aA+F9jENaUnzed7HhqOhrtReW9dtWZBGk+FvnSovjKeCOmL4jVOWFe+M014ZZ3Q17BbUJ2DkEx3mxZYlwrqlmt12mbS/LaSwEVWgxk83/Hq0parLUK0p81RFqu0+/1m5+ssparYs13o0Pfm7K8zWq+nb3+h4W5F8rLZepvMXp334LRsJ0Jmv2iC/2Lfa/bYls23w+o0xKyv7vPKc099tpl5uVURldZ3HU/r3m2fNMxaVW5WbxaHzSoeM6+l0nJ45LNnPqXhaLiblGZ5Yo/pvLT1NWnuGJmeX1jYkz7HBBE3N+fMN8IvM9YPj9qjyDnZWp9tZv75nsNzs9JVNU/o0l4373jysr1Y2r6nk3P6u5R1E7ad7jbqPpb9/QbTdfT1hzTcrUi7zNpvkzW6uCrv6e2+C/s6oh1FE57qjkTLUb5ZjxQVM2b1J2RnfbaZeR01f6k55nRpR61npXRnyirt4IH9+DPrAy5U6mqpTewJGo6Gu1l0n9pvU1/JhJDMhDru6M2/e0UTmg+PfeKleYXRgMwu2LGGgg/rrZ9Q0WZ+eeI0x9Clpd1xfDba1exRVWxtRauec4/+grg67CfQcLdjE6+lxoRFe7fPXpkJ6hlDYtnsTbTLrYpFeOWZp47brPG4fAzmki6ws19m0d4+2zA654rH7tTZeAINdwtSHAouMyFuDen2y3IT+uVqeyFjrvyb1tiik/rd72C1WXHPuVXahrmHNmjCaT5lzDrQs+3ALu1hOZs/bLGfX5/7HWi4m5wJq90rTJiWc2rd70xXmODJGDO22yH50dyoaxlqst6qybpus8DFrrl93BRqN3eprehdah/Nrq35lJBcV3NaYvYeONGcMzegrdsXezQcDXezEpCRGhM6czK9GD9dLR9PEGJSSofmcUNuRBaTp+Z+CdW1663rNhNDZzIVDSfyuvukD73Z14fexIuH3ng35H40mt2bt0tbmVvsaNXbcYw03G3Ixomv2gTRGckcp17fWa0woVvaW3z6zQ1nTg825gb0pkTL0WZ9t5lqmrn0SS4VDpmH3iz453dP0+N3StXfMpU+ycy3v3ZKOyiLJ/CE6+x8BxruNmT4S7/MdIjzIkX5ZvHCJ3887NS4aMlzXiQNd+PSmNr6ousf1Of1E65ss2uUdtf5XpN9s/6un0DD3YYEv6yjwHWWPq+0J8PZYseK6yzRcMT1+WRpbxs7ozQTDUcIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIX9Z/j9xrotk21fDMwAAAABJRU5ErkJggg==" alt="A bar chart: task A after learning B is 0.07 with naive training (red bar, below chance) but 0.93 with replay (green bar), and task B with replay is 0.98 (green bar)." />
+        <figcaption>Replay to the rescue: naive sequential training forgets task A (0.07), but rehearsing a few old examples retains it (0.93) while still learning task B (0.98).</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="cllab">
+        <div class="wtitle">▶ Interactive · replay to the rescue</div>
+        <div class="whint">Same setup as last lesson, now with a fix. Press <strong>Train A</strong>, then choose how to learn B: <strong>Naive</strong> (B only — watch A collapse) or <strong>With replay</strong> (B plus a few remembered A examples — watch A survive). Compare the task-A bar between the two strategies. The ringed points are the small replay buffer kept from A.</div>
+        <canvas id="clcanvas" width="640" height="330" aria-label="Interactive continual learning"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="cla">① Train A</button>
+          <button class="wbtn" id="clnaive">② Train B — naive</button>
+          <button class="wbtn primary" id="clreplay">② Train B — with replay</button>
+          <button class="wbtn" id="clreset">↻ Reset</button>
+        </div>
+        <div class="wreadout" id="clread">Press ① Train A, then compare naive vs replay for task B.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: replay keeps task A alive</h3>
+        <p class="prose">From <code>continual.py</code>: the same two forgetting-prone tasks, learned with and without replay.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Naive baseline.</strong> Train A, then B alone. Task-A accuracy after B: <strong>0.07</strong> — forgotten (from Lesson&nbsp;3).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Build a buffer.</strong> Keep just <strong>40</strong> of task A's examples in memory \(\mathcal{M}_A\) (a small fraction).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Train B with replay.</strong> Each step trains on B's data <em>plus</em> the 40 buffered A examples. Task-B still reaches <strong>0.98</strong> — the new task is learned fine.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Re-check A.</strong> Task-A accuracy is now <strong>0.93</strong> — retained! Forty remembered examples were enough to anchor A's weights while B was learned. Naive 0.07 → replay 0.93: the fix works.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: experience replay</h2>
+      <pre><code>idx = rng.choice(len(XA), 40, replace=False)      # remember 40 of task A's examples
+bufX, bufY = XA[idx], yA[idx]
+
+net.train(XA, yA)                                  # learn A
+for _ in range(250):                               # learn B, WITH replay
+    net.step(np.vstack([XB, bufX]),                # each batch = task B + buffered A
+             np.concatenate([yB, bufY]))
+
+# task A after B:  naive 0.07  ->  replay 0.93     (task B still 0.98)</code></pre>
+      <p class="prose">
+        The entire fix is <code>np.vstack([XB, bufX])</code> — appending the memory buffer to each training batch. That's it. Replay is the workhorse of continual learning precisely because it's this simple and this effective; most sophisticated methods are refinements of "which examples to keep and how to replay them."
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The other big family: EWC.</strong> Replay stores data; <span class="newterm">Elastic Weight Consolidation</span> stores <em>importance</em>. After learning task A, EWC estimates how important each weight was for A (via the Fisher information — roughly, how much A's loss would suffer if that weight changed). Then, while learning B, it adds a penalty \(\sum_i F_i(\theta_i - \theta_{A,i})^2\) that pulls important weights back toward their task-A values (springs of stiffness \(F_i\)), while unimportant weights are free to move. No old data needed — just the importances. Replay vs EWC is the classic trade-off: keep data, or keep a summary of what mattered.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking you need to store all old data.</strong> A tiny buffer (dozens of examples) often recovers most of the lost accuracy — the power of replay is how little it needs.</li>
+          <li><strong>Ignoring the memory/privacy cost of replay.</strong> Storing raw old examples can be infeasible or violate privacy. That's exactly when EWC (store importances, not data) or generative replay (learn to <em>regenerate</em> old examples) is preferred.</li>
+          <li><strong>Assuming one method wins everywhere.</strong> Replay, EWC, and architectural methods each have regimes where they shine. The right choice depends on memory budget, privacy, and how similar the tasks are.</li>
+          <li><strong>Forgetting the stability–plasticity trade-off.</strong> Protect old knowledge too hard and you can't learn new tasks (too stable); protect too little and you forget (too plastic). Every method is tuning this balance.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Continual learning</strong> = accumulate knowledge across a task stream without forgetting, on a bounded budget.</li>
+          <li><strong>Replay:</strong> keep a small buffer of old examples and mix them into new-task training (eq 4.1) — simple and very effective (A: 0.07 → 0.93).</li>
+          <li><strong>EWC (regularization):</strong> penalize changing weights that were important for old tasks — stores importances, not data.</li>
+          <li><strong>A tiny buffer suffices;</strong> replay's strength is how little memory it needs.</li>
+          <li><strong>Stability–plasticity trade-off:</strong> every method balances keeping the old against learning the new.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> How does replay prevent catastrophic forgetting?</p>
+          <ul class="quiz-options">
+            <li>By using a bigger network.<div class="quiz-why">Replay is about the data, not capacity.</div></li>
+            <li>By mixing a few old-task examples into new-task training, so gradients keep protecting old weights.<div class="quiz-why">Correct. The old task stays in the objective, anchoring its weights.</div></li>
+            <li>By lowering the learning rate to zero.<div class="quiz-why">That would stop learning B too; replay keeps learning while remembering.</div></li>
+            <li>By deleting task B.<div class="quiz-why">The goal is to learn B <em>and</em> keep A.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does EWC differ from replay?</p>
+          <ul class="quiz-options">
+            <li>EWC needs more old data.<div class="quiz-why">EWC needs <em>no</em> old data — that's its appeal.</div></li>
+            <li>EWC deletes the new task.<div class="quiz-why">It learns the new task while protecting old weights.</div></li>
+            <li>They are identical.<div class="quiz-why">They take opposite approaches (data vs importances).</div></li>
+            <li>EWC stores which weights mattered and penalizes changing them, instead of storing old examples.<div class="quiz-why">Correct. Replay stores data; EWC stores importance and adds a penalty.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Roughly how big a replay buffer is needed to recover most of task A?</p>
+          <ul class="quiz-options">
+            <li>A small one — dozens of examples often suffice.<div class="quiz-why">Correct. Replay's strength is how little memory it needs (40 examples took A from 0.07 to 0.93).</div></li>
+            <li>All of task A's data.<div class="quiz-why">That would defeat the point; a tiny buffer works.</div></li>
+            <li>Ten times task B's data.<div class="quiz-why">No such requirement; small buffers are effective.</div></li>
+            <li>None — replay uses no data.<div class="quiz-why">Replay is defined by keeping some old data.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What is the stability–plasticity trade-off?</p>
+          <ul class="quiz-options">
+            <li>The trade-off between speed and accuracy.<div class="quiz-why">That's a different trade-off.</div></li>
+            <li>The trade-off between model size and compute.<div class="quiz-why">Unrelated to continual learning's core tension.</div></li>
+            <li>Protecting old knowledge (stability) vs being able to learn new tasks (plasticity).<div class="quiz-why">Correct. Too stable can't learn new; too plastic forgets old — every method balances these.</div></li>
+            <li>The trade-off between train and test error.<div class="quiz-why">That's generalization, not continual learning.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, run "Train B — naive" and note the task-A bar, then reset, train A again, and run "Train B — with replay." How much does the task-A bar differ, and why?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Naive leaves task A near the floor (it's overwritten), while replay keeps it high — a dramatic gap, mirroring the 0.07 → 0.93 result. The reason is exactly equation (4.1): with replay, every training batch includes a few remembered A examples, so the gradient always has a component pulling the weights back toward A's solution, and they never drift far. Without replay, nothing counteracts B's pull. The small ringed buffer is doing all the work — a vivid demonstration that you don't need to store much of the past to preserve it, just enough to keep reminding the network.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Storing raw old data isn't always allowed (privacy, storage). Name a replay variant and a non-replay method that avoid keeping real old examples.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p><em>Generative replay</em> avoids storing real data by training a generative model (Track 8 — a VAE or GAN) on old tasks and, when learning a new task, sampling <em>synthetic</em> old examples from it to replay instead of real ones — you keep a generator, not a dataset. <em>EWC</em> (and related regularization methods like Synaptic Intelligence) avoid data entirely: they store only per-weight importances and add a penalty against changing important weights. Both sidestep the privacy/storage cost of a raw buffer, trading it for either the cost of a generative model (which itself must not forget) or the approximation error of the importance estimate. This is a real deployment consideration: when you literally cannot retain user data, importance-based or generative approaches are the way to do continual learning.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Modern large language models face a continual-learning problem: fine-tuning on new data degrades old abilities. Relate the fixes here to how that's handled in practice.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The same two families reappear, scaled up. <em>Replay-like:</em> when fine-tuning an LLM on new data, practitioners mix in a sample of the original pre-training/instruction data (rehearsal) so the model doesn't forget general abilities — this is experience replay by another name. <em>Regularization/architectural:</em> rather than update all weights (which risks overwriting broad knowledge), methods like LoRA and adapters freeze the base model and train small add-on modules per task, so old abilities in the frozen weights are protected by construction — an architectural cousin of EWC's "don't disturb important weights." There's also KL-penalty fine-tuning (stay close to the original model, echoing EWC's anchor). So the humble replay buffer and weight-protection ideas you built here are directly reflected in how billion-parameter models are kept from forgetting — the problem doesn't go away with scale, and the same principles solve it.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Continual learning is essential for any AI that must keep up with a changing world: recommenders and fraud models updated on fresh data without losing old patterns, robots acquiring new skills, on-device models that personalize over time, and large models fine-tuned repeatedly without eroding their core abilities. The frontier explores generative replay (rehearse from a learned generator instead of stored data), better importance estimates, task-free continual learning (no clean task boundaries — the realistic streaming setting), and the deep stability–plasticity question of how a system can stay flexible yet retain knowledge indefinitely. This closes the track: you've seen how to learn new things fast (few-shot, MAML, protonets) and how to keep learning without forgetting (replay, EWC) — the two halves of building AI that learns like a lifelong learner rather than a one-shot, frozen model.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Continual learning fixes catastrophic forgetting so a network can learn a stream of tasks. The simplest fix is replay: keep a small buffer of old examples and mix them into new-task training, so the old weights stay anchored — it took task A from 7% back to 93%. The other family, EWC, stores which weights mattered and penalizes changing them. Both balance keeping the old against learning the new."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Kirkpatrick et&nbsp;al. (2017), "Overcoming catastrophic forgetting in neural networks" (EWC). <a href="https://arxiv.org/abs/1612.00796" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Rebuffi et&nbsp;al. (2017), "iCaRL: Incremental Classifier and Representation Learning" (replay). <a href="https://arxiv.org/abs/1611.07725" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Shin et&nbsp;al. (2017), "Continual Learning with Deep Generative Replay." <a href="https://arxiv.org/abs/1705.08690" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes Meta, Few-Shot &amp; Continual Learning: learning new tasks from few examples (few-shot, MAML, protonets) and learning them without forgetting (replay, EWC) — the ingredients of an AI that learns for a lifetime. The next tracks turn to systems and the frontier.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('clcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height, plot=430;
+    function rnd(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0;}
+    function blob(cx,cy,lab,n,arr){ for(var i=0;i<n;i++) arr.push({x:cx+rnd()*0.6,y:cy+rnd()*0.7,l:lab}); }
+    var A=[],B=[]; blob(-2,-2.2,0,40,A); blob(-2,2.2,1,40,A); blob(2,2.2,0,40,B); blob(2,-2.2,1,40,B);
+    var buf=[]; for(var i=0;i<8;i++){buf.push(A[i]); buf.push(A[40+i]);}   // small replay buffer
+    var Hn=16,W1,b1,W2,b2;
+    function init(){ W1=[[],[]];b1=[];W2=[];b2=[0,0];
+      for(var j=0;j<Hn;j++){W1[0].push((Math.random()-0.5)*0.8);W1[1].push((Math.random()-0.5)*0.8);b1.push(0);W2.push([(Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8]);}
+    }
+    function fwd(x){ var h=[]; for(var j=0;j<Hn;j++){var s=b1[j]+x[0]*W1[0][j]+x[1]*W1[1][j];h.push(s>0?s:0);}
+      var o=[b2[0],b2[1]]; for(var j=0;j<Hn;j++){o[0]+=h[j]*W2[j][0];o[1]+=h[j]*W2[j][1];}
+      var m=Math.max(o[0],o[1]);var e0=Math.exp(o[0]-m),e1=Math.exp(o[1]-m),Z=e0+e1;return {h:h,p:[e0/Z,e1/Z]}; }
+    function step(data,lr){
+      var gW1=[new Array(Hn).fill(0),new Array(Hn).fill(0)],gb1=new Array(Hn).fill(0),gW2=[],gb2=[0,0];
+      for(var j=0;j<Hn;j++)gW2.push([0,0]);
+      for(var n=0;n<data.length;n++){ var d=data[n];var f=fwd([d.x,d.y]);var dy=[f.p[0]-(d.l===0?1:0),f.p[1]-(d.l===1?1:0)];
+        for(var j=0;j<Hn;j++){gW2[j][0]+=f.h[j]*dy[0];gW2[j][1]+=f.h[j]*dy[1];}
+        gb2[0]+=dy[0];gb2[1]+=dy[1];
+        for(var j=0;j<Hn;j++){var dh=(dy[0]*W2[j][0]+dy[1]*W2[j][1])*(f.h[j]>0?1:0);gW1[0][j]+=d.x*dh;gW1[1][j]+=d.y*dh;gb1[j]+=dh;}
+      }
+      var N=data.length;
+      for(var j=0;j<Hn;j++){W2[j][0]-=lr*gW2[j][0]/N;W2[j][1]-=lr*gW2[j][1]/N;W1[0][j]-=lr*gW1[0][j]/N;W1[1][j]-=lr*gW1[1][j]/N;b1[j]-=lr*gb1[j]/N;}
+      b2[0]-=lr*gb2[0]/N;b2[1]-=lr*gb2[1]/N;
+    }
+    function acc(data){var c=0;for(var n=0;n<data.length;n++){var f=fwd([data[n].x,data[n].y]);if((f.p[1]>f.p[0]?1:0)===data[n].l)c++;}return c/data.length;}
+    var timer=null; function stop(){if(timer){clearInterval(timer);timer=null;}}
+    function toX(x){return plot/2+x*(plot/12);} function toY(y){return H/2-y*(H/10);}
+    function draw(showBuf){
+      ctx.clearRect(0,0,W,H);
+      for(var gx=0;gx<plot;gx+=14)for(var gy=0;gy<H;gy+=14){var xx=(gx-plot/2)/(plot/12),yy=(H/2-gy)/(H/10);var f=fwd([xx,yy]);ctx.fillStyle=f.p[1]>f.p[0]?'rgba(37,99,235,0.10)':'rgba(220,38,38,0.10)';ctx.fillRect(gx,gy,14,14);}
+      [A,B].forEach(function(D){D.forEach(function(d){ctx.fillStyle=d.l===1?'#2563eb':'#dc2626';ctx.beginPath();ctx.arc(toX(d.x),toY(d.y),3.5,0,7);ctx.fill();});});
+      if(showBuf){ buf.forEach(function(d){ ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(toX(d.x),toY(d.y),6,0,7); ctx.stroke(); }); }
+      ctx.fillStyle='#64748b';ctx.font='11px system-ui';ctx.fillText('task A (left)',10,16);ctx.fillText('task B (right)',plot-90,16);
+      var aA=acc(A),aB=acc(B),bx=plot+18;
+      ctx.fillStyle='#0f172a';ctx.font='bold 12px system-ui';ctx.fillText('accuracy',bx,24);
+      function bar(y,lab,v,col){ctx.fillStyle='#e5e7eb';ctx.fillRect(bx,y,170,20);ctx.fillStyle=col;ctx.fillRect(bx,y,170*v,20);ctx.fillStyle='#0f172a';ctx.font='11px system-ui';ctx.fillText(lab+' '+(v*100).toFixed(0)+'%',bx,y-3);}
+      bar(50,'Task A',aA,'#dc2626');bar(100,'Task B',aB,'#2563eb');
+      return {aA:aA,aB:aB};
+    }
+    function trainA(){stop();var i=0;timer=setInterval(function(){step(A,0.3);var r=draw(false);i++;if(i>=120){stop();document.getElementById('clread').textContent='Task A mastered ('+(r.aA*100).toFixed(0)+'%). Now try ② naive vs ② with replay.';}},18);}
+    function trainB(replay){stop();var i=0;var data=replay?B.concat(buf):B;timer=setInterval(function(){step(data,0.3);var r=draw(replay);i++;document.getElementById('clread').textContent=(replay?'Replay':'Naive')+': task B '+(r.aB*100).toFixed(0)+'%, task A '+(r.aA*100).toFixed(0)+'%';if(i>=170){stop();document.getElementById('clread').textContent=(replay?'WITH REPLAY → task A retained at '+(r.aA*100).toFixed(0)+'% (B '+(r.aB*100).toFixed(0)+'%). The buffer saved it.':'NAIVE → task A collapsed to '+(r.aA*100).toFixed(0)+'% (B '+(r.aB*100).toFixed(0)+'%). Now reset, retrain A, and try replay.');}},18);}
+    document.getElementById('cla').onclick=trainA;
+    document.getElementById('clnaive').onclick=function(){trainB(false);};
+    document.getElementById('clreplay').onclick=function(){trainB(true);};
+    document.getElementById('clreset').onclick=function(){stop();init();draw(false);document.getElementById('clread').textContent='Reset. Press ① Train A, then compare naive vs replay.';};
+    init();draw(false);
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

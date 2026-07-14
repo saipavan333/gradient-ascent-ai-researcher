@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t19-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Few-shot learning · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Few-shot learning: recognizing from a handful of examples</h1>
+      <p class="subtitle">A child sees one giraffe and knows giraffes forever. A standard deep network needs thousands of labelled giraffes. Few-shot learning closes that gap — learning new classes from just a few examples by leaning on a good representation and clever comparison.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 16 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 6</span>
+      </div>
+
+      <p class="lead prose">
+        Deep learning's dirty secret is its appetite for data: to learn a new category it typically wants hundreds or thousands of labelled examples. Yet humans routinely learn from one or two. Show a toddler a single picture of a platypus and they'll spot the next one instantly. <span class="newterm">Few-shot learning</span> is the effort to give machines this ability — to learn a new class from just a handful (often 1 to 5) of labelled examples. The key realization is that you can't learn a rich new concept from scratch on five images; instead, you lean on a <em>representation</em> learned from lots of other data (Track&nbsp;13's self-supervised and transfer ideas), and then do something simple in that representation — like "which known example is this new thing closest to?" This lesson sets up the standard way few-shot problems are posed (the "episode"), and builds the simplest method that works: compare a new example to the average of each class's few examples, and pick the nearest. It's the foundation for the meta-learning methods in the rest of the track.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: matching against a few reference photos</h2>
+      <p class="prose">
+        Imagine a border officer with a folder of just three reference photos for each of five suspects. A new face comes through: they don't retrain their brain, they <em>compare</em> the new face to the reference photos and pick the closest match. Few-shot learning works the same way. You're given a small <span class="newterm">support set</span> — a few labelled examples per class — and a <span class="newterm">query</span> to classify. You embed everything into a feature space (using a representation learned from other data), then classify the query by which class's examples it's nearest to. No retraining, just comparison in a good space. The magic is entirely in the representation: if the feature space places similar things close together, a few references per class are plenty.
+      </p>
+      <p class="prose">
+        The standard setup is called an <span class="newterm">N-way K-shot episode</span>: \(N\) new classes, \(K\) labelled examples each. The simplest classifier averages each class's \(K\) examples into a <span class="newterm">centroid</span> (prototype) and assigns the query to the nearest one:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ c_k = \frac{1}{K}\sum_{i \in \text{class } k} f(x_i), \qquad \hat{y} = \arg\min_k \; \lVert f(x_q) - c_k \rVert^2 \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        Here \(f(x)\) is the embedding of example \(x\) (its feature vector in the learned space), \(c_k\) is class \(k\)'s centroid — the mean of its \(K\) support embeddings — and the query \(x_q\) is labelled by whichever centroid is closest in squared distance. That's it: average the few examples, compare, pick the nearest. More shots \(K\) give a more reliable centroid and thus higher accuracy.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A 3-way 3-shot few-shot episode: three colour-coded classes, each with a few large support dots, many faded query dots, and a star marking the class centroid (the mean of the support)." />
+        <figcaption>A few-shot episode: a few labelled support examples per class (large dots), their centroid (★), and queries classified by the nearest centroid.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="fslab">
+        <div class="wtitle">▶ Interactive · more shots, sharper centroids</div>
+        <div class="whint">Each colour is a new class; the big dots are the <strong>support</strong> examples you're given, the ★ is each class's centroid (their average), and the small dots are <strong>queries</strong> classified by their nearest centroid (an ✗ marks a mistake). Slide the number of shots \(K\) up and watch the centroids settle and the accuracy climb — a few good examples go a long way. <strong>New episode</strong> reshuffles.</div>
+        <canvas id="fscanvas" width="640" height="340" aria-label="Interactive few-shot episode"></canvas>
+        <div class="wrow">
+          <span class="wlab">shots K = <b id="fsklab">1</b></span>
+          <input class="wslider" id="fsk" type="range" min="1" max="8" value="1" />
+          <button class="wbtn" id="fsnew">↻ New episode</button>
+        </div>
+        <div class="wreadout" id="fsread">1-shot: one example per class defines each centroid.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: 1-shot vs 5-shot</h3>
+        <p class="prose">From <code>few_shot.py</code>: 5-way classification with nearest-centroid, in a moderately separated feature space.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>1-shot.</strong> One example per class <em>is</em> the centroid. But a single example can be an outlier — off-centre for its class — so the centroid is noisy. Accuracy: about <strong>0.76</strong>.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>5-shot.</strong> Averaging five examples cancels out individual noise, so each centroid lands much closer to the class's true centre. Accuracy jumps to about <strong>0.92</strong>.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Why it works at all.</strong> With only five examples you could never <em>train</em> a classifier — but you're not training, you're comparing in a pre-learned space. The heavy lifting was done by whatever produced \(f\); the episode just measures distances.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The lever that matters.</strong> The single biggest factor isn't \(K\) — it's the quality of the representation \(f\). A great embedding makes even 1-shot easy; a poor one makes 5-shot hard. That's why few-shot research is really representation research.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: nearest-centroid few-shot</h2>
+      <pre><code>def nearest_centroid_accuracy(S, Sy, Q, Qy, n_way):
+    protos = np.array([S[Sy == c].mean(0) for c in range(n_way)])   # centroid per class
+    d = ((Q[:, None, :] - protos[None, :, :])**2).sum(2)            # dist to each centroid
+    pred = d.argmin(1)                                              # nearest wins
+    return (pred == Qy).mean()
+
+# 5-way 1-shot ~0.76,  5-way 5-shot ~0.92  -> more shots, better centroids, higher accuracy</code></pre>
+      <p class="prose">
+        Three lines. There's no training loop in the episode at all — the "learning" happened when the embedding \(f\) was built. This is why few-shot methods are fast at test time and why they hinge entirely on the representation.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>How the representation gets built.</strong> The embedding \(f\) usually comes from one of two places: <em>transfer learning</em> — take a network pre-trained on a big labelled dataset and use its features (Track&nbsp;7) — or <em>meta-learning</em> — explicitly train \(f\) across thousands of few-shot episodes so it's good at this comparison game (Lessons&nbsp;1–2). Either way, the lesson is the same: don't try to learn a new concept from five examples; learn a great space from lots of data, then place five examples in it.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Trying to train a classifier on five examples.</strong> It will overfit catastrophically. Few-shot works by <em>comparison</em> in a good pre-learned space, not by fitting a fresh model.</li>
+          <li><strong>Blaming the method when the representation is bad.</strong> If nearest-centroid fails, the usual culprit is a weak embedding, not the comparison rule. Fix \(f\) first.</li>
+          <li><strong>Ignoring the outlier risk in 1-shot.</strong> A single support example might be unrepresentative, dragging the centroid off. This is exactly why more shots help and why robustness to bad shots matters.</li>
+          <li><strong>Forgetting to standardize the feature space.</strong> If some feature dimensions dominate the distance, the nearest-centroid rule keys on them. Distances assume comparable scales.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Few-shot learning</strong> = learn a new class from only a few (1–5) labelled examples.</li>
+          <li><strong>N-way K-shot episode:</strong> a support set of \(K\) examples for each of \(N\) new classes, plus queries to label.</li>
+          <li><strong>Nearest-centroid baseline:</strong> average each class's support into a prototype, assign queries to the nearest (eq 0.1).</li>
+          <li><strong>Don't train — compare</strong> in a representation learned from lots of other data.</li>
+          <li><strong>Representation quality is everything;</strong> more shots help, but a great embedding matters more.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is a "5-way 1-shot" episode?</p>
+          <ul class="quiz-options">
+            <li>5 examples of 1 class.<div class="quiz-why">That's 1 class with 5 shots — the reverse.</div></li>
+            <li>1 class classified 5 times.<div class="quiz-why">Ways = number of classes, shots = examples per class.</div></li>
+            <li>5 new classes, 1 labelled example each.<div class="quiz-why">Correct. N-way = N classes; K-shot = K examples per class.</div></li>
+            <li>5 layers, 1 neuron.<div class="quiz-why">Unrelated to architecture.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why does few-shot learning avoid training a classifier on the few examples?</p>
+          <ul class="quiz-options">
+            <li>Training is too slow.<div class="quiz-why">Speed isn't the issue; overfitting is.</div></li>
+            <li>A model trained on ~5 examples overfits badly; comparison in a good space works instead.<div class="quiz-why">Correct. The representation does the work; the episode just measures distances.</div></li>
+            <li>Because the examples have no labels.<div class="quiz-why">The support examples are labelled — that's the point.</div></li>
+            <li>Because it always fails.<div class="quiz-why">Few-shot can be very accurate with a good embedding.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> In nearest-centroid few-shot, what is a class centroid?</p>
+          <ul class="quiz-options">
+            <li>The largest support example.<div class="quiz-why">It's an average, not a single example.</div></li>
+            <li>A randomly chosen example.<div class="quiz-why">It's computed, not random.</div></li>
+            <li>The query point.<div class="quiz-why">The query is what you classify, not the centroid.</div></li>
+            <li>The mean of that class's support embeddings.<div class="quiz-why">Correct. Average the few examples; the query goes to the nearest centroid.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What matters most for few-shot accuracy?</p>
+          <ul class="quiz-options">
+            <li>The quality of the learned representation \(f\).<div class="quiz-why">Correct. A great embedding makes even 1-shot easy; a poor one makes 5-shot hard.</div></li>
+            <li>The random seed.<div class="quiz-why">Seeds cause noise, not the core determinant.</div></li>
+            <li>The number of output neurons.<div class="quiz-why">There's no trained output layer in the episode.</div></li>
+            <li>The learning rate.<div class="quiz-why">No training happens in the episode; no learning rate applies.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, set K=1 and hit "New episode" several times. Does accuracy vary a lot? Now set K=8 and repeat. What explains the difference in stability?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At K=1 the accuracy swings noticeably episode to episode — because a single support example might be an outlier, placing the centroid poorly and misclassifying that class's queries. At K=8 the accuracy is high and stable, because averaging eight examples cancels individual noise and the centroid reliably lands near the class's true centre. This is the law of large numbers acting on the centroid: variance shrinks like \(1/K\). It's also why 1-shot is genuinely harder than 5-shot and why robustness to a bad single shot is a real research concern.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> You have a strong image encoder pre-trained on millions of photos. How would you use it to build a 5-shot classifier for a brand-new set of bird species it never saw?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Freeze the pre-trained encoder and use it as \(f\): pass your 5 photos of each new bird species through it to get embeddings, average them into a prototype per species, and classify a new photo by its nearest prototype. No retraining of the encoder needed — its features, learned from millions of images, already place visually similar birds nearby, so a handful of examples per species suffices. This is transfer learning meeting few-shot learning, and it's how practical few-shot systems are usually built: a big pre-trained backbone plus a cheap nearest-prototype head. If you have a little more data, you can optionally fine-tune the last layer, but the frozen-features approach is a remarkably strong baseline.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Nearest-centroid treats every feature dimension equally and assumes classes are roughly blob-shaped around their mean. When would that assumption hurt, and what does the next lesson (meta-learning) do about it?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It hurts when the pre-trained space isn't shaped for <em>this</em> comparison task — e.g., if the relevant distinction between the new classes lives in a few dimensions swamped by many irrelevant ones, or if classes are elongated/curved rather than blobby, so the mean is a poor summary. A fixed, off-the-shelf embedding has no reason to be ideal for nearest-centroid on your specific new classes. Meta-learning (Lessons 1–2) addresses this by <em>training the embedding itself</em> across many few-shot episodes, explicitly optimizing \(f\) so that nearest-prototype classification works well — it learns a space tailored to the few-shot comparison, rather than hoping a generic space happens to fit. That's the leap from "use a good representation" to "learn a representation that's good <em>at learning</em>."</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Few-shot learning matters wherever labels are scarce or classes appear on the fly: recognizing a new product from a couple of catalogue photos, identifying a rare disease from a few scans, adapting a voice assistant to a new user, or personalizing a recommender. The idea also underlies the biggest story in modern AI: large language models are astonishing <em>few-shot learners</em> — show one a few examples of a task in the prompt ("in-context learning," Track&nbsp;9) and it performs the task without any weight updates, because pre-training built a representation rich enough that a few examples pin down what you want. The humble nearest-centroid rule here is the conceptual seed of that capability: learn a powerful space from vast data, then let a handful of examples do the rest.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Few-shot learning recognizes new classes from just a few examples by comparison, not training. Set up an N-way K-shot episode, embed everything in a representation learned from lots of other data, average each class's few examples into a prototype, and label a query by its nearest prototype. More shots sharpen the prototypes, but the representation is what really decides success."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Vinyals et&nbsp;al. (2016), "Matching Networks for One Shot Learning." <a href="https://arxiv.org/abs/1606.04080" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Snell et&nbsp;al. (2017), "Prototypical Networks for Few-shot Learning." <a href="https://arxiv.org/abs/1703.05175" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Tian et&nbsp;al. (2020), "Rethinking Few-Shot Image Classification: a Good Embedding Is All You Need?" <a href="https://arxiv.org/abs/2003.11539" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: instead of hoping a pre-trained space is good for few-shot, we train one to be. <a href="01-maml.html">MAML</a> learns an initialization that any new task can master in just a few gradient steps — "learning to learn."</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('fscanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cols=['#2563eb','#059669','#d97706','#6d28d9','#dc2626'], NW=5;
+    var centres=[], seedbank=[];
+    function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0; }
+    function newEpisode(){
+      centres=[]; for(var c=0;c<NW;c++){ centres.push([90+Math.random()*(W-180), 50+Math.random()*(H-120)]); }
+      // pre-generate a big pool per class so changing K just uses more of the same pool
+      seedbank=[]; for(var c=0;c<NW;c++){ var pool=[]; for(var i=0;i<8;i++) pool.push([centres[c][0]+gauss()*46, centres[c][1]+gauss()*40]); seedbank.push(pool); }
+      draw();
+    }
+    function draw(){
+      var K=+document.getElementById('fsk').value; document.getElementById('fsklab').textContent=K;
+      ctx.clearRect(0,0,W,H);
+      var protos=[];
+      for(var c=0;c<NW;c++){ var sx=0,sy=0; for(var i=0;i<K;i++){sx+=seedbank[c][i][0];sy+=seedbank[c][i][1];} protos.push([sx/K,sy/K]); }
+      // queries
+      var correct=0,total=0;
+      for(var c=0;c<NW;c++){
+        for(var q=0;q<12;q++){
+          var qx=centres[c][0]+gauss()*46, qy=centres[c][1]+gauss()*40;
+          var best=0,bd=1e9; for(var k=0;k<NW;k++){ var dx=qx-protos[k][0],dy=qy-protos[k][1],d=dx*dx+dy*dy; if(d<bd){bd=d;best=k;} }
+          var ok=best===c; if(ok)correct++; total++;
+          ctx.fillStyle=cols[best]; ctx.globalAlpha=0.5; ctx.beginPath(); ctx.arc(qx,qy,3.5,0,7); ctx.fill(); ctx.globalAlpha=1;
+          if(!ok){ ctx.strokeStyle='#111'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(qx-3,qy-3);ctx.lineTo(qx+3,qy+3);ctx.moveTo(qx+3,qy-3);ctx.lineTo(qx-3,qy+3); ctx.stroke(); }
+        }
+      }
+      // support + prototypes
+      for(var c=0;c<NW;c++){
+        for(var i=0;i<K;i++){ ctx.fillStyle=cols[c]; ctx.beginPath(); ctx.arc(seedbank[c][i][0],seedbank[c][i][1],7,0,7); ctx.fill(); ctx.strokeStyle='#111'; ctx.lineWidth=1.2; ctx.stroke(); }
+        var p=protos[c]; ctx.fillStyle=cols[c]; star(p[0],p[1],11);
+      }
+      document.getElementById('fsread').textContent=K+'-shot: nearest-centroid accuracy on queries = '+(100*correct/total).toFixed(0)+'%   (★ = class centroid, ✗ = misclassified query)';
+    }
+    function star(x,y,r){
+      ctx.beginPath(); for(var i=0;i<10;i++){ var ang=Math.PI/5*i-Math.PI/2; var rr=i%2?r*0.45:r; ctx.lineTo(x+Math.cos(ang)*rr,y+Math.sin(ang)*rr);} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#111'; ctx.lineWidth=1.2; ctx.stroke();
+    }
+    document.getElementById('fsk').oninput=draw;
+    document.getElementById('fsnew').onclick=newEpisode;
+    newEpisode();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

@@ -192,11 +192,11 @@
       n: 16, id: "t19", title: "Meta, Few-Shot & Continual Learning",
       desc: "Learning to learn and learning without forgetting: MAML, prototypical nets, and continual learning.",
       lessons: [
-        { id: "t19-l00", title: "Few-shot learning", file: "#", status: "soon" },
-        { id: "t19-l01", title: "MAML (learning to learn)", file: "#", status: "soon" },
-        { id: "t19-l02", title: "Prototypical networks", file: "#", status: "soon" },
-        { id: "t19-l03", title: "Catastrophic forgetting", file: "#", status: "soon" },
-        { id: "t19-l04", title: "Continual learning (EWC/replay)", file: "#", status: "soon" },
+        { id: "t19-l00", title: "Few-shot learning", file: "lessons/track-19-meta-learning/00-few-shot-learning.html", status: "done" },
+        { id: "t19-l01", title: "MAML (learning to learn)", file: "lessons/track-19-meta-learning/01-maml.html", status: "done" },
+        { id: "t19-l02", title: "Prototypical networks", file: "lessons/track-19-meta-learning/02-prototypical-networks.html", status: "done" },
+        { id: "t19-l03", title: "Catastrophic forgetting", file: "lessons/track-19-meta-learning/03-catastrophic-forgetting.html", status: "done" },
+        { id: "t19-l04", title: "Continual learning (EWC/replay)", file: "lessons/track-19-meta-learning/04-continual-learning.html", status: "done" },
       ],
     },
     {
