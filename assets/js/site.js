@@ -70,11 +70,12 @@
       n: 5, id: "t12", title: "Classical ML",
       desc: "The tabular-data workhorses: k-NN, trees, random forests, gradient boosting, and SVMs.",
       lessons: [
-        { id: "t12-l00", title: "k-Nearest Neighbors",     file: "lessons/track-12-classical-ml/00-knn.html", status: "done" },
-        { id: "t12-l01", title: "Decision trees",          file: "lessons/track-12-classical-ml/01-decision-trees.html", status: "done" },
-        { id: "t12-l02", title: "Random forests",          file: "lessons/track-12-classical-ml/02-random-forests.html", status: "done" },
-        { id: "t12-l03", title: "Gradient boosting",       file: "lessons/track-12-classical-ml/03-gradient-boosting.html", status: "done" },
-        { id: "t12-l04", title: "SVMs & the kernel trick", file: "lessons/track-12-classical-ml/04-svm.html", status: "done" },
+        { id: "t12-l00", title: "Linear & Logistic Regression", file: "lessons/track-12-classical-ml/00-linear-logistic-regression.html", status: "done" },
+        { id: "t12-l01", title: "k-Nearest Neighbors",     file: "lessons/track-12-classical-ml/01-knn.html", status: "done" },
+        { id: "t12-l02", title: "Decision trees",          file: "lessons/track-12-classical-ml/02-decision-trees.html", status: "done" },
+        { id: "t12-l03", title: "Random forests",          file: "lessons/track-12-classical-ml/03-random-forests.html", status: "done" },
+        { id: "t12-l04", title: "Gradient boosting",       file: "lessons/track-12-classical-ml/04-gradient-boosting.html", status: "done" },
+        { id: "t12-l05", title: "SVMs & the kernel trick", file: "lessons/track-12-classical-ml/05-svm.html", status: "done" },
       ],
     },
     {
