@@ -181,11 +181,11 @@
       n: 15, id: "t21", title: "Probabilistic & Bayesian ML",
       desc: "Reasoning with uncertainty: Bayesian inference, MCMC, variational inference, Gaussian processes, and calibration.",
       lessons: [
-        { id: "t21-l00", title: "Bayesian inference", file: "#", status: "soon" },
-        { id: "t21-l01", title: "MCMC sampling", file: "#", status: "soon" },
-        { id: "t21-l02", title: "Variational inference", file: "#", status: "soon" },
-        { id: "t21-l03", title: "Gaussian processes", file: "#", status: "soon" },
-        { id: "t21-l04", title: "Uncertainty & calibration", file: "#", status: "soon" },
+        { id: "t21-l00", title: "Bayesian inference", file: "lessons/track-21-bayesian-ml/00-bayesian-inference.html", status: "done" },
+        { id: "t21-l01", title: "MCMC sampling", file: "lessons/track-21-bayesian-ml/01-mcmc.html", status: "done" },
+        { id: "t21-l02", title: "Variational inference", file: "lessons/track-21-bayesian-ml/02-variational-inference.html", status: "done" },
+        { id: "t21-l03", title: "Gaussian processes", file: "lessons/track-21-bayesian-ml/03-gaussian-processes.html", status: "done" },
+        { id: "t21-l04", title: "Uncertainty & calibration", file: "lessons/track-21-bayesian-ml/04-calibration.html", status: "done" },
       ],
     },
     {

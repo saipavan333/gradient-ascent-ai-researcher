@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t21-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Uncertainty & calibration · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Uncertainty & calibration: can you trust the confidence?</h1>
+      <p class="subtitle">A model that says "99% sure" and is right 99% of the time is calibrated. Most modern models are not — they're overconfident. This lesson shows how to measure that gap and fix it with one number, so a model's confidence actually means what it says.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 15 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~17 min</span>
+        <span class="chip">Builds on: Lesson 3</span>
+      </div>
+
+      <p class="lead prose">
+        The Bayesian methods in this track give uncertainty <em>by construction</em>. But most deployed models — a neural network's softmax, a random forest's vote share — also output numbers that look like probabilities ("this is a cat with 97% confidence"), and it's dangerously tempting to trust them. <span class="newterm">Calibration</span> asks the blunt question: when a model says 97%, is it actually right 97% of the time? A <span class="newterm">calibrated</span> model's confidence matches its accuracy; an <span class="newterm">overconfident</span> one says 97% but is right only 80% of the time. This matters enormously the moment a model informs a real decision — a medical screen, a loan approval, a self-driving car deciding whether it's sure enough to brake. A famous finding is that modern deep networks are systematically overconfident, so their raw probabilities can't be taken at face value. The good news: you can <em>measure</em> miscalibration with a simple score, and often <em>fix</em> it with a one-parameter adjustment that changes no predictions — only the confidence attached to them. This closes the track: uncertainty is only useful if it's honest.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: the weather forecaster's test</h2>
+      <p class="prose">
+        A good weather forecaster passes a simple test: on all the days they said "70% chance of rain," it should actually rain about 70% of the time. If it rains 70% of those days, they're calibrated — their numbers mean something. If it only rains 50% of the time, they're overconfident; if 90%, underconfident. You can run this test on any model that outputs probabilities: bucket its predictions by the confidence it claimed, and for each bucket check what fraction were actually correct. Plot claimed confidence against actual accuracy and a perfectly calibrated model traces the diagonal line. The gap from that diagonal is exactly the miscalibration — and it's what we both measure and repair.
+      </p>
+      <p class="prose">
+        The standard score is <span class="newterm">Expected Calibration Error</span> (ECE): the average gap between confidence and accuracy across buckets.
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{ECE} = \sum_{b=1}^{B} \frac{n_b}{N}\,\big|\, \text{accuracy}(b) - \text{confidence}(b)\,\big| \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        In words: split predictions into \(B\) confidence buckets (say 0–10%, 10–20%, …). For each bucket \(b\), compare the model's average <em>confidence</em> to the actual <em>accuracy</em> of those predictions; take the size of that gap; and average the gaps, weighting each bucket by how many predictions \(n_b\) it holds (out of \(N\) total). ECE = 0 means perfectly calibrated; larger means the confidence is less trustworthy. It turns "can I believe this model's probabilities?" into a single number you can track and minimize.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A reliability diagram: a dashed diagonal for perfect calibration, a red curve for an over-confident model that dips below the diagonal, and a green curve after temperature scaling that hugs the diagonal." />
+        <figcaption>A reliability diagram: the over-confident model (red) sits below the diagonal; after temperature scaling (green) it hugs the diagonal — calibrated confidence.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="callab">
+        <div class="wtitle">▶ Interactive · fix an overconfident model with one dial</div>
+        <div class="whint">The red curve is an overconfident model: at high claimed confidence it sits <em>below</em> the diagonal (says 90%, right far less often). Slide the <strong>temperature T</strong> to divide its logits — softening the probabilities — and watch the curve swing up onto the diagonal as the <strong>ECE</strong> drops. No prediction changes; only the confidence becomes honest.</div>
+        <canvas id="calcanvas" width="560" height="420" aria-label="Interactive calibration"></canvas>
+        <div class="wrow">
+          <span class="wlab">temperature T <b id="catlab">1.0</b></span>
+          <input class="wslider" id="cat" type="range" min="50" max="400" value="100" />
+          <button class="wbtn primary" id="cafit">✦ Auto-fit T</button>
+        </div>
+        <div class="wreadout" id="caread">At T=1 the raw model is overconfident. Raise T to calibrate it.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: temperature scaling</h3>
+        <p class="prose">From <code>calibration.py</code>: an overconfident binary classifier, fixed by one temperature.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Diagnose.</strong> Bucket the model's predictions and compute ECE (eq 4.1). The raw model scores <strong>0.129</strong> — a big gap between its stated confidence and its real accuracy.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>The fix.</strong> Temperature scaling divides every logit (the pre-softmax score) by a single learned number \(T>1\): \(\text{softmax}(z/T)\). Dividing by \(T>1\) pushes probabilities toward the middle — softening overconfident spikes toward 0.5.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Learn \(T\).</strong> On held-out data, search for the \(T\) that minimizes the negative log-likelihood. Here the best is \(T=2.29\).</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> ECE drops from 0.129 to <strong>0.015</strong> — nearly perfect calibration. And because \(T\) scales all logits equally, the <em>ranking</em> of classes is unchanged: every prediction (the argmax) stays the same, only its confidence is corrected. You get honest probabilities for free.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: measure and fix calibration</h2>
+      <pre><code>def ece(p, y, bins=10):                    # expected calibration error (eq 4.1)
+    e = 0.0
+    for each confidence bucket:
+        conf = p[bucket].mean(); acc = y[bucket].mean()
+        e += (bucket_size / N) * abs(conf - acc)
+    return e
+
+# temperature scaling: find the T that minimises negative log-likelihood on held-out data
+Ts  = np.linspace(0.5, 4.0, 200)
+nll = [ nll_of(sigmoid(logits / T), y) for T in Ts ]
+T   = Ts[argmin(nll)]                      # here T = 2.29
+ece_after = ece(sigmoid(logits / T), y)    # 0.129 -> 0.015, predictions unchanged</code></pre>
+      <p class="prose">
+        The whole fix is one scalar. It's cheap, it needs only a small held-out set, and it never hurts accuracy (the argmax is invariant to a positive scaling). That's why temperature scaling is the default first thing to reach for whenever you need trustworthy probabilities out of a trained classifier.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Accuracy and calibration are different axes.</strong> A model can be highly accurate yet badly calibrated (right often, but wrong about <em>how</em> often), or poorly accurate yet well calibrated (bad predictions, but honest about being unsure). They measure different things, and improving one doesn't automatically fix the other. Modern deep nets famously trade calibration for accuracy — bigger, better-fitting models became <em>more</em> overconfident — which is exactly why a separate calibration step became standard practice. Always report both.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Trusting softmax outputs as true probabilities.</strong> A neural net's 99% is often really 85%. Raw confidences are usually overconfident until calibrated.</li>
+          <li><strong>Calibrating on the training set.</strong> The model is overconfident precisely because it fits training data too well — fit \(T\) on a separate held-out/validation set, or you'll under-correct.</li>
+          <li><strong>Confusing accuracy with calibration.</strong> They're independent. Temperature scaling improves calibration while leaving accuracy untouched; a more accurate model can be worse calibrated.</li>
+          <li><strong>Thinking calibration adds uncertainty where there was none.</strong> It re-scales existing confidence to be honest; it can't tell you a model is uncertain about inputs unlike anything it trained on (that needs Bayesian methods or out-of-distribution detection).</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Calibrated</strong> = stated confidence matches actual accuracy (when it says 90%, it's right 90% of the time).</li>
+          <li><strong>Modern deep nets are overconfident</strong> — their raw probabilities overstate certainty.</li>
+          <li><strong>ECE</strong> (eq 4.1) measures miscalibration: the average confidence–accuracy gap across buckets; a reliability diagram shows it visually.</li>
+          <li><strong>Temperature scaling</strong> divides logits by a learned \(T>1\) — softens overconfidence, fixed ECE 0.13 → 0.015 in the demo.</li>
+          <li><strong>It changes no predictions</strong> (argmax invariant) and accuracy ≠ calibration — report both.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does it mean for a model to be well calibrated?</p>
+          <ul class="quiz-options">
+            <li>It has the highest possible accuracy.<div class="quiz-why">Calibration is about honesty of confidence, not accuracy level.</div></li>
+            <li>When it says 90% confident, it's right about 90% of the time.<div class="quiz-why">Correct. Stated confidence matches observed accuracy.</div></li>
+            <li>It never makes mistakes.<div class="quiz-why">Calibration allows mistakes — it just requires honest confidence about them.</div></li>
+            <li>It outputs only 0 or 1.<div class="quiz-why">Calibration is precisely about the in-between probabilities.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What does ECE measure?</p>
+          <ul class="quiz-options">
+            <li>The model's accuracy.<div class="quiz-why">Accuracy is separate; ECE is about confidence honesty.</div></li>
+            <li>The training loss.<div class="quiz-why">Not the training objective; a calibration diagnostic.</div></li>
+            <li>The number of parameters.<div class="quiz-why">Unrelated to model size.</div></li>
+            <li>The average gap between stated confidence and actual accuracy across buckets.<div class="quiz-why">Correct. ECE = 0 is perfectly calibrated; larger means less trustworthy confidence.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why does temperature scaling not change any predictions?</p>
+          <ul class="quiz-options">
+            <li>Dividing all logits by the same \(T\) doesn't change which class is largest (the argmax).<div class="quiz-why">Correct. It re-scales confidence uniformly, so the top class stays the top class.</div></li>
+            <li>Because it retrains the model.<div class="quiz-why">It doesn't retrain; it post-processes logits.</div></li>
+            <li>Because it only runs on training data.<div class="quiz-why">It's fit on held-out data and applied at test time.</div></li>
+            <li>Because it sets all probabilities to 0.5.<div class="quiz-why">It softens toward the middle but doesn't flatten everything.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> A model is very accurate but badly calibrated. What does that tell you?</p>
+          <ul class="quiz-options">
+            <li>It's impossible — accuracy implies calibration.<div class="quiz-why">They're independent; this combination is common in deep nets.</div></li>
+            <li>Its predictions are usually wrong.<div class="quiz-why">It's accurate, so predictions are usually right — the issue is the confidence.</div></li>
+            <li>It's often right, but its stated confidence doesn't match how often — fixable with calibration.<div class="quiz-why">Correct. Accuracy and calibration are different axes; calibrate to make the confidence honest.</div></li>
+            <li>It has too few parameters.<div class="quiz-why">Overconfidence often comes with more parameters, not fewer.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, push T well above the best value (over-soften). What happens to the curve and the ECE, and what does that represent?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Past the optimum, the curve swings from below the diagonal (overconfident) to <em>above</em> it (underconfident) — now the model says 60% when it's actually right 80% of the time — and the ECE rises again. So calibration has a sweet spot: too little softening leaves overconfidence, too much creates underconfidence, and the best \(T\) sits where the curve hugs the diagonal and ECE is minimized. This is why you <em>learn</em> \(T\) by minimizing a proper score (log-likelihood) on held-out data rather than eyeballing it — the goal is honest confidence, not maximally cautious confidence.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Why must temperature be fit on a held-out set rather than the training set the model already saw?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The model is overconfident precisely <em>because</em> it fits its training data too well — on the training set its accuracy is inflated and its confidence looks appropriate, so measuring calibration there would understate the problem and you'd choose too small a \(T\). A held-out (validation) set reflects the model's true generalization accuracy, revealing the real gap between confidence and correctness, so the \(T\) you learn actually corrects test-time behaviour. This is the same train/validation discipline as everywhere in ML: never tune a correction on the data whose over-fitting caused the issue you're correcting.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Temperature scaling makes in-distribution confidence honest, but a model can still be confidently wrong on inputs unlike anything it trained on. Why, and what tools address that?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Temperature scaling only re-scales the confidence the model already produces; it's fit on in-distribution held-out data and assumes test inputs resemble it. On genuinely novel inputs (out-of-distribution — a species the classifier never saw, a sensor failure), the model can produce a sharp, confident, and completely wrong output, and a single global temperature won't catch that. Addressing it needs methods that model uncertainty about the input itself: Bayesian neural networks and deep ensembles (which disagree on unfamiliar inputs, flagging uncertainty), out-of-distribution / novelty detection, and conformal prediction (which gives coverage guarantees). Calibration and OOD-robustness are complementary — one makes routine confidence honest, the other flags when you've left the region the model understands. Trustworthy AI, especially in safety-critical settings (Track 23), needs both.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Calibration is essential wherever a model's confidence drives a decision: medical AI (a screening tool's "90%" must mean 90%), autonomous systems, risk and fraud scoring, and increasingly large language models — whose confidence in their answers is often poorly calibrated, a live research problem for trustworthy AI. Beyond temperature scaling lie richer methods: deep ensembles and Bayesian neural nets for input-dependent uncertainty, conformal prediction for distribution-free coverage guarantees, and selective prediction (letting a model abstain when unsure). This lesson closes the probabilistic track with its practical punchline: uncertainty estimates are only valuable if they're <em>honest</em>, and calibration is how you check and enforce that — the bridge from elegant Bayesian theory to models you can actually trust in the world.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Calibration asks whether a model's confidence is honest: when it says 90%, is it right 90% of the time? Measure the gap with ECE and a reliability diagram. Modern nets are overconfident, but temperature scaling — dividing the logits by one learned number T&gt;1 — softens them onto the diagonal, fixing calibration without changing a single prediction. Accuracy and calibration are different things; report both."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Guo et&nbsp;al. (2017), "On Calibration of Modern Neural Networks" — temperature scaling. <a href="https://arxiv.org/abs/1706.04599" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Lakshminarayanan et&nbsp;al. (2017), "Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles." <a href="https://arxiv.org/abs/1612.01474" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">article</span> Angelopoulos &amp; Bates (2021), "A Gentle Introduction to Conformal Prediction." <a href="https://arxiv.org/abs/2107.07511" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes Probabilistic &amp; Bayesian ML: inference, MCMC, variational inference, Gaussian processes, and calibration — the toolkit for reasoning with uncertainty and making a model's confidence trustworthy. The remaining tracks turn to new frontiers of modern AI.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('calcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    // synthetic data: true prob = sigmoid(z), labels sampled; overconfident logits = 2.3*z
+    function sig(z){ return 1/(1+Math.exp(-z)); }
+    var Z=[], Y=[], N=3000;
+    (function(){ for(var i=0;i<N;i++){ var z=gaussn(); Z.push(z); Y.push(Math.random()<sig(z)?1:0); } })();
+    function gaussn(){ return (Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3)/1.0; }
+    function reliability(T){
+      var B=10, conf=new Array(B).fill(0), acc=new Array(B).fill(0), cnt=new Array(B).fill(0);
+      for(var i=0;i<N;i++){ var p=sig(2.3*Z[i]/T); var pc=Math.max(p,1-p); var pred=p>0.5?1:0;
+        var b=Math.min(B-1,Math.floor(pc*B)); conf[b]+=pc; acc[b]+=(pred===Y[i]?1:0); cnt[b]++; }
+      var xs=[],ys=[],ece=0;
+      for(var b=0;b<B;b++){ if(cnt[b]>10){ var c=conf[b]/cnt[b], a=acc[b]/cnt[b]; xs.push(c); ys.push(a); ece+=cnt[b]/N*Math.abs(c-a); } }
+      return {xs:xs,ys:ys,ece:ece};
+    }
+    function draw(){
+      var T=+document.getElementById('cat').value/100;
+      document.getElementById('catlab').textContent=T.toFixed(2);
+      ctx.clearRect(0,0,W,H);
+      var ox=56, oy=H-46, sz=Math.min(W-ox-20, oy-20);
+      function X(v){ return ox+v*sz; } function Yc(v){ return oy-v*sz; }
+      // grid box + diagonal
+      ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.strokeRect(ox,oy-sz,sz,sz);
+      ctx.strokeStyle='#334155'; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(X(0.5),Yc(0.5)); // half..
+      ctx.moveTo(X(0),Yc(0)); ctx.lineTo(X(1),Yc(1)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#64748b'; ctx.font='12px system-ui'; ctx.textAlign='center';
+      ctx.fillText('predicted confidence', ox+sz/2, H-14);
+      ctx.save(); ctx.translate(18,oy-sz/2); ctx.rotate(-Math.PI/2); ctx.fillText('actual accuracy',0,0); ctx.restore();
+      ctx.textAlign='left';
+      var r=reliability(T);
+      // raw (T=1) reference in light red
+      var raw=reliability(1.0);
+      ctx.strokeStyle='#fca5a5'; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var i=0;i<raw.xs.length;i++){ var Xi=X(raw.xs[i]),Yi=Yc(raw.ys[i]); i?ctx.lineTo(Xi,Yi):ctx.moveTo(Xi,Yi); } ctx.stroke();
+      // current
+      ctx.strokeStyle='#059669'; ctx.lineWidth=2.8; ctx.beginPath();
+      for(var i=0;i<r.xs.length;i++){ var Xi=X(r.xs[i]),Yi=Yc(r.ys[i]); i?ctx.lineTo(Xi,Yi):ctx.moveTo(Xi,Yi); }
+      ctx.stroke();
+      for(var i=0;i<r.xs.length;i++){ ctx.fillStyle='#059669'; ctx.beginPath(); ctx.arc(X(r.xs[i]),Yc(r.ys[i]),4,0,7); ctx.fill(); }
+      ctx.fillStyle='#fca5a5'; ctx.fillText('raw model (T=1)', ox+8, oy-sz+16);
+      ctx.fillStyle='#059669'; ctx.fillText('current T', ox+8, oy-sz+32);
+      document.getElementById('caread').textContent='T = '+T.toFixed(2)+'   →   ECE = '+r.ece.toFixed(3)+'   (raw ECE '+raw.ece.toFixed(3)+'; below the diagonal = overconfident, above = underconfident)';
+    }
+    function autofit(){
+      var best=1, be=1e9;
+      for(var t=50;t<=400;t+=5){ var e=reliability(t/100).ece; if(e<be){be=e;best=t;} }
+      var cur=+document.getElementById('cat').value; var i=0, stepN=20, d=(best-cur)/stepN;
+      var iv=setInterval(function(){ i++; document.getElementById('cat').value=Math.round(cur+d*i); draw(); if(i>=stepN)clearInterval(iv); },30);
+    }
+    document.getElementById('cat').oninput=draw;
+    document.getElementById('cafit').onclick=autofit;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

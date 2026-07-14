@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t21-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Variational inference · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Variational inference: turn inference into optimization</h1>
+      <p class="subtitle">MCMC samples the posterior but can be slow. Variational inference takes the opposite bet: pick a simple distribution and <em>adjust</em> it until it hugs the posterior as closely as possible. Inference becomes optimization — fast, scalable, and the workhorse of Bayesian deep learning.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 15 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~20 min</span>
+        <span class="chip">Builds on: Lesson 1</span>
+      </div>
+
+      <p class="lead prose">
+        MCMC (Lesson&nbsp;1) is beautiful and, given enough time, exact — but "enough time" can mean hours or days for a big model, and it doesn't scale to the millions of parameters in a neural network. <span class="newterm">Variational inference</span> (VI) makes a pragmatic trade. Instead of sampling the true posterior, it picks a <em>family</em> of simple distributions — most often a Gaussian — and searches within that family for the member that best matches the posterior. That "search for the best match" is an <em>optimization</em> problem, so we can attack it with the same gradient descent that trains everything else (Track&nbsp;2). The result is an approximate posterior you can compute in a fraction of the time. You give up some accuracy — a single Gaussian can't capture every twist of a complicated posterior — but you gain the speed and scalability that make Bayesian methods usable on large models. VI is how uncertainty gets bolted onto deep learning.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: the best-fitting simple shape</h2>
+      <p class="prose">
+        Suppose the true posterior is a complicated, awkward blob you can't describe with a formula. VI says: "I'll approximate it with a shape I <em>can</em> describe — a Gaussian bell — and slide and stretch that bell until it overlaps the blob as much as possible." You're not trying to reproduce the blob exactly; you're finding the single bell curve that's least wrong. Once you have it, everything is easy: a Gaussian has a known mean, known spread, and instant samples. The art is in measuring "how well does my bell match the blob?" and then adjusting the bell's position and width to maximize that match.
+      </p>
+      <p class="prose">
+        The measure of match is the <span class="newterm">ELBO</span> (Evidence Lower BOund). Maximizing the ELBO is equivalent to minimizing the <span class="newterm">KL divergence</span> (the information-theory "distance" between distributions, from Track&nbsp;3) between your approximation \(q\) and the true posterior \(p\):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{maximize } \;\text{ELBO}(q) = \underbrace{\mathbb{E}_{q}[\log p(x,\theta)]}_{\text{fit the data \& prior}} + \underbrace{\mathbb{H}[q]}_{\text{stay spread out}} \;\;\;\Longleftrightarrow\;\;\; \text{minimize } \; \text{KL}\big(q \,\Vert\, p(\theta\mid x)\big) \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        Unpacking it: the first term \(\mathbb{E}_q[\log p(x,\theta)]\) pulls \(q\) toward regions where the model explains the data and prior well (high posterior); the second term \(\mathbb{H}[q]\) is the <em>entropy</em> of \(q\), which rewards it for staying spread out rather than collapsing to a spike. Their balance lands \(q\) on the best-fitting bell. And the profound fact is the "\(\Longleftrightarrow\)": maximizing this ELBO is exactly the same as minimizing the KL divergence from \(q\) to the true posterior — so by optimizing something we <em>can</em> compute (the ELBO), we're provably making \(q\) as close to the posterior as the family allows.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A blue filled curve (the true posterior over a coin's log-odds) with a purple dashed Gaussian closely overlaid on it, showing the variational approximation fitting the posterior well." />
+        <figcaption>Variational inference fits a simple Gaussian q (purple dashed) to the true posterior (blue) by maximising the ELBO — fast, and here a near-perfect match.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="vilab">
+        <div class="wtitle">▶ Interactive · fit a Gaussian to the posterior</div>
+        <div class="whint">The blue blob is the true (intractable) posterior. Your job: move the <strong>mean</strong> and <strong>width</strong> sliders to slide the purple Gaussian \(q\) on top of it — the <strong>ELBO</strong> readout rises as the fit improves. When you're close, hit <strong>Auto-fit</strong> to let gradient ascent finish the job and land on the optimum.</div>
+        <canvas id="vicanvas" width="640" height="300" aria-label="Interactive variational inference"></canvas>
+        <div class="wrow">
+          <span class="wlab">mean <b id="vimlab">0.0</b></span>
+          <input class="wslider" id="vim" type="range" min="-300" max="500" value="0" />
+          <span class="wlab">width <b id="viwlab">1.0</b></span>
+          <input class="wslider" id="viw" type="range" min="20" max="250" value="100" />
+          <button class="wbtn primary" id="vifit">✦ Auto-fit</button>
+        </div>
+        <div class="wreadout" id="viread">Slide q onto the posterior; watch the ELBO climb.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: fitting a Gaussian by the ELBO</h3>
+        <p class="prose">From <code>variational_inference.py</code>: approximate a coin's log-odds posterior with a Gaussian \(q=\text{Normal}(m, s)\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Parameterize \(q\).</strong> Two knobs: the mean \(m\) and width \(s\). Start at \(\text{Normal}(0,1)\) — a generic guess.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Estimate the ELBO's gradient.</strong> Use the <em>reparameterization trick</em>: write a sample as \(\theta = m + s\cdot\varepsilon\) with \(\varepsilon\sim\text{Normal}(0,1)\), so the randomness is separated from \(m,s\) and gradients flow through. Average over a few \(\varepsilon\) samples to estimate \(\partial\text{ELBO}/\partial m\) and \(\partial\text{ELBO}/\partial s\).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Gradient-ascend.</strong> Nudge \(m\) and \(s\) uphill on the ELBO, repeatedly — ordinary gradient ascent, no sampling of the posterior itself.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> \(q\) converges to \(\text{Normal}(1.20, 0.68)\) — matching the true posterior's mean 1.19 and sd 0.69 (computed by brute-force grid) almost exactly. A fast optimization reproduced the posterior, no MCMC chain required.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: maximize the ELBO</h2>
+      <pre><code>m, logs = 0.0, 0.0                        # q = Normal(m, exp(logs)); learn m and width
+for it in range(4000):
+    s = np.exp(logs)
+    eps = rng.standard_normal(S)          # reparameterization: theta = m + s*eps
+    theta = m + s * eps
+    g = grad_log_joint(theta)             # pathwise gradient of the model log-density
+    m    += lr * g.mean()                 # ascend the ELBO in the mean...
+    logs += lr * ((g*eps).mean() + 1/s) * s   # ...and the width (+1/s is the entropy term)
+# q now approximates the posterior:  Normal(m, exp(logs))</code></pre>
+      <p class="prose">
+        The <code>+1/s</code> is the entropy term doing its job — without it, \(q\) would collapse to a zero-width spike on the posterior's peak (a point estimate), throwing away all uncertainty. With it, \(q\) settles at the right <em>width</em>, capturing how uncertain the posterior really is. That single term is the difference between Bayesian inference and ordinary point estimation.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The reparameterization trick powers modern AI.</strong> Writing a random sample as \(m + s\cdot\varepsilon\) — pushing the randomness into a fixed \(\varepsilon\) so gradients can flow through \(m\) and \(s\) — is the exact trick behind the Variational Autoencoder (Track&nbsp;8). VAEs <em>are</em> variational inference with neural networks for \(q\) and \(p\). So the machinery you're building here is the same machinery that generates faces, compresses data, and underlies diffusion models' probabilistic foundations. VI is not a niche technique; it's load-bearing.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Forgetting VI underestimates uncertainty.</strong> Minimizing KL\((q\Vert p)\) makes \(q\) "mode-seeking" — it tends to fit one mode snugly and be <em>too narrow</em>, reporting overconfident posteriors. Know this bias.</li>
+          <li><strong>Dropping the entropy term.</strong> Without it, \(q\) collapses to a spike and you're back to a point estimate with no uncertainty — the whole Bayesian benefit gone.</li>
+          <li><strong>Expecting a simple \(q\) to fit a complex posterior.</strong> A single Gaussian can't capture multiple modes or heavy skew. Richer families (mixtures, normalizing flows) exist for when the mean-field Gaussian is too crude.</li>
+          <li><strong>Confusing the two KL directions.</strong> VI minimizes KL\((q\Vert p)\) (mode-seeking, narrow); the other direction KL\((p\Vert q)\) is mean-seeking (would over-spread). The asymmetry is why VI is characteristically overconfident.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>VI approximates the posterior with a simple family</strong> (e.g., a Gaussian) by <em>optimization</em>, not sampling — fast and scalable.</li>
+          <li><strong>Maximize the ELBO</strong> ⇔ minimize KL\((q\Vert p)\): fit the data/prior while staying appropriately spread (entropy term).</li>
+          <li><strong>Reparameterization trick</strong> (\(\theta=m+s\varepsilon\)) lets gradients flow so you can gradient-ascend the ELBO.</li>
+          <li><strong>It's fast but approximate</strong> — and tends to <em>underestimate</em> uncertainty (mode-seeking).</li>
+          <li><strong>VI + neural nets = the VAE;</strong> the same machinery scales Bayesian ideas to deep models.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> How does variational inference differ from MCMC?</p>
+          <ul class="quiz-options">
+            <li>VI needs no data.<div class="quiz-why">Both use the data through the likelihood.</div></li>
+            <li>VI draws exact samples from the posterior.<div class="quiz-why">That's MCMC; VI fits an approximation.</div></li>
+            <li>VI turns inference into optimization — fit a simple distribution to the posterior.<div class="quiz-why">Correct. It searches a family for the best match, using gradient ascent.</div></li>
+            <li>VI is always more accurate.<div class="quiz-why">It's faster but approximate, usually less accurate than converged MCMC.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Maximizing the ELBO is equivalent to...</p>
+          <ul class="quiz-options">
+            <li>minimizing the KL divergence between \(q\) and the true posterior.<div class="quiz-why">Correct. That's why optimizing the computable ELBO makes \(q\) as close to \(p\) as the family allows.</div></li>
+            <li>maximizing the number of samples.<div class="quiz-why">VI doesn't sample the posterior; there are no such samples to maximize.</div></li>
+            <li>minimizing the prior.<div class="quiz-why">The prior is part of the model, not the objective being minimized.</div></li>
+            <li>maximizing the learning rate.<div class="quiz-why">The learning rate is a hyperparameter, unrelated to the ELBO.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What does the entropy term in the ELBO prevent?</p>
+          <ul class="quiz-options">
+            <li>The mean from moving.<div class="quiz-why">The mean is free to move; entropy is about width.</div></li>
+            <li>Overfitting the learning rate.<div class="quiz-why">Not what entropy controls.</div></li>
+            <li>Slow convergence.<div class="quiz-why">Entropy isn't a speed device.</div></li>
+            <li>\(q\) collapsing to a zero-width spike (a point estimate).<div class="quiz-why">Correct. Entropy keeps \(q\) spread out so it captures uncertainty instead of becoming a single point.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> A known limitation of standard VI is that it...</p>
+          <ul class="quiz-options">
+            <li>always overestimates uncertainty.<div class="quiz-why">It's the opposite — VI tends to be too confident.</div></li>
+            <li>tends to underestimate uncertainty (too narrow / mode-seeking).<div class="quiz-why">Correct. Minimizing KL\((q\Vert p)\) makes \(q\) hug one mode and under-report spread.</div></li>
+            <li>cannot use gradients.<div class="quiz-why">It relies on gradient ascent of the ELBO.</div></li>
+            <li>requires conjugacy.<div class="quiz-why">VI works precisely where conjugacy fails.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, set the width slider very small and maximize the mean's fit. Does a razor-thin \(q\) give a good ELBO? What does that tell you about the width's role?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A razor-thin \(q\) placed on the peak fits the first ELBO term (it sits where the posterior is high) but scores badly on the entropy term and misses most of the posterior's mass, so the total ELBO is <em>not</em> maximal. The best ELBO comes from a \(q\) whose width matches the posterior's — wide enough to cover the mass, not so wide it spills into low-probability regions. This is the entropy term earning its keep: it stops the approximation from collapsing to a point and forces it to represent genuine uncertainty. The optimum is a real distribution, not a spike.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Your posterior is clearly bimodal (two separate humps), but you fit it with a single Gaussian via VI. What will \(q\) do, and why?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Because VI minimizes KL\((q\Vert p)\), which heavily penalizes \(q\) putting mass where \(p\) has none, a single Gaussian will typically snap onto <em>one</em> of the two modes and ignore the other entirely (mode-seeking), rather than stretching to cover both (which would place mass in the empty valley and incur a big KL penalty). So you'd get a confident but incomplete answer — missing half the story. The fix is a richer variational family: a mixture of Gaussians, or a normalizing flow, that can represent multiple modes. This is the central weakness to remember: VI's answer is only as expressive as the family you chose for \(q\).</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Explain, in one or two sentences each, how a Variational Autoencoder (Track 8) is "just" variational inference — what plays the role of \(q\), of \(p\), and of the ELBO.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p><em>\(q\)</em>: the VAE's encoder network outputs the mean and width of a Gaussian \(q(z\mid x)\) — the approximate posterior over the latent code \(z\) for each input \(x\) (instead of one fixed \(q\), a neural net produces a tailored \(q\) per data point, called "amortized" inference). <em>\(p\)</em>: the decoder network defines \(p(x\mid z)\), how latents generate data, together with a simple prior \(p(z)\). <em>The ELBO</em>: the VAE's training loss is exactly the negative ELBO — a reconstruction term (the \(\mathbb{E}_q[\log p]\) fit term) plus a KL term pulling \(q(z\mid x)\) toward the prior (the entropy/regularization term) — optimized with the reparameterization trick. So training a VAE is running variational inference at scale, once per data point, with neural networks standing in for the distributions. Everything in this lesson is the VAE's backbone.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Variational inference is the scalable arm of Bayesian ML. It trains variational autoencoders, powers probabilistic programming's fast "ADVI" mode (automatic differentiation VI in Stan and Pyro), and provides uncertainty for Bayesian neural networks used in safety-critical settings. The frontier is making \(q\) more expressive — normalizing flows that warp a simple distribution into a complex one, and mixture/structured approximations — to fix VI's overconfidence, plus tighter bounds than the ELBO. The deep idea you take away is a recurring theme in all of ML: when an exact computation is intractable, replace it with an optimization over a tractable family. That move — inference as optimization — shows up far beyond Bayesian statistics.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Variational inference approximates a hard posterior with a simple distribution and <em>fits</em> it by gradient ascent — maximizing the ELBO, which is the same as minimizing the KL distance to the true posterior. The entropy term keeps it from collapsing to a point, so it captures uncertainty. It's fast but a bit overconfident, and with neural nets it becomes the VAE."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Blei, Kucukelbir &amp; McAuliffe (2017), "Variational Inference: A Review for Statisticians." <a href="https://arxiv.org/abs/1601.00670" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Kingma &amp; Welling (2014), "Auto-Encoding Variational Bayes" (the VAE). <a href="https://arxiv.org/abs/1312.6114" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Rezende &amp; Mohamed (2015), "Variational Inference with Normalizing Flows." <a href="https://arxiv.org/abs/1505.05770" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: we've put distributions over parameters. <a href="03-gaussian-processes.html">Gaussian processes</a> put a distribution over entire <em>functions</em> — giving predictions whose error bars grow honestly wherever you have no data.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('vicanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var xmin=-4, xmax=6;
+    function logpost(th){ var p=1/(1+Math.exp(-th)); return 8*Math.log(p+1e-12)+2*Math.log(1-p+1e-12)-0.5*(th/1.5)*(th/1.5); }
+    // normalised target on a grid
+    var gx=[], gp=[], Zt=0;
+    for(var i=0;i<=300;i++){ var x=xmin+(xmax-xmin)*i/300; var v=Math.exp(logpost(x)); gx.push(x); gp.push(v); Zt+=v; }
+    for(var i=0;i<gp.length;i++){ gp[i]/=(Zt*(xmax-xmin)/300); }
+    function elbo(m,s){
+      // ELBO = E_q[log p] + entropy(q); estimate E_q by sampling
+      var acc=0, N=400;
+      for(var k=0;k<N;k++){ var eps=gauss(); acc+=logpost(m+s*eps); }
+      return acc/N + 0.5*Math.log(2*Math.PI*Math.E*s*s);
+    }
+    function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0; }
+    function qcurve(m,s){ return gx.map(function(x){ return Math.exp(-0.5*((x-m)/s)*((x-m)/s))/(s*Math.sqrt(2*Math.PI)); }); }
+    function params(){ return { m:+document.getElementById('vim').value/100, s:+document.getElementById('viw').value/100 }; }
+    function draw(){
+      var pr=params(); document.getElementById('vimlab').textContent=pr.m.toFixed(1); document.getElementById('viwlab').textContent=pr.s.toFixed(1);
+      ctx.clearRect(0,0,W,H);
+      var oy=H-28, gh=H-50, ox=36, gw=W-ox-14;
+      var q=qcurve(pr.m,pr.s);
+      var mx=Math.max(Math.max.apply(null,gp), Math.max.apply(null,q));
+      function X(x){ return ox+(x-xmin)/(xmax-xmin)*gw; }
+      // posterior fill
+      ctx.beginPath(); ctx.moveTo(ox,oy);
+      for(var i=0;i<gx.length;i++) ctx.lineTo(X(gx[i]), oy-gp[i]/mx*gh);
+      ctx.lineTo(ox+gw,oy); ctx.fillStyle='rgba(37,99,235,0.18)'; ctx.fill();
+      ctx.beginPath(); for(var i=0;i<gx.length;i++){var Y=oy-gp[i]/mx*gh; i?ctx.lineTo(X(gx[i]),Y):ctx.moveTo(X(gx[i]),Y);} ctx.strokeStyle='#2563eb'; ctx.lineWidth=2.5; ctx.stroke();
+      // q
+      ctx.beginPath(); for(var i=0;i<gx.length;i++){var Y=oy-q[i]/mx*gh; i?ctx.lineTo(X(gx[i]),Y):ctx.moveTo(X(gx[i]),Y);} ctx.strokeStyle='#6d28d9'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#2563eb'; ctx.font='12px system-ui'; ctx.fillText('true posterior', ox+8, 18);
+      ctx.fillStyle='#6d28d9'; ctx.fillText('your q (Gaussian)', ox+8, 34);
+      var e=elbo(pr.m,pr.s);
+      document.getElementById('viread').textContent='q = Normal(mean '+pr.m.toFixed(2)+', width '+pr.s.toFixed(2)+')   ELBO = '+e.toFixed(2)+'   (higher = better fit; best ≈ Normal(1.19, 0.69))';
+    }
+    function autofit(){
+      var m=params().m, s=params().s, lr=0.05;
+      var i=0; var iv=setInterval(function(){
+        var h=0.05;
+        var gm=(elbo(m+h,s)-elbo(m-h,s))/(2*h);
+        var gs=(elbo(m,s+h)-elbo(m,s-h))/(2*h);
+        m+=lr*gm; s=Math.max(0.2,s+lr*gs);
+        document.getElementById('vim').value=Math.round(m*100); document.getElementById('viw').value=Math.round(s*100);
+        draw(); if(++i>=40) clearInterval(iv);
+      },40);
+    }
+    document.getElementById('vim').oninput=draw; document.getElementById('viw').oninput=draw;
+    document.getElementById('vifit').onclick=autofit;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
