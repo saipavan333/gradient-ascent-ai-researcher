@@ -56,7 +56,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: entropy in one line</h2>
-      <pre><code>def entropy(p):
+      <pre data-run="1"><code>def entropy(p):
     p = p[p > 0]                       # 0·log0 = 0 by convention
     return -(p * np.log2(p)).sum()     # average surprise, in bits
 </code></pre>

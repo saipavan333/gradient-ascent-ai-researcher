@@ -69,7 +69,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: magnitude pruning</h2>
-      <pre><code>def prune(W, frac):
+      <pre data-run="1"><code>def prune(W, frac):
     thr = np.quantile(np.abs(W), frac)          # cutoff: the smallest 'frac' of weights
     return W * (np.abs(W) >= thr)               # keep large weights, zero the small ones
 

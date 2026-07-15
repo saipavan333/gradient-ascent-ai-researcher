@@ -102,7 +102,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: one adversarial round</h2>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 # one training round: update D to separate real/fake, then update G to fool D
 def gan_step(G, D, real_batch, z, optD, optG):

@@ -69,7 +69,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: the linear-recurrence scan</h2>
-      <pre><code>def ssm_scan(x, a, b, c):
+      <pre data-run="1"><code>def ssm_scan(x, a, b, c):
     h = 0.0; ys = []
     for t in range(len(x)):
         h = a * h + b * x[t]      # carry one state forward — O(1) per step

@@ -110,7 +110,7 @@
       <h2><span class="sec-ico">🛠️</span> From scratch: a neuron and a tiny graph</h2>
       <p class="prose">Both ideas in a few lines of Python. The neuron is one dot product plus a bias plus an activation; the graph is just naming each intermediate step so it has a home.</p>
       <div class="code-h"><span class="dot"></span> neuron_forward.py</div>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def neuron(x, w, b, activation=np.tanh):
     z = np.dot(w, x) + b          # weighted sum + bias (a dot product, Track 1)

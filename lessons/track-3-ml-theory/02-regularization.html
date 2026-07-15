@@ -106,7 +106,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: ridge in one line, lasso by soft-thresholding</h2>
       <p class="prose">Ridge is the closed form (2.3). Lasso has no closed form in general, so we use <em>proximal gradient descent</em>: take an ordinary gradient step on the fit, then apply the soft-threshold (2.4) that pulls small weights to zero. That shrink step is the entire secret of sparsity.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 rng = np.random.default_rng(0)
 
 # Data: y depends on features 0 and 1 only; features 2,3,4 are pure noise.

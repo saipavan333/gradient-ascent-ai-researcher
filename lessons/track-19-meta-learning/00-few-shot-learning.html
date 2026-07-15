@@ -70,7 +70,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: nearest-centroid few-shot</h2>
-      <pre><code>def nearest_centroid_accuracy(S, Sy, Q, Qy, n_way):
+      <pre data-run="1"><code>def nearest_centroid_accuracy(S, Sy, Q, Qy, n_way):
     protos = np.array([S[Sy == c].mean(0) for c in range(n_way)])   # centroid per class
     d = ((Q[:, None, :] - protos[None, :, :])**2).sum(2)            # dist to each centroid
     pred = d.argmin(1)                                              # nearest wins

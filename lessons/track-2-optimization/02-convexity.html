@@ -94,7 +94,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: test convexity, then see it decide the outcome</h2>
       <p class="prose">The chord test translates directly into code. Below we verify one convex and one non-convex function, then show the punchline: on a non-convex curve, two nearly identical starting points fall into <em>different</em> minima; on a convex one, every start lands in the same place.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def chord_test(f, a, b, n=50):
     """Check definition (2.1): does the chord stay above the curve between a and b?"""

@@ -106,7 +106,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: REINFORCE on a grid world</h2>
       <p class="prose">A softmax policy stored as a table of logits \(\theta[s,a]\). Each episode: roll out, compute discounted returns, then push every action's log-probability up or down by its advantage.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 GOAL, PIT, N = 15, 13, 16
 
 def step(s, a):                                  # same grid as Lessons 0-1

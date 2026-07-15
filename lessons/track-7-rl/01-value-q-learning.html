@@ -120,7 +120,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: both algorithms in 30 lines</h2>
       <p class="prose">Value iteration needs the model and sweeps to a fixed point; Q-learning throws away the model and learns from sampled episodes. Same grid world, two philosophies:</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 GOAL, PIT, N = 15, 13, 16
 
 def step(s, a):                              # deterministic 4x4 grid (Lesson 0)

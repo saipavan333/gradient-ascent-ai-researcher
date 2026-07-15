@@ -110,7 +110,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: an MDP is just a step function</h2>
       <p class="prose">An MDP needs no libraries — the whole thing is a function that takes a state and action and returns the next state, a reward, and whether the episode is over. Here is the grid world from the widget:</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 # A 4x4 grid world. States 0..15, actions 0=up 1=down 2=left 3=right.
 GOAL, PIT = 15, 13

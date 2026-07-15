@@ -100,7 +100,7 @@
       <h2><span class="sec-ico">🛠️</span> From scratch: backprop in ten lines</h2>
       <p class="prose">The whole backward pass is just those two rules, applied in reverse order, with a finite-difference check to prove it.</p>
       <div class="code-h"><span class="dot"></span> backprop_manual.py</div>
-      <pre><code># forward
+      <pre data-run="1"><code># forward
 a, b, c = 2.0, -3.0, 10.0
 e = a * b          # e = -6
 d = e + c          # d = 4  (our "loss" L)
@@ -119,7 +119,7 @@ h = 1e-6
 print("check da:", round((L(a+h,b,c) - L(a-h,b,c)) / (2*h), 4))   # -3.0  ✓</code></pre>
       <p class="prose">A slightly longer chain shows the multiplying-of-ratios directly. Put an extra node on top: \(f = d\times 2\). Now the gradient must pass through two nodes to reach \(a\), picking up a factor at each.</p>
       <div class="code-h"><span class="dot"></span> backprop_manual.py (longer chain)</div>
-      <pre><code>a, b, c = 2.0, -3.0, 10.0
+      <pre data-run="1"><code>a, b, c = 2.0, -3.0, 10.0
 e = a*b; d = e + c; f = d*2          # forward: e=-6, d=4, f=8
 df = 1.0
 dd = df * 2.0                         # f = d*2  -> df/dd = 2

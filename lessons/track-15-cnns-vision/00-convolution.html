@@ -67,7 +67,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: the whole operation in ten lines</h2>
-      <pre><code>def conv2d(image, kernel, stride=1, pad=0):
+      <pre data-run="1"><code>def conv2d(image, kernel, stride=1, pad=0):
     if pad: image = np.pad(image, pad)          # keep the borders
     H, W = image.shape; kh, kw = kernel.shape
     H_out = (H - kh)//stride + 1

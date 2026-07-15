@@ -110,7 +110,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> In code: Bayes in four lines</h2>
       <p class="prose">The whole calculation is a direct transcription of (9.2) and (9.3):</p>
-      <pre><code>def posterior(prior, sensitivity, false_pos_rate):
+      <pre data-run="1"><code>def posterior(prior, sensitivity, false_pos_rate):
     true_pos  = sensitivity   * prior          # sick people who test +
     false_pos = false_pos_rate * (1 - prior)   # healthy people who test +
     return true_pos / (true_pos + false_pos)   # P(sick | +)

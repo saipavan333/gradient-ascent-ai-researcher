@@ -76,7 +76,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: an autoencoder's forward pass</h2>
-      <pre><code>def forward(self, X):
+      <pre data-run="1"><code>def forward(self, X):
     h1 = np.tanh(X @ self.W1.T + self.b1)   # encoder layer
     z  = h1 @ self.W2.T + self.b2           # THE CODE (bottleneck: only 2 numbers)
     h2 = np.tanh(z @ self.W3.T + self.b3)   # decoder layer

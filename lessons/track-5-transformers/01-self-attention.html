@@ -102,7 +102,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: scaled dot-product attention</h2>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def softmax(x, axis=-1):
     x = x - x.max(axis=axis, keepdims=True)   # stability: subtract row max

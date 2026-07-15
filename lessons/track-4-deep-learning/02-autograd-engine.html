@@ -82,7 +82,7 @@
       <h2><span class="sec-ico">🛠️</span> The engine, built up piece by piece</h2>
       <p class="prose">Start with the object and two operations. Notice the pattern: each op computes <code>out.data</code>, then defines a <code>_backward</code> that pushes gradient to the inputs using rule&nbsp;(2.1), then attaches it.</p>
       <div class="code-h"><span class="dot"></span> autograd.py — the Value object</div>
-      <pre><code>import math
+      <pre data-run="1"><code>import math
 
 class Value:
     def __init__(self, data, _children=()):

@@ -79,7 +79,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: descend, then fit a real model</h2>
       <p class="prose">The algorithm is genuinely one line inside a loop. Below we first minimize a toy bowl, then use the exact same routine to <em>learn a line from noisy data</em> by descending on the mean-squared-error loss — the first real machine-learning model, trained by nothing but repeated downhill steps.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def gradient_descent(grad, theta0, lr=0.1, steps=100):
     """Follow -gradient downhill. `grad` returns the gradient at a point."""
@@ -214,7 +214,7 @@ print("learned w, b:", np.round(params, 3))        # ~[2. -1.]  recovered the tr
           <details class="solution"><summary>Show solution</summary>
             <div class="solution-body">
               <p><code>lr=0.01</code>: correct direction but slow — after 400 steps it may not have fully reached \(w=2,b=-1\). <code>lr=0.05</code>: a good balance — converges cleanly to the true line with small final MSE (about the noise variance, \(0.25\)). <code>lr=0.5</code>: for <em>this</em> data it is past the safe range for the MSE bowl, so the weights overshoot and the loss blows up (huge or <code>NaN</code>). The safe range depends on the curvature of the loss, which here is set by the spread of <code>X</code>; rescaling the features would widen the range. Try it:</p>
-              <pre><code>import numpy as np
+              <pre data-run="1"><code>import numpy as np
 rng = np.random.default_rng(0)
 X = rng.uniform(-3, 3, size=200); y = 2*X - 1 + rng.normal(0, 0.5, size=200)
 def fit(lr, steps=400):

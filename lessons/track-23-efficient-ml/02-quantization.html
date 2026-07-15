@@ -69,7 +69,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: uniform quantization</h2>
-      <pre><code>def quantize(W, bits):
+      <pre data-run="1"><code>def quantize(W, bits):
     lo, hi = W.min(), W.max();  L = 2**bits - 1
     q = np.round((W - lo) / (hi - lo) * L)      # snap to integer levels 0..L
     return q / L * (hi - lo) + lo               # dequantize back to float for use

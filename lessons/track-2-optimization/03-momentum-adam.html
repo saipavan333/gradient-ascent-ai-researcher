@@ -92,7 +92,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: four optimizers on one hard bowl</h2>
       <p class="prose">Here are all four rules on an ill-conditioned quadratic (steep in \(y\), shallow in \(x\)). Each is only a line or two. Run it and watch plain GD stall high while momentum, RMSProp, and especially Adam drive the loss far lower in the same number of steps.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 # Ill-conditioned bowl: very steep in y, shallow in x. Minimum at (0,0).
 A = np.array([1.0, 100.0])

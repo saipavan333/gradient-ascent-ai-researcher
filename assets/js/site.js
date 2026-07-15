@@ -629,6 +629,7 @@
     blocks.forEach(function (code) {
       var pre = code.parentElement;
       if (pre.getAttribute("data-play") === "1") return;
+      if (pre.getAttribute("data-run") !== "1") return;
       var prev = pre.previousElementSibling;
       if (prev && prev.classList && prev.classList.contains("code-h") && prev.classList.contains("out")) return;
       var txt = code.innerText || "";
@@ -663,6 +664,7 @@
       runBtn.addEventListener("click", function () { runCode(code.innerText, outwrap, out, runBtn); });
     });
     function runCode(src, outwrap, out, btn) {
+      if (/\bnp\b/.test(src) && !/\bimport\s+numpy\b/.test(src) && !/\bas\s+np\b/.test(src)) src = "import numpy as np\n" + src;
       outwrap.style.display = "block";
       var oh = outwrap.querySelector(".code-outh");
       oh.className = "code-outh busy"; out.className = "code-out";

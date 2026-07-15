@@ -68,7 +68,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: pooling in a few lines</h2>
-      <pre><code>def pool2d(x, size=2, stride=2, mode="max"):
+      <pre data-run="1"><code>def pool2d(x, size=2, stride=2, mode="max"):
     H, W = x.shape
     H_out = (H - size)//stride + 1
     W_out = (W - size)//stride + 1

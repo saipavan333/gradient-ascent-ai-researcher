@@ -117,7 +117,7 @@
 
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: the VAE loss</h2>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def reparameterize(mu, logvar, eps):          # eq (2.3): z = mu + sigma * eps
     sigma = np.exp(0.5 * logvar)              # store log-variance for stability

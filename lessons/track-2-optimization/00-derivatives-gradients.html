@@ -92,7 +92,7 @@
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: gradients you can check numerically</h2>
       <p class="prose">You rarely differentiate by hand in practice, but you should know how to <em>check</em> a gradient. The <span class="newterm">centered difference</span> — evaluating \(f\) a hair above and below the point and dividing by the total run \(2h\) — approximates the derivative to high accuracy, and it is the trick every engineer uses to catch bugs in hand-derived gradients.</p>
-      <pre><code>import numpy as np
+      <pre data-run="1"><code>import numpy as np
 
 def numerical_derivative(f, x, h=1e-5):
     """Approximate f'(x) using the centered difference (more accurate than (0.1) directly)."""
