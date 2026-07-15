@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t24-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mixture of Experts · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Mixture of Experts: huge models that run cheaply</h1>
+      <p class="subtitle">How do you build a model with a trillion parameters without paying to run a trillion parameters on every input? Mixture of Experts: many specialist sub-networks and a router that activates only a few per input — enormous capacity, small compute.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 20 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 9</span>
+      </div>
+
+      <p class="lead prose">
+        Welcome to the frontier. This final track surveys the architectures and systems pushing AI forward right now, and it opens with the idea behind many of the largest models ever built: <span class="newterm">Mixture of Experts</span> (MoE). There's a fundamental tension in scaling models: more parameters means more capability, but a normal ("dense") network runs <em>every</em> parameter on <em>every</em> input, so a bigger model is proportionally more expensive to run. MoE breaks that link. Instead of one big network, you build many smaller <span class="newterm">expert</span> sub-networks plus a small <span class="newterm">gating</span> (router) network that, for each input, picks just a few experts to actually run. The model's <em>total</em> capacity is the sum of all experts (which can be enormous), but the <em>compute per input</em> is only the few that fire. This is <span class="newterm">sparse activation</span>: a trillion-parameter model might use only tens of billions per token. The experts specialize — one becomes good at code, another at math, another at a certain topic — and the router learns to send each input to the right specialists. It's how models like Mixtral and the largest frontier LLMs get their scale affordably. This lesson builds a working MoE and watches the router learn to specialize.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: a receptionist routing to specialists</h2>
+      <p class="prose">
+        Imagine a hospital with many specialist doctors — a cardiologist, a neurologist, a dermatologist, and so on. When you arrive, you don't see <em>every</em> doctor; a receptionist quickly figures out what you need and sends you to the right one or two. The hospital has vast combined expertise, but each patient only consumes a couple of doctors' time. A Mixture of Experts works exactly this way: the experts are the specialist networks, the gating network is the receptionist, and each input is a patient routed to the relevant specialists. You get the benefit of huge total expertise while paying only for the few consulted per case. And just as doctors specialize through their training, the experts specialize automatically during training — the router and experts co-adapt so that each expert becomes the go-to for a certain kind of input.
+      </p>
+      <p class="prose">
+        Formally, the output is a gated combination of the experts, and in practice only the <span class="newterm">top-k</span> experts (by gate weight) are actually computed:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ y = \sum_{e \in \text{top-}k} g_e(x)\,\text{Expert}_e(x), \qquad g(x) = \text{softmax}(W_g\,x) \ \ (\text{the router}) \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the gate \(g(x)\) is a softmax that scores every expert for input \(x\); you keep only the top-\(k\) (often \(k=1\) or \(2\)) highest-scoring experts, run just those, and combine their outputs weighted by the gate scores. Because only \(k\) of the many experts run, the cost is \(k\) experts' worth of compute — independent of how many experts exist in total. Add more experts to grow capacity without growing per-input cost.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A Mixture-of-Experts diagram: an input goes to a GATE (router), which routes it to two of four experts (Expert 1 and 3 highlighted as active, 2 and 4 faded/idle), whose outputs combine into the output." />
+        <figcaption>Mixture of Experts: a gate routes each input to just a few of many experts (here 2 of 4 active). Only the chosen experts run — huge total capacity, small compute per input.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="molab">
+        <div class="wtitle">▶ Interactive · watch the router route</div>
+        <div class="whint">Four experts have each specialized in one region of the input space (the coloured zones). <strong>Move your input</strong> (drag the ✚) and watch the router light up the expert whose specialty it falls in — and <em>only</em> that expert runs. Wherever the input goes, just one of the four experts activates: that's sparse routing.</div>
+        <canvas id="mocanvas" width="640" height="330" aria-label="Interactive mixture of experts"></canvas>
+        <div class="wrow">
+          <span class="wlab" id="molab2">1 of 4 experts active</span>
+        </div>
+        <div class="wreadout" id="moread">Drag the input around and watch which expert the router picks.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the router learns to specialize</h3>
+        <p class="prose">From <code>mixture_of_experts.py</code>: data in 4 regions, 4 experts, one gate — trained jointly.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Setup.</strong> Four clusters of data, four expert classifiers, and a gating network that outputs a distribution over experts for each input.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Train jointly.</strong> The output is the gate-weighted mixture of experts; gradients flow to both the experts and the router. The router learns which expert helps for which input; the experts learn to be good where they're routed.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Specialization emerges.</strong> After training, each data region routes to its own expert — the experts have divided up the problem among themselves, with no one telling them how.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Sparse inference.</strong> At test time, use <em>top-1</em> routing: run only the single best expert per input. Accuracy: <strong>1.000</strong>, at 1/4 the compute of running all four. Big capacity, small cost — the MoE promise.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: the routed mixture</h2>
+      <pre><code>g = softmax(X @ Wg + bg)                        # router: a distribution over experts per input
+outs = stack([expert_e(X) for e in experts])   # each expert's output
+y = sum(g[:,e] * outs[e] for e in experts)      # gate-weighted mixture (train this)
+
+# at inference, top-1: run ONLY the highest-gated expert
+pick = g.argmax(1)
+y = expert_[pick](x)                            # 1 of E experts runs -> 1/E the compute</code></pre>
+      <p class="prose">
+        Training uses the soft mixture (so gradients reach every expert), but inference uses hard top-\(k\) routing (so only a few experts run). That gap — dense training signal, sparse inference — is the crux, and making it work smoothly is where the engineering lives.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The load-balancing problem.</strong> MoE has a notorious failure mode: the router can collapse to sending <em>everything</em> to one or two favorite experts, leaving the rest untrained and wasting the capacity. To prevent this, MoE training adds a <em>load-balancing loss</em> that encourages the router to spread inputs evenly across experts. Getting this balance right — every expert busy, none overloaded — is one of the main challenges of training MoE models, alongside the systems difficulty of routing tokens across many devices. When it works, the payoff is models like Mixtral 8×7B, which has the capacity of a ~47B-parameter model but runs at the cost of a ~13B one.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Confusing total and active parameters.</strong> An MoE's headline parameter count is the total across all experts; the compute depends only on the few <em>active</em> per input. "47B total, 13B active" is the MoE signature.</li>
+          <li><strong>Forgetting load balancing.</strong> Without an explicit balancing loss, the router collapses onto a few experts and the rest are dead weight. It's not optional.</li>
+          <li><strong>Assuming more experts always helps.</strong> More experts add capacity but also routing complexity and communication cost; there's a sweet spot, and memory (all experts must be stored) can dominate.</li>
+          <li><strong>Thinking experts specialize by human concept.</strong> They specialize by whatever the data and router find useful, which often doesn't map to clean human categories like "the grammar expert." The specialization is real but not always interpretable.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Mixture of Experts:</strong> many expert sub-networks + a router that activates only a few per input (eq 0.1).</li>
+          <li><strong>Sparse activation</strong> decouples total capacity (all experts) from per-input compute (the top-\(k\) that run).</li>
+          <li><strong>Experts specialize</strong> automatically; the router learns to send each input to the right ones.</li>
+          <li><strong>Load-balancing loss</strong> is essential — otherwise the router collapses onto a few experts.</li>
+          <li><strong>Powers frontier LLMs</strong> (e.g., Mixtral: ~47B total, ~13B active) — huge capacity at moderate cost.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does the gating (router) network do in an MoE?</p>
+          <ul class="quiz-options">
+            <li>Runs all experts and averages them.<div class="quiz-why">That would defeat the compute savings; it selects a few.</div></li>
+            <li>Trains the experts.<div class="quiz-why">Training happens via gradients; the router routes inputs.</div></li>
+            <li>Picks which few experts run for each input.<div class="quiz-why">Correct. It scores experts and activates the top-k.</div></li>
+            <li>Compresses the model.<div class="quiz-why">That's quantization/pruning, not routing.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why can an MoE be huge yet cheap to run?</p>
+          <ul class="quiz-options">
+            <li>Total capacity is all experts, but only the few active per input cost compute.<div class="quiz-why">Correct. Sparse activation decouples size from per-input cost.</div></li>
+            <li>Experts are tiny and inaccurate.<div class="quiz-why">Experts can be large; the savings come from activating few.</div></li>
+            <li>It skips training.<div class="quiz-why">It's trained like any model.</div></li>
+            <li>It deletes most weights.<div class="quiz-why">All experts are kept; they're just not all run.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What is the load-balancing problem?</p>
+          <ul class="quiz-options">
+            <li>The model runs out of memory.<div class="quiz-why">A separate systems concern.</div></li>
+            <li>Experts are too small.<div class="quiz-why">Not about size.</div></li>
+            <li>The data is imbalanced.<div class="quiz-why">It's about the router, not the data labels.</div></li>
+            <li>The router collapses to a few favorite experts, leaving the rest untrained.<div class="quiz-why">Correct. A balancing loss spreads inputs across all experts.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> "Mixtral 8×7B has ~47B total parameters but ~13B active." What does that mean?</p>
+          <ul class="quiz-options">
+            <li>It deletes 34B parameters.<div class="quiz-why">All are stored; only some run per token.</div></li>
+            <li>It has 47B parameters total, but only ~13B are used to process each token.<div class="quiz-why">Correct. Sparse routing runs a fraction of the experts per input.</div></li>
+            <li>It's 8 separate models.<div class="quiz-why">It's one model with 8 experts per layer, routed.</div></li>
+            <li>It runs 47B every token.<div class="quiz-why">Only the active ~13B run per token — that's the point.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, drag the input across the boundaries between regions. How many experts are active at once, and what does that tell you about the compute cost?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Only one expert is active at a time (top-1 routing) — as you cross a boundary, the active expert switches, but it's always just one lit up. This means the compute cost is one expert's worth, no matter that there are four (or four hundred) experts in total. Adding more experts would grow the model's total capacity — more specialists available — without increasing the per-input cost, because you'd still only run the one the router picks. That constant per-input cost regardless of total size is the entire reason MoE lets models scale to enormous parameter counts affordably.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> A dense 13B model and an MoE with ~13B active parameters cost similar compute per token. Why might the MoE still be more capable?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Because the MoE has far more <em>total</em> parameters (e.g., 47B across its experts) even though only ~13B run per token. Those extra parameters store more knowledge and more specialized skills — the model has, in effect, a large library of experts to draw on, and the router fetches the relevant ones for each input. A dense 13B model has only 13B parameters total, so it must cram all its knowledge into that fixed budget, whereas the MoE can hold much more and access the right slice on demand. So for the same per-token compute, the MoE brings more total capacity to bear, which typically means better quality — at the cost of more memory (all experts must be stored) and routing complexity. This "more knowledge per unit of compute" is why MoE is attractive at the frontier: it buys capability that would otherwise require running a much larger dense model.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> MoE trades compute for memory: all experts must be stored even though few run. When is that trade-off worth it, and when not?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It's worth it when <em>compute</em> (and its cost/latency/energy) is the binding constraint and you have enough memory to hold all the experts — which is the situation for large-scale serving in data centers with plenty of GPU memory, where you want maximum capability per unit of compute across billions of requests. There, MoE gives you a much more capable model at the per-token compute of a small one, and the extra memory is affordable. It's <em>not</em> worth it when <em>memory</em> is the binding constraint — e.g., on a phone or edge device, or when you can't fit all the experts — because you pay the full memory cost of a huge model while only ever using a fraction of it, which is wasteful when a smaller dense model (or a distilled/quantized one, Track 19) would fit and suffice. So the rule of thumb: MoE shines for large-scale, compute-bound serving with ample memory; dense (possibly compressed) models win when memory is tight. It's the mirror image of the efficiency techniques in the previous track — MoE optimizes compute at the expense of memory, whereas quantization optimizes memory.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Mixture of Experts is one of the dominant ways to scale large language models: it lets you grow total capacity into the hundreds of billions or trillions of parameters while keeping per-token compute manageable, and it's used in many of the largest and best models available (Mixtral, and widely believed to be inside the biggest frontier systems). The active research problems are exactly the ones you met: better routing and load balancing, reducing the communication cost of shuffling tokens to the right expert-holding devices, and understanding what experts actually specialize in. MoE embodies a theme running through this whole course — the constant search for more capability per unit of compute — and it's a leading answer at the largest scales. The other frontier architectures in this track (state-space models next) attack the same scaling wall from different angles.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A Mixture of Experts is many specialist sub-networks plus a router that sends each input to just a few of them. The model's total capacity is all the experts combined (huge), but the compute per input is only the few that fire (small) — sparse activation. The experts specialize automatically, and a load-balancing loss keeps the router from collapsing onto favorites. It's how models like Mixtral get ~47B parameters of capacity at ~13B of compute."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Shazeer et&nbsp;al. (2017), "Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer." <a href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Fedus et&nbsp;al. (2021), "Switch Transformers: Scaling to Trillion Parameter Models." <a href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Jiang et&nbsp;al. (2024), "Mixtral of Experts." <a href="https://arxiv.org/abs/2401.04088" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: another way to beat the scaling wall. Transformers cost \(O(n^2)\) in sequence length; <a href="01-state-space-models.html">state-space models</a> like Mamba process sequences in linear time while still remembering far into the past.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('mocanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cols=['#2563eb','#059669','#d97706','#6d28d9'], names=['Expert 1','Expert 2','Expert 3','Expert 4'];
+    var centres=[[160,90],[480,90],[160,240],[480,240]];
+    var q={x:320,y:165}, drag=false;
+    function pick(){ var best=0,bd=1e9; for(var i=0;i<4;i++){ var d=Math.hypot(q.x-centres[i][0],q.y-centres[i][1]); if(d<bd){bd=d;best=i;} } return best; }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      var p=pick();
+      // regions (Voronoi-ish shading via nearest centre on a grid)
+      for(var gx=0;gx<W;gx+=10)for(var gy=0;gy<H;gy+=10){ var b=0,bd=1e9; for(var i=0;i<4;i++){var d=Math.hypot(gx-centres[i][0],gy-centres[i][1]); if(d<bd){bd=d;b=i;}} ctx.fillStyle=cols[b]; ctx.globalAlpha=(b===p)?0.16:0.05; ctx.fillRect(gx,gy,10,10); ctx.globalAlpha=1; }
+      for(var i=0;i<4;i++){
+        var act=i===p;
+        ctx.fillStyle=act?cols[i]:'#e5e7eb'; ctx.beginPath(); ctx.arc(centres[i][0],centres[i][1], act?26:18, 0,7); ctx.fill();
+        ctx.fillStyle=act?'#fff':'#94a3b8'; ctx.font=(act?'bold ':'')+'11px system-ui'; ctx.textAlign='center'; ctx.fillText(names[i],centres[i][0],centres[i][1]+ (act?40:34));
+        if(act){ ctx.fillStyle='#fff'; ctx.font='10px system-ui'; ctx.fillText('ACTIVE',centres[i][0],centres[i][1]+4); }
+      }
+      ctx.textAlign='left';
+      // input marker
+      ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(q.x-9,q.y);ctx.lineTo(q.x+9,q.y);ctx.moveTo(q.x,q.y-9);ctx.lineTo(q.x,q.y+9); ctx.stroke();
+      ctx.fillStyle='#111'; ctx.font='11px system-ui'; ctx.fillText('input',q.x+12,q.y+4);
+      document.getElementById('molab2').textContent='1 of 4 experts active ('+names[p]+')';
+      document.getElementById('moread').textContent='router → '+names[p]+' fires; the other 3 stay idle. Compute = 1 expert, capacity = all 4.';
+    }
+    cv.addEventListener('mousedown',function(e){drag=true;mv(e);}); window.addEventListener('mousemove',function(e){if(drag)mv(e);}); window.addEventListener('mouseup',function(){drag=false;});
+    function mv(e){ var r=cv.getBoundingClientRect(); q.x=Math.max(10,Math.min(W-10,(e.clientX-r.left)*(W/r.width))); q.y=Math.max(10,Math.min(H-10,(e.clientY-r.top)*(H/r.height))); draw(); }
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

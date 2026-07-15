@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t24-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planning & memory · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Planning &amp; memory: agents that tackle the long haul</h1>
+      <p class="subtitle">A single reason-act loop handles simple tasks. But truly complex, multi-step goals need more: the ability to plan ahead — search for a strategy before acting — and to remember across many steps. These are what turn a reactive agent into a capable one, and they close the course.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 20 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~19 min</span>
+        <span class="chip">Builds on: Lesson 3</span>
+      </div>
+
+      <p class="lead prose">
+        The tool-using agent of Lesson&nbsp;3 reacts step by step — great for tasks a few actions long. But ask an agent to write a whole program, plan a research project, or complete a task with dozens of interdependent steps, and pure step-by-step reaction breaks down: it makes a locally-sensible move that turns out to be a dead end, or it forgets what it decided ten steps ago. Two capabilities fix this, and they're the finale of the course. <span class="newterm">Planning</span> is the ability to <em>think ahead</em> — to consider possible sequences of actions and find one that reaches the goal, rather than greedily grabbing whatever looks best right now. <span class="newterm">Memory</span> is the ability to <em>retain and recall</em> information across the whole task — what's been tried, what was learned, what the current state is — beyond what fits in the model's immediate context window. Together, planning and memory let an agent handle long-horizon, complex tasks: decompose a big goal into sub-goals, search for a workable strategy, remember progress and intermediate results, and recover from mistakes. This is the current frontier of agent research, and building it — even in miniature — is a fitting capstone. This lesson shows planning solving what greedy reaction cannot, backed by memory of where it's been.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: think before you leap, and take notes</h2>
+      <p class="prose">
+        Consider navigating a maze. The <em>greedy</em> strategy — always step toward the exit — gets you stuck at the first wall that requires briefly moving <em>away</em> from the goal. To solve a maze you must <em>plan</em>: mentally explore paths, including ones that detour, until you find one that reaches the end — and you must <em>remember</em> which dead ends you've already hit, so you don't wander in circles forever. That's planning plus memory. Planning is the mental search over possible action sequences before committing; memory is the record of what you've explored (so you don't repeat it) and what you've learned along the way. An agent without planning is a hiker who only ever walks downhill and gets trapped in the first valley; an agent without memory is one with amnesia who keeps re-treading the same ground. Real problem-solving needs both: look ahead, and remember where you've been.
+      </p>
+      <p class="prose">
+        Concretely: a greedy agent picks the immediately-best action; a planning agent searches over action sequences (using memory of visited states) to find one that reaches the goal:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{greedy: } a_t = \arg\max_a \, \text{looks-best-now}(a) \qquad\text{vs}\qquad \text{plan: } \text{search sequences } (a_1,\dots,a_k) \text{ s.t. } \text{state}_k = \text{goal} \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the greedy agent commits to whatever single action looks best at the moment — no lookahead. The planner instead <em>searches</em> over multi-step sequences of actions to find one that actually reaches the goal, using memory (a record of visited states) to avoid re-exploring and looping. When reaching the goal requires a step that <em>doesn't</em> look immediately best (a detour), only the planner can find it — which is exactly when greedy fails.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A search tree from start 1 using +3 and ×2 operations; the green path 1→4→8→16 is the plan found by breadth-first search with memory of visited states, reaching the goal 16, while grey branches are other explored dead-ends where a greedy agent gets stuck." />
+        <figcaption>Planning with memory: search over action sequences (green path 1→4→8→16 via +3, ×2, ×2) to reach the goal, remembering visited states — solving what a greedy step-by-step agent cannot.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="pllab">
+        <div class="wtitle">▶ Interactive · plan vs react</div>
+        <div class="whint">Goal: turn <strong>1</strong> into the target using only <strong>+3</strong> and <strong>×2</strong>. Press <strong>Greedy</strong> to watch a reactive agent always take the step that looks closest — and get stuck. Press <strong>Plan</strong> to watch a search (with memory of visited states) explore and find a real path. Change the target and see when greedy fails.</div>
+        <canvas id="plcanvas" width="640" height="330" aria-label="Interactive planning"></canvas>
+        <div class="wrow">
+          <span class="wlab">target = <b id="pltlab">10</b></span>
+          <input class="wslider" id="plt" type="range" min="7" max="40" value="10" />
+          <button class="wbtn" id="plgreedy">Greedy (react)</button>
+          <button class="wbtn primary" id="plplan">Plan (search + memory)</button>
+        </div>
+        <div class="wreadout" id="plread">Pick a target, then compare greedy vs planning.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: greedy fails, planning wins</h3>
+        <p class="prose">From <code>planning_memory.py</code>: reach 23 from 1 using +3 and ×2.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Greedy.</strong> Always take the op that lands closest to 23. It commits to locally-best moves, overshoots or gets stuck, and returns <strong>None</strong> — no solution found.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Planner: search.</strong> Breadth-first search explores sequences of actions, level by level, from the start.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Planner: memory.</strong> A "visited" set (the agent's memory) records every state already seen, so the search never re-expands a state or loops forever.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> The planner finds <code>[+3, +3, +3, ×2, +3]</code>: 1→4→7→10→20→23. Executing it reaches exactly 23. Looking ahead with memory solved what step-by-step reaction could not.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: planning with memory</h2>
+      <pre><code>def planner(start, target, ops):
+    queue = deque([(start, [])]);  seen = {start}      # 'seen' = the agent's MEMORY
+    while queue:
+        x, path = queue.popleft()
+        if x == target: return path                    # goal reached — return the plan
+        for op in ops:                                 # SEARCH: try every next action
+            nx = op(x)
+            if nx not in seen:                          # memory prevents revisiting / loops
+                seen.add(nx); queue.append((nx, path + [op.__name__]))
+    return None
+
+# greedy (no lookahead): None       |     planner: [+3, +3, +3, ×2, +3]  -> reaches 23</code></pre>
+      <p class="prose">
+        This is breadth-first search — the simplest planner — but the <em>structure</em> is what matters: explore possible action sequences (planning) while remembering visited states (memory). Real LLM agents plan in richer ways (decomposing goals into sub-tasks, using the model to propose and evaluate steps, sometimes searching over "trees of thought"), and use external memory stores (databases, vector search over past steps) that vastly exceed the model's context window. The skeleton — look ahead, and remember — is the same.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>How real agents plan and remember.</strong> Modern agent systems implement these ideas at scale. For <em>planning</em>: task decomposition (break a goal into ordered sub-goals), and search over reasoning paths — "Tree of Thoughts" explores multiple reasoning branches and picks the best, a direct descendant of the search you built. For <em>memory</em>: since the model's context window is finite, agents use <em>external memory</em> — storing past observations, results, and reflections in a database and retrieving the relevant pieces when needed (the same retrieval idea as RAG). Some agents even keep a running "scratchpad" and periodically summarize it. These let an agent work on tasks far longer and more complex than a single prompt could hold — the difference between answering a question and completing a project.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Relying on greedy reaction for complex tasks.</strong> Without lookahead, an agent commits to locally-good moves that lead to dead ends. Long-horizon tasks need planning.</li>
+          <li><strong>Planning without memory.</strong> Search that doesn't remember visited states loops forever or re-does work. Memory (visited set, scratchpad, external store) is what makes search tractable.</li>
+          <li><strong>Assuming the context window is enough memory.</strong> Long tasks generate more information than fits in context; you need external memory with retrieval, or the agent "forgets" earlier steps.</li>
+          <li><strong>Ignoring the cost of search.</strong> Planning explores many possibilities, which is expensive. Real systems balance how much to plan versus act, and use the LLM to prune the search smartly.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Greedy reaction fails</strong> on tasks needing a step that isn't immediately best (a detour) — no lookahead.</li>
+          <li><strong>Planning</strong> searches over action sequences to find one that reaches the goal (eq 4.1).</li>
+          <li><strong>Memory</strong> (visited states / scratchpad / external store) prevents loops and retains progress beyond the context window.</li>
+          <li><strong>Real agents:</strong> task decomposition + search (Tree of Thoughts) for planning; retrieval-based external memory for recall.</li>
+          <li><strong>Together they enable long-horizon tasks</strong> — the frontier of agent capability.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> Why does a greedy agent fail on some tasks?</p>
+          <ul class="quiz-options">
+            <li>It has too many tools.<div class="quiz-why">Tools aren't the issue; lookahead is.</div></li>
+            <li>It plans too much.<div class="quiz-why">The opposite — it doesn't plan at all.</div></li>
+            <li>It commits to locally-best moves and can't take a needed detour.<div class="quiz-why">Correct. Without lookahead, it gets stuck when the goal requires a non-greedy step.</div></li>
+            <li>It has no parameters.<div class="quiz-why">Unrelated to the greedy-vs-plan distinction.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What does planning add over greedy reaction?</p>
+          <ul class="quiz-options">
+            <li>Searching over sequences of actions to find one that reaches the goal.<div class="quiz-why">Correct. Lookahead over multi-step plans, not just the next best move.</div></li>
+            <li>Faster single steps.<div class="quiz-why">Planning is usually slower per decision, but finds solutions greedy misses.</div></li>
+            <li>Fewer tools.<div class="quiz-why">Unrelated to tool count.</div></li>
+            <li>Smaller models.<div class="quiz-why">Not about model size.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What role does memory play in a planning agent?</p>
+          <ul class="quiz-options">
+            <li>It speeds up the model.<div class="quiz-why">Memory is about retaining information, not speed.</div></li>
+            <li>It stores the model's weights.<div class="quiz-why">Weights are separate; memory holds task state.</div></li>
+            <li>It replaces the tools.<div class="quiz-why">Memory complements tools, doesn't replace them.</div></li>
+            <li>It records visited states / progress, preventing loops and forgetting.<div class="quiz-why">Correct. Memory makes search tractable and retains progress over long tasks.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Why do real agents need <em>external</em> memory?</p>
+          <ul class="quiz-options">
+            <li>Because models can't compute.<div class="quiz-why">That's what tools address; memory is about retention.</div></li>
+            <li>Long tasks generate more information than fits in the context window.<div class="quiz-why">Correct. External stores with retrieval hold what the context can't.</div></li>
+            <li>To make the model bigger.<div class="quiz-why">Memory is external, not model size.</div></li>
+            <li>They don't.<div class="quiz-why">Finite context makes external memory essential for long tasks.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, find a target where greedy fails but planning succeeds. What does greedy do wrong, and what does the planner do differently?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Greedy fails whenever reaching the target requires a step that temporarily moves <em>away</em> from it — for example, needing to ×2 past the target and then... no; more precisely, needing a sequence where the locally-closest op at some point leads to a dead end. Greedy always picks the op landing nearest the target <em>right now</em>, so it commits to a path with no lookahead and gets stuck (or overshoots) with no way to back up. The planner instead explores <em>all</em> action sequences breadth-first, remembering visited states so it never loops, until it finds one that actually reaches the goal — even if that path includes steps that didn't look best at the time. The difference is lookahead plus memory: the planner considers the whole route to the goal, while greedy only ever sees one step. This is the core reason complex, multi-step tasks need planning, not just reaction.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> "Tree of Thoughts" has an LLM generate several possible next reasoning steps, evaluate them, and explore the promising ones — like a search. How is that the planning idea from this lesson, applied to reasoning?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It's exactly the search-over-sequences idea, but the "actions" are <em>reasoning steps</em> instead of arithmetic ops, and the "states" are partial solutions/thoughts. Standard chain-of-thought is greedy: the model commits to one reasoning path and follows it, so a wrong early step dooms the answer. Tree of Thoughts instead treats reasoning as a search tree — at each point the LLM proposes several possible next thoughts (branching), a scoring step evaluates how promising each partial solution is, and the search explores the best branches (and can backtrack from dead ends), just like the BFS planner explores and prunes action sequences. The LLM plays two roles the toy planner hard-coded: it <em>generates</em> the candidate next steps (instead of a fixed op list) and <em>evaluates</em> them (instead of a simple goal check). So planning generalizes from "search over discrete actions" to "search over reasoning," letting the model deliberate — explore alternatives and choose — rather than blurting the first path. This deliberate, search-based reasoning is one of the most effective ways to boost LLM performance on hard multi-step problems, and it's a direct scaling-up of the planning principle you just built.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (capstone)</strong> You've reached the end of the course. Using planning and memory as the lens, describe what still separates today's agents from a reliable human assistant — and connect it to the arc of everything you've learned.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Today's agents can plan and remember in limited ways — decompose tasks, search over some steps, retrieve from external stores — but they remain brittle on <em>long-horizon</em> work: errors compound over many steps, plans go stale as situations change, memory retrieval misses relevant context, and there's no robust self-correction when things go wrong. A reliable human assistant maintains a coherent goal over days, notices and recovers from its own mistakes, knows when it's uncertain and asks, and — crucially — can be <em>trusted</em> to act safely. Closing that gap draws on the entire course: the <em>foundations</em> (linear algebra, probability, optimization) that make any of it possible; the <em>architectures</em> (deep nets, CNNs, Transformers, and the frontier ones here) that provide the raw capability; <em>learning paradigms</em> (self-/semi-/few-shot, meta-learning) for adapting with little data; <em>probabilistic</em> methods and <em>calibration</em> so the agent knows what it doesn't know; <em>causal</em> reasoning so it can act rather than just predict; <em>efficiency</em> so the system is affordable to run; and <em>safety, privacy, and interpretability</em> so it can be trusted with real actions and real data. An agent is where all of these meet — perception, reasoning, memory, action, and the judgment to do it safely. The honest state of the art is impressive but unfinished, and the people who will push it forward are exactly those who understand it from the ground up. That, from the geometry of a vector to an agent that plans and remembers, is the whole arc of this course — and you've now walked it end to end.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Planning and memory are <em>the</em> frontier of agent research today. Task decomposition, Tree/Graph-of-Thoughts search, external memory with retrieval, self-reflection and self-correction, and long-horizon autonomy are all under intense, rapid development — and getting them reliable is what stands between impressive demos and dependable autonomous assistants. The stakes rise with capability: an agent that plans and acts over long horizons can accomplish far more, and can also go wrong in more consequential ways, which ties this frontier directly back to safety. This is the current edge of the field, and it's genuinely unfinished — which is the most exciting place to be. You've now traced the entire arc, from the geometry of a vector through the architectures and methods of modern AI to agents that reason, use tools, plan, and remember. The frontier is where you take it from here.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Simple agents just react step by step, which fails on complex tasks that need a non-obvious detour. Planning fixes this by searching over sequences of actions to find one that reaches the goal, and memory (a record of visited states, a scratchpad, or an external store) keeps the search from looping and retains progress beyond the context window. Real agents plan by decomposing goals and searching over reasoning, and remember via retrieval. Together they're what let agents handle the long haul — the frontier of AI today, and the end of our course."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Yao et&nbsp;al. (2023), "Tree of Thoughts: Deliberate Problem Solving with Large Language Models." <a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Park et&nbsp;al. (2023), "Generative Agents: Interactive Simulacra of Human Behavior" (memory &amp; reflection). <a href="https://arxiv.org/abs/2304.03442" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Shinn et&nbsp;al. (2023), "Reflexion: Language Agents with Verbal Reinforcement Learning." <a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">🎓 That completes Frontier Architectures &amp; Agents — and the Gradient Ascent journey, from the geometry of a vector to agents that plan and remember. You've built every idea by hand. The frontier is yours now: keep building.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('plcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var mode='', greedyPath=null, planPath=null, seen=[];
+    function add3(x){return x+3;} function mul2(x){return x*2;}
+    function greedy(start,target){ var x=start,path=[],vis=[start]; for(var i=0;i<15;i++){ if(x===target)return {path:path,vis:vis,ok:true};
+        var cands=[[add3(x),'+3'],[mul2(x),'×2']]; cands.sort(function(a,b){return Math.abs(a[0]-target)-Math.abs(b[0]-target);});
+        x=cands[0][0]; path.push(cands[0][1]); vis.push(x); if(Math.abs(x)>10*target+100)break; } return {path:path,vis:vis,ok:x===target}; }
+    function plan(start,target){ var q=[[start,[]]], s={}; s[start]=1; var order=[start];
+        while(q.length){ var cur=q.shift(), x=cur[0], p=cur[1]; if(x===target)return {path:p,vis:order,ok:true};
+          if(p.length>15)continue; [[add3(x),'+3'],[mul2(x),'×2']].forEach(function(o){ if(!s[o[0]] && Math.abs(o[0])<=10*target+100){ s[o[0]]=1; order.push(o[0]); q.push([o[0],p.concat([o[1]])]); } }); }
+        return {path:null,vis:order,ok:false}; }
+    function draw(){
+      var target=+document.getElementById('plt').value; document.getElementById('pltlab').textContent=target;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#334155'; ctx.font='13px system-ui'; ctx.fillText('goal: turn 1 into '+target+' using +3 and ×2',20,26);
+      if(mode==='greedy'){
+        var r=greedy(1,target);
+        ctx.fillStyle='#dc2626'; ctx.font='bold 13px system-ui'; ctx.fillText('GREEDY (react step-by-step, no lookahead):',20,60);
+        ctx.fillStyle='#334155'; ctx.font='13px system-ui'; ctx.fillText('states: '+r.vis.slice(0,14).join(' → ')+(r.vis.length>14?' …':''),20,86);
+        ctx.fillStyle=r.ok?'#059669':'#dc2626'; ctx.font='bold 13px system-ui';
+        ctx.fillText(r.ok?('reached '+target+' ✓'):('stuck — never reached '+target+' ✗'),20,120);
+        document.getElementById('plread').textContent=r.ok?'greedy happened to reach '+target:'greedy got stuck — no lookahead. Try "Plan".';
+      } else if(mode==='plan'){
+        var r=plan(1,target);
+        ctx.fillStyle='#059669'; ctx.font='bold 13px system-ui'; ctx.fillText('PLAN (BFS search + memory of visited states):',20,60);
+        ctx.fillStyle='#64748b'; ctx.font='12px system-ui';
+        ctx.fillText('explored (memory): '+r.vis.slice(0,22).join(', ')+(r.vis.length>22?' …':''),20,84);
+        if(r.ok){ ctx.fillStyle='#0f172a'; ctx.font='bold 14px system-ui'; ctx.fillText('plan found: '+r.path.join('  '),20,120);
+          // execute
+          var x=1, chain=[1]; r.path.forEach(function(op){ x=op==='+3'?add3(x):mul2(x); chain.push(x); });
+          ctx.fillStyle='#059669'; ctx.font='13px system-ui'; ctx.fillText('executing: '+chain.join(' → ')+'  ✓ reached '+target,20,148);
+          document.getElementById('plread').textContent='planner found a '+r.path.length+'-step plan reaching '+target+' (searched '+r.vis.length+' states, remembered each).';
+        } else { ctx.fillStyle='#dc2626'; ctx.fillText('no plan within limits',20,120); document.getElementById('plread').textContent='no plan found within the search limit.'; }
+      } else {
+        ctx.fillStyle='#64748b'; ctx.font='13px system-ui'; ctx.fillText('Press "Greedy" or "Plan" to compare.',20,80);
+      }
+    }
+    document.getElementById('plt').oninput=function(){ mode=''; draw(); };
+    document.getElementById('plgreedy').onclick=function(){ mode='greedy'; draw(); };
+    document.getElementById('plplan').onclick=function(){ mode='plan'; draw(); };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

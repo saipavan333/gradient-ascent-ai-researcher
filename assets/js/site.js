@@ -236,11 +236,11 @@
       n: 20, id: "t24", title: "Frontier Architectures & Agents",
       desc: "The cutting edge: mixture-of-experts, state-space models, multimodal models, and LLM agents.",
       lessons: [
-        { id: "t24-l00", title: "Mixture of Experts", file: "#", status: "soon" },
-        { id: "t24-l01", title: "State-space models (Mamba)", file: "#", status: "soon" },
-        { id: "t24-l02", title: "Multimodal models (CLIP)", file: "#", status: "soon" },
-        { id: "t24-l03", title: "LLM agents & tool use", file: "#", status: "soon" },
-        { id: "t24-l04", title: "Planning & memory", file: "#", status: "soon" },
+        { id: "t24-l00", title: "Mixture of Experts", file: "lessons/track-24-frontier-agents/00-mixture-of-experts.html", status: "done" },
+        { id: "t24-l01", title: "State-space models (Mamba)", file: "lessons/track-24-frontier-agents/01-state-space-models.html", status: "done" },
+        { id: "t24-l02", title: "Multimodal models (CLIP)", file: "lessons/track-24-frontier-agents/02-multimodal-models.html", status: "done" },
+        { id: "t24-l03", title: "LLM agents & tool use", file: "lessons/track-24-frontier-agents/03-llm-agents.html", status: "done" },
+        { id: "t24-l04", title: "Planning & memory", file: "lessons/track-24-frontier-agents/04-planning-and-memory.html", status: "done" },
       ],
     },
     {

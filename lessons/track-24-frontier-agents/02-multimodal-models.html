@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t24-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multimodal models · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Multimodal models: one space for images and text</h1>
+      <p class="subtitle">Models like CLIP learn images and language in a single shared space, so a picture of a dog and the words "a dog" land in the same place. That one idea enables zero-shot classification and powers the text-to-image generators behind modern AI art.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 20 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 13</span>
+      </div>
+
+      <p class="lead prose">
+        So far our models handled one kind of data at a time — images, or text, or sequences. But the world is <span class="newterm">multimodal</span>: meaning lives across pictures, words, sound, and video together. The breakthrough model here is <span class="newterm">CLIP</span> (Contrastive Language–Image Pre-training), and its idea is beautifully simple: train two encoders — one for images, one for text — to map their inputs into a <em>single shared embedding space</em>, such that an image and its caption land close together while mismatched pairs land far apart. You've seen the machinery: it's contrastive learning (Track&nbsp;13) across two modalities, trained on hundreds of millions of image–caption pairs scraped from the web, with no manual labels. Once trained, this shared space is astonishingly useful. The headline capability is <span class="newterm">zero-shot classification</span>: to classify an image into categories it was never explicitly trained on, you simply write the category names as text ("a photo of a cat," "a photo of a dog"), embed them, and pick whichever text embedding the image is closest to — no task-specific training at all. The same shared space is the backbone of text-to-image generation (models like DALL·E and Stable Diffusion use CLIP-style text embeddings to steer image generation) and of image search. This lesson builds the shared space and shows zero-shot classification working.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: a universal translator between seeing and reading</h2>
+      <p class="prose">
+        Imagine a magical map where you can place both photographs and phrases, and the map arranges them by <em>meaning</em>: a photo of a beach sits next to the words "a sunny beach," and far from "a snowy mountain." On this map, comparing a picture to a description is just measuring distance. That's the shared embedding space CLIP builds. Because pictures and words live on the same map, you can do things that seem impossible: hand the model a brand-new photo and a list of possible descriptions, and it tells you which description fits by seeing which is nearest — even for categories it never saw during training. It learned the <em>general</em> relationship between images and language, not a fixed list of classes, so it generalizes to new ones for free. The training that builds this map is pure contrast: pull true image–caption pairs together, push false pairs apart, millions of times, until the map self-organizes by meaning.
+      </p>
+      <p class="prose">
+        Training minimizes a symmetric contrastive loss: for each image, its true caption should be the most similar text among all captions in the batch (and vice versa):
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{maximize } \text{sim}\big(f_{\text{img}}(I),\, f_{\text{txt}}(T)\big) \text{ for matched } (I,T), \text{ minimize it for mismatched pairs} \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        Read it: \(f_{\text{img}}\) and \(f_{\text{txt}}\) are the image and text encoders mapping into the shared space; \(\text{sim}\) is the cosine similarity (alignment) between the two embeddings. Training pushes the similarity <em>up</em> for genuine image–caption pairs and <em>down</em> for mismatched ones (the InfoNCE contrastive loss from Track&nbsp;13, applied across the two modalities in both directions). The result is that semantically matching images and texts get aligned in the same region of the space.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="CLIP diagram: an image and a text caption each pass through their own encoder into a shared embedding space, where the matched image-text pair sits close together and mismatched pairs sit far apart; a note explains zero-shot classification by nearest text prompt." />
+        <figcaption>CLIP maps images and text into one shared space via contrastive training: matched image-text pairs land close, mismatched far. This enables zero-shot classification by nearest text prompt.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="cllab">
+        <div class="wtitle">▶ Interactive · zero-shot classification</div>
+        <div class="whint"><strong>Click an image</strong> on the left. The model embeds it into the shared space and compares it to each text prompt on the right — the bars show the similarities, and the highest one (the prediction) lights up. It gets the right label without ever being trained on these specific classes: that's zero-shot.</div>
+        <canvas id="clcanvas" width="640" height="320" aria-label="Interactive CLIP zero-shot"></canvas>
+        <div class="wrow">
+          <button class="wbtn" id="clnext">▶ Try the next image</button>
+        </div>
+        <div class="wreadout" id="clread">Click an image (or press "next") to classify it by nearest text prompt.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: matched vs mismatched similarity</h3>
+        <p class="prose">From <code>multimodal_clip.py</code>: toy image and text vectors aligned by contrastive training.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Train.</strong> Two encoders map image and text features into an 8-dim shared space, trained contrastively so matched image–text pairs align.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Check the space.</strong> After training, a matched image–text pair has cosine similarity <strong>0.86</strong>; a mismatched pair, <strong>−0.17</strong>. Meaning-aligned things are close; unrelated things are far.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Zero-shot classify.</strong> For a new image, embed it and every candidate class name as text, then pick the nearest text prompt — no training on these classes.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> Zero-shot accuracy: <strong>1.000</strong>. The shared space lets text prompts act as classifiers for images they were never paired with — the core CLIP superpower.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: contrastive alignment + zero-shot</h2>
+      <pre><code>Ei = normalise(imgs @ Wi)          # image embeddings in the shared space
+Et = normalise(txts @ Wt)          # text embeddings in the same space
+S  = Ei @ Et.T / tau               # similarity of every image to every text
+# contrastive loss: image i should match text i (the diagonal) — pull matched, push rest
+Wi -= lr * imgs.T @ (softmax(S)  - I) @ Et
+Wt -= lr * txts.T @ (softmax(S.T) - I) @ Ei
+
+# zero-shot: label a new image by its nearest class-name text prompt
+label = (normalise(new_img @ Wi) @ normalise(class_names @ Wt).T).argmax()</code></pre>
+      <p class="prose">
+        The training is the two-modality version of the contrastive loss you built in Track&nbsp;13. The payoff line is the last one: classification with <em>no classifier</em> — just embed the class names as text and measure similarity. Change the class names and you have a new classifier instantly, for any categories you can describe in words.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The engine behind AI art.</strong> CLIP's shared image–text space is a foundation of text-to-image generation. When you type "an astronaut riding a horse" into DALL·E or Stable Diffusion, a CLIP-style text encoder turns your words into an embedding, and the image generator is guided to produce an image whose CLIP embedding matches that text. The shared space is the bridge between what you <em>say</em> and what gets <em>drawn</em>. The same space powers semantic image search ("find photos that match this description"), content moderation, and robotics grounding (connecting language commands to what a camera sees). One contrastive idea, an enormous range of applications.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking CLIP is a classifier.</strong> It's an <em>alignment</em> model — it measures image–text similarity. Classification is a downstream use (compare to class-name prompts), which is why it's zero-shot.</li>
+          <li><strong>Ignoring prompt wording.</strong> Zero-shot accuracy depends on how you phrase the class names ("a photo of a cat" often beats "cat"). Prompt engineering matters even here.</li>
+          <li><strong>Assuming it understands like a human.</strong> CLIP learns statistical associations from web data — it inherits web biases and can be fooled (e.g., a label written on an object can override the object itself). It's powerful but not grounded understanding.</li>
+          <li><strong>Forgetting the scale.</strong> CLIP's magic comes partly from training on ~400M web image–caption pairs. The method is simple; the data scale is essential to its broad zero-shot ability.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>CLIP</strong> trains image &amp; text encoders into <em>one shared space</em> by contrastive learning on web image–caption pairs (eq 2.1).</li>
+          <li><strong>Matched image–text pairs align</strong> (high similarity); mismatched ones don't — meaning-organized space.</li>
+          <li><strong>Zero-shot classification:</strong> embed class names as text, pick the nearest to the image — no task-specific training.</li>
+          <li><strong>Powers text-to-image generation</strong> (DALL·E, Stable Diffusion) and image search via the shared space.</li>
+          <li><strong>Simple method, huge data</strong> (~400M pairs) — and it inherits web biases.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does CLIP learn?</p>
+          <ul class="quiz-options">
+            <li>To generate images from text.<div class="quiz-why">It aligns images and text; generators use it but CLIP itself doesn't generate.</div></li>
+            <li>A shared space where matching images and text are close.<div class="quiz-why">Correct. Two encoders map into one space via contrastive training.</div></li>
+            <li>To classify into a fixed set of labels.<div class="quiz-why">It's not tied to fixed labels — that's what enables zero-shot.</div></li>
+            <li>To compress images.<div class="quiz-why">That's autoencoding, not CLIP.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does CLIP do zero-shot classification?</p>
+          <ul class="quiz-options">
+            <li>By fine-tuning on the new classes.<div class="quiz-why">No fine-tuning — that's the "zero-shot" part.</div></li>
+            <li>By training a new head.<div class="quiz-why">No new training is needed.</div></li>
+            <li>By generating captions.<div class="quiz-why">It compares embeddings, not generates.</div></li>
+            <li>Embed the class names as text, pick the one nearest the image.<div class="quiz-why">Correct. Text prompts act as classifiers via similarity in the shared space.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> How is CLIP related to the rest of this course?</p>
+          <ul class="quiz-options">
+            <li>It's contrastive learning (Track 13) applied across images and text.<div class="quiz-why">Correct. Pull matched pairs together, push mismatched apart — across two modalities.</div></li>
+            <li>It's a decision tree.<div class="quiz-why">It's a pair of neural encoders trained contrastively.</div></li>
+            <li>It's reinforcement learning.<div class="quiz-why">No rewards or actions; it's contrastive.</div></li>
+            <li>It's a graph neural network.<div class="quiz-why">No graphs; it aligns image and text embeddings.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Where is CLIP's shared space used beyond classification?</p>
+          <ul class="quiz-options">
+            <li>To prune networks.<div class="quiz-why">Unrelated to compression.</div></li>
+            <li>To set learning rates.<div class="quiz-why">Not its role.</div></li>
+            <li>To guide text-to-image generation and power image search.<div class="quiz-why">Correct. The text embedding steers generators and enables semantic search.</div></li>
+            <li>To quantize weights.<div class="quiz-why">That's a different technique.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, click through the images. What makes the model pick the right text prompt for each, and why does it work for classes it wasn't explicitly trained on?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>For each image, the model embeds it into the shared space and measures its similarity to every text-prompt embedding; the correct label wins because contrastive training placed each image near the words that describe it (and far from unrelated words). It works for classes it wasn't explicitly trained to classify because CLIP didn't learn a fixed list of categories — it learned the <em>general</em> geometry relating images and language. So any new category you can express in words gets a text embedding in the same space, and the image simply lands nearest to the right one. Classification becomes a nearest-neighbour lookup in a meaning-organized space, which is why swapping in new class names instantly yields a new classifier with no retraining — the essence of zero-shot.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Zero-shot accuracy improves if you use "a photo of a {label}" instead of just "{label}". Why would the exact wording of the text prompt matter?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Because CLIP was trained on web <em>captions</em>, which are full phrases like "a photo of a golden retriever," not bare nouns. So the text encoder produces better, more in-distribution embeddings for prompts that look like real captions than for a lone word — "a photo of a cat" sits where actual cat-image captions sit in the space, whereas "cat" is an unusual, out-of-distribution string the encoder handles less well. Matching the prompt style to the training distribution therefore places the class embedding more accurately, improving the nearest-neighbour decision. This is "prompt engineering" for CLIP, and practitioners even average several prompt templates per class to get a more robust text embedding. It's a reminder that these models are pattern-matchers over their training data — you get the best behaviour by phrasing queries the way the training data was phrased, a theme that recurs across all prompt-based AI.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> CLIP can be fooled: put a piece of paper reading "iPod" on an apple and it may label the apple an iPod. What does this reveal about how it "understands," and why does it matter?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>This "typographic attack" reveals that CLIP learns <em>statistical associations</em> between visual features and text, not grounded, human-like understanding. Because it was trained on web images where text in an image is highly predictive of the caption (product photos, memes, labels), it learned to weight written words heavily — so a literal label can override the object's actual appearance. It matters for two reasons. First, <em>robustness/security</em>: systems built on CLIP (moderation, search, autonomous perception) can be manipulated by adversarial text or misleading captions, so you can't assume the model "sees" what a person would. Second, it's a concrete example of the general lesson that large models exploit whatever correlations exist in their training data, including shortcuts and spurious cues (echoing the correlation-vs-causation and interpretability themes from Tracks 18 and 23) — impressive zero-shot ability coexists with brittle, non-human failure modes. Understanding these failure modes is essential before trusting such models in high-stakes settings, and it motivates ongoing work on more grounded, robust multimodal understanding.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Multimodal models are one of the hottest areas in AI. CLIP itself is everywhere — zero-shot classification, image search, content moderation, and as the text-conditioning backbone of image generators. The frontier has moved to models that don't just align modalities but <em>reason across</em> them: vision-language models (like GPT-4V and its successors) that can look at an image and discuss it, answer questions about it, read charts, and follow visual instructions — and models extending to audio, video, and action for robotics. The unifying dream is a single model that perceives and reasons over all modalities the way humans do. CLIP's core insight — learn a shared representation across modalities by contrast — is a foundational step toward that, and it's why "multimodal" is central to where AI is heading. You've now built the idea that connects seeing and reading.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"CLIP trains an image encoder and a text encoder to share one embedding space, using contrastive learning on hundreds of millions of web image–caption pairs — matched pairs pulled close, mismatched pushed apart. That shared space lets you classify images zero-shot by comparing them to class-name text prompts, with no task-specific training, and it's the bridge that powers text-to-image generation and image search. One contrastive idea, applied across seeing and reading."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Radford et&nbsp;al. (2021), "Learning Transferable Visual Models From Natural Language Supervision" (CLIP). <a href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Ramesh et&nbsp;al. (2022), "Hierarchical Text-Conditional Image Generation with CLIP Latents" (DALL·E 2). <a href="https://arxiv.org/abs/2204.06125" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Alayrac et&nbsp;al. (2022), "Flamingo: a Visual Language Model for Few-Shot Learning." <a href="https://arxiv.org/abs/2204.14198" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: from models that perceive to models that <em>act</em>. <a href="03-llm-agents.html">LLM agents</a> wrap a language model in a loop where it can reason, call tools, and take actions — turning a text predictor into something that gets things done.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('clcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var items=[{icon:'🐱',label:'cat'},{icon:'🐶',label:'dog'},{icon:'🚗',label:'car'},{icon:'🌳',label:'tree'},{icon:'🏠',label:'house'}];
+    var prompts=items.map(function(it){return '"a photo of a '+it.label+'"';});
+    var sel=0;
+    function sim(imgIdx, txtIdx){ // matched high, else low with a little structure
+      if(imgIdx===txtIdx) return 0.85+Math.random()*0.1;
+      return -0.2 + Math.random()*0.3;
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // images column
+      ctx.fillStyle='#334155'; ctx.font='13px system-ui'; ctx.fillText('images:',20,26);
+      for(var i=0;i<items.length;i++){
+        var y=46+i*52; var on=i===sel;
+        ctx.fillStyle=on?'#dbeafe':'#f8fafc'; ctx.strokeStyle=on?'#2563eb':'#e5e7eb'; ctx.lineWidth=2;
+        ctx.fillRect(20,y,60,44); ctx.strokeRect(20,y,60,44);
+        ctx.font='26px system-ui'; ctx.textAlign='center'; ctx.fillStyle='#000'; ctx.fillText(items[i].icon,50,y+30); ctx.textAlign='left';
+      }
+      // similarity bars to prompts
+      ctx.fillStyle='#334155'; ctx.font='13px system-ui'; ctx.fillText('text prompts & similarity to the selected image:',150,26);
+      var sims=prompts.map(function(_,j){return sim(sel,j);});
+      var best=sims.indexOf(Math.max.apply(null,sims));
+      var bx=340, bw=260;
+      for(var j=0;j<prompts.length;j++){
+        var y=50+j*52; var s=sims[j]; var on=j===best;
+        ctx.fillStyle='#0f172a'; ctx.font=(on?'bold ':'')+'12px system-ui'; ctx.fillText(prompts[j],150,y+14);
+        ctx.fillStyle='#e5e7eb'; ctx.fillRect(bx,y,bw,18);
+        ctx.fillStyle=on?'#059669':'#94a3b8'; var wv=Math.max(0,(s+0.5)/1.5)*bw; ctx.fillRect(bx,y,wv,18);
+        ctx.fillStyle='#0f172a'; ctx.font='11px system-ui'; ctx.fillText(s.toFixed(2),bx+bw+6,y+14);
+        if(on){ ctx.fillStyle='#059669'; ctx.font='bold 11px system-ui'; ctx.fillText('← prediction',bx+bw+44,y+14); }
+      }
+      document.getElementById('clread').textContent='image "'+items[sel].label+'" → nearest text prompt: '+prompts[best]+(best===sel?'  ✓ correct (zero-shot!)':'');
+    }
+    cv.addEventListener('click',function(e){ var r=cv.getBoundingClientRect(); var x=(e.clientX-r.left)*(W/r.width), y=(e.clientY-r.top)*(H/r.height);
+      if(x<90){ var i=Math.floor((y-46)/52); if(i>=0&&i<items.length){ sel=i; draw(); } } });
+    document.getElementById('clnext').onclick=function(){ sel=(sel+1)%items.length; draw(); };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
