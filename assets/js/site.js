@@ -214,11 +214,11 @@
       n: 18, id: "t22", title: "Causal Inference",
       desc: "Beyond correlation: confounding, the do-operator, backdoor adjustment, and treatment effects.",
       lessons: [
-        { id: "t22-l00", title: "Correlation vs causation", file: "#", status: "soon" },
-        { id: "t22-l01", title: "Confounding", file: "#", status: "soon" },
-        { id: "t22-l02", title: "The do-operator", file: "#", status: "soon" },
-        { id: "t22-l03", title: "Backdoor adjustment", file: "#", status: "soon" },
-        { id: "t22-l04", title: "Estimating treatment effects", file: "#", status: "soon" },
+        { id: "t22-l00", title: "Correlation vs causation", file: "lessons/track-22-causal-inference/00-correlation-vs-causation.html", status: "done" },
+        { id: "t22-l01", title: "Confounding", file: "lessons/track-22-causal-inference/01-confounding.html", status: "done" },
+        { id: "t22-l02", title: "The do-operator", file: "lessons/track-22-causal-inference/02-the-do-operator.html", status: "done" },
+        { id: "t22-l03", title: "Backdoor adjustment", file: "lessons/track-22-causal-inference/03-backdoor-adjustment.html", status: "done" },
+        { id: "t22-l04", title: "Estimating treatment effects", file: "lessons/track-22-causal-inference/04-estimating-treatment-effects.html", status: "done" },
       ],
     },
     {

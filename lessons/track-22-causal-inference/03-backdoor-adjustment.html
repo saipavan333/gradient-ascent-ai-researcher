@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t22-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Backdoor adjustment · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Backdoor adjustment: computing do() from data</h1>
+      <p class="subtitle">You usually can't run the experiment. Backdoor adjustment is the recipe that recovers the causal effect — the do() answer — from ordinary observational data, by adjusting for exactly the right confounders and no others.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 18 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~19 min</span>
+        <span class="chip">Builds on: Lesson 2</span>
+      </div>
+
+      <p class="lead prose">
+        The do-operator (Lesson&nbsp;2) told us <em>what</em> we want — \(P(Y \mid do(T))\), the effect of intervening — but computing it seemed to require an experiment we often can't run (too costly, too slow, unethical). The remarkable result of causal inference is that, under the right conditions, you can compute the interventional \(do\) answer from purely <em>observational</em> data. The recipe is <span class="newterm">backdoor adjustment</span>, and it makes precise the "compare within subgroups" intuition from the confounding lesson. A confounder creates a <span class="newterm">backdoor path</span> — a non-causal route from treatment \(T\) to outcome \(Y\) that runs backward through the confounder (\(T \leftarrow Z \to Y\)). This path lets \(Z\)'s influence leak into the naive comparison. Backdoor adjustment <em>blocks</em> that path by conditioning on \(Z\): compute the treatment effect <em>within</em> each value of \(Z\), then average those effects weighted by how common each \(Z\) is. Blocking the backdoor leaves only the genuine causal path \(T \to Y\), so the adjusted estimate equals the true \(do\) effect. The subtlety — and the reason you need a causal graph, not just data — is knowing <em>which</em> variables to adjust for: adjust for confounders (good), but adjusting for the wrong variables can <em>create</em> bias. This lesson builds the recipe and its crucial caveat.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: close the side door</h2>
+      <p class="prose">
+        Think of two doors connecting treatment \(T\) and outcome \(Y\). The <em>front door</em> is the honest causal path \(T \to Y\) — the effect you want. The <em>back door</em> is a sneaky side route \(T \leftarrow Z \to Y\) through the confounder, which lets correlation flow between \(T\) and \(Y\) without any causation. The naive comparison sees the sum of both doors, which is why it's biased. Backdoor adjustment simply <em>closes the back door</em>: by looking only within groups that share the same \(Z\), the confounder can't vary, so its route is blocked, and only the front-door causal effect remains. Averaging the within-group effects (weighted by group size) reassembles the population-level causal effect with the confounding removed.
+      </p>
+      <p class="prose">
+        The backdoor adjustment formula:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ P(Y \mid do(T=t)) \;=\; \sum_{z} P(Y \mid T=t,\, Z=z)\,P(Z=z) \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        Read it: to get the interventional distribution, look at the outcome <em>within</em> each confounder stratum \(Z=z\) — that's \(P(Y\mid T=t, Z=z)\), a like-with-like comparison — and average across strata, weighting each by its natural frequency \(P(Z=z)\). The key difference from naive conditioning is the weighting: we weight by \(P(z)\), the confounder's distribution in the <em>whole</em> population, not by \(P(z\mid t)\) (which would reintroduce the imbalance). That reweighting is what simulates setting \(T\) while leaving \(Z\)'s natural spread intact — exactly \(do(T)\). It works <em>if</em> \(Z\) blocks all backdoor paths and you've measured it (the "backdoor criterion").
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABBQAAAI2CAMAAADXdSupAAABgFBMVEX////+/v79/f38/f38/Pz7+/v6+/v5+vr4+Pj29/f09fXy8/Xx8fLu8fTv7/Ds7/Pt7e7q6+vo6Ojk5OXg4eLf39/b29zX19fR09bNzc7JycnFx8nCwsK/v7+3ws+5ur21tbWwsLCrq6ujqK+jo6OUo7ihoaGfn5+VobWampsomHsFlmmUkpSMjpGNiIuFhYV/g4p/gIF/f3+Fen11dXVvcXVsbW1ga3pga3hyaGlkZGRhYWFgYGBfaXZfX1/MQETQOj3WMDJaXWFWV1hUVFRTU1NQUFBOTk5EUWRLTU9ISk1HR0dBRUpCQkJAQEA/Pz81QE88PDw4Ojw4ODg2NjYzQVUzNDYsNEEnM0IyMjIoMkInMkIwMDAsLS4qKionKCjcJiY9JiYjIyMhISEgICEfHx8dHR0aGxsZGRkXFxcVGRwVFRUSEhIPDw8NDQ0LCwsKCgoJCQkICAgHBwcGBwgGBgYCBgQFBQUABAIDAwMCAgMCAgIFAQEBAQIBAQEAAAAQFHi1AAA0+klEQVR42u2djVcay55oS0fHaDKJH/E7PtERvc74MTLKmUVynXuDaCKXeIzcMy8zKLOIohlAVB6P+JhD/euvqrobulHRZOI5CnuvZTfY3dX0r6s3VdVFtRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8N1IQykTXx24bdUjKY+u/ndHbf7DPo29i3WV5mALnYGd325v7Qu/5NUeR4XwxbJlKRe/cfuxrcyllMEf82Hm1CeZu6cDvT63NiSgPs7EPefwRyQFTW7sMUlhUK2y/liuxIbBvNNHuSG/fjsB62SPCl/FvFj8tr2OFMxWD1YKtdx431JoZlXoUxyJRPW3x6cHI4WFSCTShxTuQwpf9O4ikUERVi/2IxHft+11Vf0ntRmZe/hSCEYiQaTw/VLQ3wD6e+PZQ5HCHUAK333ge+bFB/XqyTfv9Y36z/APC8J9SuE7S1FIoSYFkVFz/eU8FYqn86XMzmK3tXx4LZErnnxYquXjaVWn/KwK971r6UJq5Uk1OKOvU2eFo/CktV3XXPRLKZewWiom1DqB4XCmUi2s9ixvHGRKZyln9YHXXy72F9q91QfnJDnz0fXUeelLIjTvqvUErMRHtnK59yOiO3BYTK10miS752OZUm534Un1fI9vZy8+TVtHYlHTitnlzF5ePhfi2dJutpSNzbRbi0ZDB6eFdNTk3p6FDyrR+HKveh2SsvJS/3NBbTulzRpK5gufX49Ur/Xna59LmyqmW8fFi/Tu2qQnRxl2rBWfLCcLmddW4ahj+v1JMffL8jPvxWMx6Pqg5sCd6F454iru/zoHfrReS7B+s+oZd+/VU/fQZ0OfqScryUJCbxE8yBePt6bbnEPrVIeTWmoXr2Knp9FRz6dxB9CSwvBG5uLTrFk4pBIqZfbXF0zmG1xVHyQdflWVqNlfXdSHVqOpbOl0Pzhsn0Tr+FzWnQgfXpylXo9Vz0rPSrJoB9ub2+ul4M3hN+6p/pJpqpJCWr+POUe7b07bYslucKhKYUr9J6ku9b6kWbAbt6UQqNgbvtbXUn/cfnc6ZWfb93l3DXagmuFWTW44Ma8j6UZSmCjam1xekULswnzIkT3zv5DJUvv2Gol+O4mw9QlnbpSCLlErKYym7aWxHrWgbdU+MJP9U/aiL+NCjKu5lqVQez1RIlq+tFttF+zAJg7UZFMsO3uL3SSFhPW59/Vl2ess+zx8oxSsD1ovBe8RV4tU7v9eJ4W6zWpn/DYpnOxYUZl3zku0xz6099ZpmDYBybtLFp4Amj2E8tVsMJxz0tdfJbPn7hxS3V9d1GecTQpT10qh47X9r0rAPisH+7Vge3N7nRTqcviNe6q7ZJqqTaE8baRQSMQ2Yxm7MckE4iQay1Wl4FM54EDnHp0xz2NWgNXbeTUrx3cKVgZt21XzbExH9WLEyrYql0cPXFLIxKNbcZ2dtMI/6lwYS9lRvkEKKviXH7fiJ1oKkaheNRKJTFuJX8R0fj+TqZi6hCtq2yd638n3+vN9bLOzcz52qD+Grm+qeUZtveCRgizFo9nnffrg99/rDxNWC8wlnY7unKvs350y4dCpZFUMDixTDFoZd9YEJKoydsXntOBmonuRrrze83Yi55JCIHKmPq36AAF7xeQHfS3O2vk0va0zYqr6zTMRObCaAiJ9rg9aJ4W6I7bx/tc58OBCJGNOfKSvbjPXGXfv1WI6oqMcjURGLL3kYjtxq8UyEdPX9lvHd6lYWYXh/CKm/frGVWrxBtBo5/yDyUSTpuglP219TBspTKgUSrvb+mPOO2Ucsz9v1Gdkandr+0B9hky3qB5VsCoFfeKLu/FLO5n6YHtye50U6nL4jXvyJtJcdx9WO4zKTU7sUhf1FyHaj/X/u1TWmrWlMKmu+oTOIwPqnJ2p633FClmHbsBS18Ko+sq+6BU+beQ+q11qw5bCis6i1dxhfX0MW2dW2//4pWgLNZSCylDLZqMFT5uCTrw8Lp6ry0xudZhdzlmSWrav6Skricyw6N63v/euVOT1LrOqpNvVrhNQfmwLqvmI6NXJLqqr5dm0VWLd6RGdYetjL1kV7GUz61Cx+qxLUGkr0+pD3lZfnU90oUgXgTvGZ25qU9C5acY6IB25oCprTav5wnXV3doHrZNC3RHb1P+3euBOtc+7gveMX61kV+8L6Ys03q/P6Cfrkw59MfGySgqdZtPLMdF77mklqguglkLezkTKmFGnkDev6nBKizkV3B6VfKbTvT9P1EX/QDVh3zV3H/p0fhy1wvqloz7Y3txed7h1OfzmPXkTaS4pyO0ufbUuxI6t206yV4zp78x2Vz4+U+c4/lzYZQh9Bp/kTHDGnNLxG3NJBW0T96jvj9N2k22TbZ79Dqmaq1Xc3rJO8LJdqWhYUkguTL5sq2to1IlH1Tyh5uPW6VdpbeuUlcmj1ucM2BdQ0FrpeikY5ehvopLaMLJr/qMvzm1npah9feudH6hsUjKJKtF8tCKQ0tulreKv/j43dd8upZXo3Ku+Bg2NZ89UtcE6DP0BYyqVTfuorpXCcvXAXVKoO2Kb+v9ekYJ3Be8Zv0UKOpCiXx+3PicrVrl+x1owZX9+dU0Xa5vXBXDOlYkKXbqkcLzkG2p3kj3R4Uxa6VX35426Ovr1ZL52d7VeCvr0vXbaVcfqg+3N7XWHW5fDb96TN5HmaVPoGrV935OQrprktCd/WRXSc6vCuuy0ECRMAtNO4WnJZI2o1T/GnDrZZ7JtyLPbifPqbj5Y5UZTeck2bFOwarvZ8NgVKayp+a5pEHAukQOX7aJWEtOubH6tFKwmrXPXliFzPMvOSgfOeT9VeUvNttT1IEaskum0azOdffW1IqqhUhwGB26Swr4uSFgfKepKJXmTFF5dJ4W6I3Z9ZPd/r0jBu4L3jDeWQtHoeczyejUL7NROw9qVRvq6AM45xaGEEemI1aaQf++zkq0y49qfN+q1BhurKFovhSUnmwatDOANtje31x1uXQ6/cU91iTTT3YcJ6/LUQSztRkzd8XopyOiT75JCwLNbnTu+qMqpdXJCTon3qhQmrWZ+c7KGgwfGC4XReikEamfpmktk9+qNjGulMHRFCm8bS0F/HY6p6kb+aZ0UJs0edu3NfGGr6TL1rNEtyatSOL5JCkOeA5++9oivkcLubVLY/SYpmIbpa6Vw9azcSQri5WrCNFpWfF4pzLv25436gC5tJrciO1d2d6MUXMH25vbGUrhxT3WJNJMURq1vpi275S9qjvBK9SGtK4ObnQ2qD69N8EOu6kO+/aoUdPEt0WUVEndq1Yd+b/Vh2f56T9ROVtfQ7KnZ8W1SiNpt2HXZu6EUBp2Mm6/d1Lu2+vDSKv2KTlWPDh5aBdSxutKQdw89I05ZxebwBikEq8VkDyseKVgfdNwWcfDaI3Z95IHrPpaTqb0reM/4SkMpWJ//uurDjVKoC2Bd9cHckB2cPtZFln5v9cndg8UddefLyBajqSVcW32IVasPrmB7c3vj6sONe6pLpImkYJrVPlhHNqy+2y7NEVabnbpm7DB36eC+bbeaYfJ2e49KoDNTa2gs9BmZOw2NEXFVCvqUx9tF17p1cnT2Tg9caWjUeWa7w6hYn6y5SZ1vnqRMbumv3uK7Xgq6PSjyVGtkMjxwVQrn1cL9FSnozxw0zStTyga6pUwuqEzfYzc0xnpEx1vnRplat+C0I6qsem56IrxcXPFIYdmUmYbcRQ63erz5VDeJ7On2h/bxkKvf+ZJViPZ8UJ1iul9MnF17xK6mPfd/r0jBu4L3jNf2erMUTEOj+iofPKk1NN4ohboAOg2Ny9bJnJ7STXb6zlXSJFs2++6bD9Z1a3NFfdpKqG/f3l1NcXZDo1rx3G5ozHRcVyyr5fZrGhpdOfzGPdUl0jy3JLfM3cAFKy6n0bisWEc4a92gimartySf/mILVJcZzmIJ54aNPt2Xe+aWpApdm77xno0e2GX9q9UHfVMqtZ2u2CdJr56LJutuSQ7pxdmsfWdcbMvT+Nb2sWXsNu3vvUjk5Q1SMDe/crGteP7aflD6cycikdFrpNCvd5iJvf9UMOmZxuejaOw0ocTw2YRDT7MDzt0Tp+4/b25Vv9dL1z1SyMsvO5vmll3tpoDQDYnJTd3L2JtPzc3c892t3ZznS1pb9nQ7sur5XYgusBaO7e4a9Ufsvgno+u8VKdSt4Dnjtb02kIJ9S/LUvoXbUAp1AbRuSVqZyKeLPOeftk1W3LKTTW1Hk2Xzgd1ScEXdZJG9aK7iakhOb0ZmqxtoxRd29ly3JF3Brsvt19ySrOXwG/dUl0iT3X3Q1YJeq+Hg04Z9hEtXOi+ZLh2r1a4d+3YzjHD6+Mh1fWuz/5P9Lj8lrpPCtLX2sn2ShjNW754T7w+irI4nmYgjBaeurS/INev1yA1SEEPJ6oG9vCqFRWuJ7xopiLFjWeslJdrW5DWdlzJWW5+xmVMAWCnX2ie9UnA6L3V4r3LLw958Kvr2qp/7letqsj7TJ88HnbU+ZOjaI67e5vH+94oU6ldwn/HaXhtIQSyU6jsv3SiFugBqKYStrk9r9nVm7VvLer7g7vTl6QDvirq1TcG5uzR66fR3cjovOd2MKqtXi2V1uf36zktODr9pT/WXTPNI4fxzxPoaG3iTKX5e7ame/OHg/mnJ08158Nhqf+0NHqs1n1bP+tib1HkhvVHr5pwpnSZWX4prpSB8u+f5venqSXr5JlNILnfZuwjbRbPOlVTpJDRgn6yxQOzz6WUuHjB397oCqWIjKYju+eiX0kU6ujx0TZtC2+L+xU1SEM+XdjKl89TmolUQHQsl88Vjq5vz08WdbCkXX+lzdQO4dArrI8ED9fkSoakujxSm1vbS56UvsfkudwBm42fXSkF0zGwdF4rHscCIe/XhSKZcLwUx/amQ2x67/ohd3Zzd/70qhfrNXGe8ttdGUjDdnEsnrm7ON0vBG0DTzXl0M1tImOAOL2+ncpeniTXLaUOrn3KXuf31mZ56Kbii3rZwUMpujVZj4Ns99UhBiMlwunCRWh+7pq5Wl9uvdHP25PAb91R/ycC9oNxcekIYAMDwbHnD8zsBAGhxBk3VbZxAAEBVCqqiTBwAAAAAAAAAAAAAAAAAHhxv3/30e/D2Y0p3+Dw1b/7L9WMKz1p//Phf/+cyt//2JwBwePf2nqXw7veRgv2DmsZSeGuP1Pv//kJGAKhK4d09S+Gnn36XAsq6EkLJ+flJIGL4WPfEqS79M/RE9ELKMv2SAH6za/Z3ksL07HB7/aOdnKGXHOatURDGLu3hNgGgiaWgqZOCHhj9xP1L4T37x9DRH/rYMQCk8FiksGQPeevQraoXJ/rF6j0+fBwAKTxYKXSotwX3s8uGnSaGBWd0QwBoJSlMex8WZo3Muuu0LYTICgCtJoVd57EPSAEAKQjrGRLepypQfQBoaSm88Y5mLmhoBGhtKfQXpPzc7l0et29JxrglCdB6UlhxHsInak93W6h1XtojJwA0uRTm4/F4UcqimvnU265jKfPP66Rgd3Mu0M0ZoAWkEKj9BEo3F8w4D6B2S0EM2o8GKs2QEQBaTApxKStDV6Qgupd/yRU+h2hQAGiNNgUAQAoAgBQAACkAAFIAgBaUQr7YHOTJVoAUfswOivK/mwFZJFsBUvhBUvjv/2wG/hspAFJACkgBkAJSQAqAFJACUgCkgBSQAiAFpIAUACkgBaQAgBSQAgBSQAoASAEpACAFpACAFJACAFJACgBIASkAIAWkAIAUkAIAUkAKAEgBKQAgBaQA0OxSGF3aOJJy0Hk79jZdzHxcQgpIAVpWCpvmSY2OFBbLpd1wLJNCCkgBWlYKy4GpgS+OFKZlQj/AtWMMKSAFaOk2BUcKT77kB2hTQAqAFKpSmJZvaGhECoAUalIIyfln88HgXA9SQAqAFDR7cimtmx1PxmvL9gw/IwWAVpRCUpZSk89GNmW2HykgBUAKQqRkSd98aE/IANUHpABIQYiEjJr5gtxFCkgBkILuyBQyc59MIQWkAEhBiGW5YeazMoEUkAIgBSFG5HG3nq/bJQakANDiUhDbMtghxNRleRQpIAVoVSn44vF4SSbi8RX1pj8lP0fiUvIrSaQArSuFOWmzrt89X00Vs9FJgRSQArR09eGH7gApACAFpACAFJACAFJACgBIASkAIAWkgBQAKSAFpABIASkgBUAKSAEpAFJACkgBkAJSQAoASAEpACAFpACAFJACAFJACgBIASkAIAWkAIAUkAIAUkAKAEgBKQAgBaQAgBSQAgBSQAoASAEpACAFpACAFJACUgCkgBSQAiAFpIAUACkgBaQASAEpIAVACkgBKQAgBaQAgBSQAgBSQAoAP+qanWq86ejSxpGUg7V/DF/IOFJACtDEUqis9zbadFNqalJo/1hBCkgBmloKx5WT6QabLgemBr64pLAgQ0gBKUBTS+FZqFLe6Gu4uUsKg/ntCaSAFKDJGxonP1cy03eUQiz/EikgBWh2KYie4GV5c/ilRUMpzMsFgRSQAjS9FIQYT5ZtLhtJYSAXb0cKSAFaQQoz2YpDIym8L42IOinsGX5GCgDNJIWB9+VysOf2NoUZGRBIASlA80thLltJvbpDQ2NfJtl9RQpUHwCaTQovo+XLtW5xBylMycMdRUKe7uw8RQpkK2hWKeQqB+O3bF6VQo3nSIFsBc0qhVKgS9xNCjZUH5ACNLcURm/fHCkgBWithsaG+OLxeEkm4vEVpIAUACko5pxWhHWkgBQAKdzHDpACAFJACgBIASkAIAWkAIAUkAIAUkAKSAFaQgq9K7HkZ0MKKSAFQApi6KTcaDwFpIAUoNWkEKlsjT2l+oAUACk4ZFOdtCkgBUAKNc7CAikgBUAKNX6JIQWkAEjBxawekBUpIAVAClUCmfmXSAEpAFJwKJcrjZ77gBSQArSaFI4OayAFpABI4TfdAVIAQApIAQApIAWARy6FkVDq7CwVGkEKSAGQgmahZP0iqrSAFJACIAUhJsrF0Hh//3iocPkKKSAFQApi69JnvfCVt5ACUgCkIDI7zqudDFJACoAURKH6K8lwASkgBUAKIn3gvNpPIwWkAEhBvC4vWy+WyyGkgBQAKYihXDmxND29tF/ODSEFpABIQYhXx+ZnkpXjVwIpIAVACoru2VA0GprtFkgBKQBS+G13gBQAkAJSAEAKSAEAKSAFAKSAFABaTwqjSxtHUg6a1/1zkXTpdG+hEykgBWhdKWxKjSWFt/IyHv5QkDs9SAEpQPNKYXa84abLgamBL7YUgsv9ajqclgGkgBSgeaVQeX3r5o4UbGbkIVJACoAUagzLIlJACoAUakzJNFJACoAUanyQwdqbPcPPSAGgdaWwILP9SAEpQBNL4fSzm9RtUpgslae+aQdIAeCRScFL+RYpjOXlvEAKSAGaWQrRCQ+NpTCSlUsCKSAFoE3BfjV0crXjElIAaF0pvEzLNYEUkAIgBVsKfUkZEkgBKUBrS8EXj8dLMhGPr+gfRxXWLfqQAlKAppXCh6WGm85Jm3UhdpzX3s5MSAGgqaTwW+8AKQAgBaQAgBSQAgBSQAoASAEpACAFpIAUoNmlkA3eOk4jUkAK0EpS0J2X7tCrESkgBWgVKZxtIgWkAEjBxS/5uVeV6KsqSAEpQItLYfqyXK6UayAFpAAtLgUxFnhdSb2pghSQArS6FARtCkgBkEIdK1NIASkAUviddoAUAB6FFPqXowcH0eV+pIAUAClopnJlM757bgopIAVACkKMFirRmbGx6WilMIoUkAIgBREuz1kv5iphpIAUACmIk7jzKn6CFJACIAVRfFstMxSRAlIApEBJASkAUqhvU5ixXszQpoAUACkoRovlremxsemtMncfkAIgBc103vxQspKfFkgBKQBSUAysxJLJ2MqAQApIAZDCb7sDpACAFJACAFJACgBIASkAIAWkAIAUkAJSAKSAFJACIAWkgBSgtaUQW3JeLcWQAlIApOAa4j1U/zCY0aWNIykH7XdD6yeF1OpTpIAUoGWksF6qW7QpNbYURk/lp/CR3H+OFJACtIgU2g/SdYuWA1MDX2wpdCTlshBd72UIKSAFaGIpxGKxyknMsHtSvu5ZUY4UpuV+m5oNlEq9SAEpQPNKQQ/tXrEpbvY2kMIbuWJpRM4iBaQAzSuFwcHBysagYaDz2jUcKSSkz8xX5RpSQArQ1G0KtzxL0pFCVlrjMi3KSHXZnuFnpADQVFK4BUcKJTlk5vMyihSQAjS1FIZX7KEZR1eGv1EKVB8AmlEKoZI9DttAKfiN1QekANCMUkhWn/vwywENjUgBkILIV5/2EM41kAK3JJECtIoUTjedV5v5BlKodV7qQwpIAZpaColMt/WiO7PfQAqdVjfnLbo5IwVodimsVELtet4WKgfqFvni8XhJJuJxXXMYzfODKKQALSGF54fl/aWpqaVE+aj+ep+TNuv63dDbL0V+Oo0UoPmlIIYOrMfGHQzf0w6QAsDjkoJonw5Fo6HpDoEUkAIghd92B0gBACkgBYDHJ4XJzePiayF8awNIASkAUhBirVw51WOyjVYWkQJSAKQgZiqfRtvMQI1phnhHCoAUhNjN9dujt24fIgWkAEhBnOrxEYwU3p4jBaQASEGcbTpSiOWQAlIApCD20x2WFLoze0gBKQBSEIHyiiWFQHkJKSAFQAr6B1HR+Up0drOc7EEKSAGQghBDiUq5Ui5XEoMCKSAFQAqKtqngdjQ03S6QAlKAVpfC2vRvYh2kAPBYpKDbF699rCxSQArQmlIovXU9ih4pIAVACulUD1JACoAUagQr+c+V088OKaSAFKDFpdATTJfLlRpIASlAi0tBQ/UBKQBSqPKsW4jDVaSAFAAp2OjbkStTSAEpAFJwVR2oPiAFQApVcttIASkAUnCxWwzMVnZnqyAFpAAtLoXJvPmBpE2ljBSQArS4FMTLuZVKYqUKUkAK0OpSELQpIAVACnXMvkIKSAGQwu+0A6QA8CikwLMkkQIgBTc8SxIpAFJww7MkkQIgBQ93f5bk8Ouj4tn+ylOkgBSgqaVw52dJvjqXqY1oTh70IgWyFTSzFO78LMkDGWgToveTXEUKZCtoZinc9VmSvbLUZdogZAwpkK2gmaVw12dJPqtKYQMpkK2gmaVw52dJfnSqD5NIgWwFzSyFOz9LcjgtUxvbuZOZ6n/2DD8jBYDmksKdnyU5sCcVkVGkgBSgyaVwRyayB77nA/O5C6oPSAGQgqI3e2bqF9PycwdSAEAKYta+FdlZlENIAQApiGUZsV5k5RhSAEAKYk4edur5kJT9SAEAKYj+c7mmrNC3I3cEUgBACkLMl2V6M5qTX4aRAtkKkIJmLJwunR+s9gukQLYCpPBjdoAUAB64FGbrQApIAVpcCrWnQ/GEKKQASEER0I+FWq/kN9fWNvPldZ4QhRSANgUhhrLhPj3vDWeHkAJSAKQgwlafJCE6D8NIASkAUhCZqgrCGaSAFAApiPPqkIuxc6SAFAApiE+lcevFeOkXpIAUACmImUp+dayvb3Q1X55BCkgBkIIQK5d2L4WAQApIAZCCYvRN6uIi9WZMIAWkAEjht90BUgBACkgB4PFJoXchHF0SYmSqBykgBUAKQkznypXyayF83H1ACoAUFGOl7OKYfpZkRy6CFJACIAWxWRpzHkWfRApIAZCCyOwKWwrhU6SAFAApiMKGI4X3eaSAFAApiMN9RwqpA6SAFAApiFDZZ0lhprKGFJACIAUxdHa+NFRZf7lwmnuJFJACIAUhfKfWuK2nPoEUkAIgBcXLtYOzi1RwUCAFpABI4bfdAVIAeARSmB13Xo3zMBikAEjBvhtpCPEwGKQASMEjhUukgBQAKbikEM0hBaQArS6F2dnZyq71cNm51dIHpIAUoNWl4H7CbOVsAikgBWh1KQRWApXEimF5tl8gBaQAtCmIo9V73gFSAHhcUvgtd4AUAJpLCs8D+/l8MjSAFMhW0NxS6PYtWs0KK43XGz6WqY2tA/kKKZCtoKmlMJ01D43Tf43LCccFM9zzUB9SIFtBM0vhVSkX2C3Pr6Yqwca/fViTi7QpIAVoASlslsfEG1VG6ArlhxtWMnJnPUgBKUALSOFLXBgpiK7jcMMShdwVk6uh5WGkgBSguaVQDOvfR+pCQPik0XrzMrIhFa4n1u8ZfkYKAE0lheNtIQLlEfVq66zResuyVFoa6F8oyHmkQLaCZpbC7r4QUxX19d+fO2gsBWluWS7KNNUHshU0sxRWyoOi+7gcXkuXlxuttyCl6bX0VMohpADQkB3p4PmZYef8TraQfjv2wKUwtDouxKtMpVLZ7mq03pQsWC8ychwpkJPhO0LZG7f+V1l+2FKw6PHNjDZe46WUT/W8oyRHkAI5GW4L5UHE4L5aoiqMye2cmk4/AincgU9ySs8m5FkXUiAnw22hDFz5p0/FcLNdDKpYptubQgrTMjkoxMC+DNLQSE6G7whlWIVS171Daj75sKXwcnb5Tj+ICsp8NJqTez1IgZwMt4YyFgoH5z0jF6VVHeyJ0H1+rgv0A5JCV+iyXLG4bYj3mY+nF/vL3QIpkJPhbs0zhSVXw516n9UvptSL8EOWwmolG1ywxm7lYTBI4QHn5EcZSikXqv8bUO9MJ59J9SL6kKVwnB34zRotkAI5uUUILo/394zHVMxy3Y9PCuebAikghUeQkx8hPcfu27uPp/pw8B4pIIXHkJMfIxEVtBlP80z3Y2hoXMr3IwWk8Ahy8mOi055/UkHzVf+rb+TowQwf/C3JtsjBZBtSQAoPPic/JmY3dcjal1TMLvuEULMdYXX52GoXQ6eqRtbxkKUg+vbLhaPPmhRSaGkpPPCc/JiYkzITi6Z1m63u62eH8tF0cx46dropVCpIoaWl8MBz8qPya/U+TrjLFcrH8oOozUp4tIfqA1J48Dn5UdXEfMF4tnSeClsVLieUonN+N1tMhx/6T6ezB/ddP0EK5GR4UNx2zebCSAEpAFJwEdtDCkgBkIKLidIUUkAKgBRqvFq7XJ+ZeGVACkgBkIKolCv6QZKG79vBH1/otuq/e6G7vT19ocds637xd2ra9eJFuxDtL178rVn8REkh86c/q4vqz3/6U3X6n870z9Xpn69b6ZbFV1f60w9Nw7P45PCaQ20TosM61Bf6UNVifU+nx6z05MUL3V734kWHEG0vGobrb1zhstPoNit1mTQ6TBrixZ1DflsaT00azsfUafytk8aNu7hTGn/TOA0rXJ0NwvW3t4aLkH9vyP94ixTW39T4Pim8879Us0m/HsLrf/n/l5qO+P1q2u/3qxB1+/26H7VfLy6u+ZfURfXP/gU1/Vf/H/Rl5vfry+0P/n9V0wX/P6vpkr14zkz96jL8s98snjfTJTuNeWvx9Wm4d3HXNP711jT+01pp0XOof6+mA36/CvZTv7/PHOpQdfG4mQ6ZePT6/eoktftNuHzXpaHOZ8/VNEb9k9U0Xvj9f2cW7xSLxX/yh9X0j/41NX3vX1TThN+fKxazfv++erPo31bTNf8f1fSt/5/U9KP/D2p66Pcfqtkf/B9NGm+raWybNPb9/myxmPP7EyaN99U0wnYafjVN+/0pk8YHVxoravoXs4sDvz9TLJ76/b9U0/jJ/y9q+s5J46JYPPb7k8V89VDHqwdsHWqfCVen369/xfv39xvyA3Msf1HTFVe4PphjSfn9aTXz2+F6wCE/Vtf+deHyqelLv7/dhKtXh+vdT/ddFEEKv4MUPsqvX//J/+7r169/9P+kpip3qanKXadfv6rcdaDeLPr/oqYqd6mpyqFqqnKomqrclVYzlUO/6jTemjTW1PQvJg2Vu3Jfv6oLet+ksa2mP5k03pk0/s3vV9P/Urn8hjT0LpIql3/9eqZyuUnjvUnjX9xp/F8rDVl8EFJI/vrrr0oKaqrCpaYqXGqqwqWm6oL+LzXz+/9NTVXI1VSFXE1VyNVUhTz/66865OrNoiuNd640dMjNLj660lhT07+YNHTIf/01r0Ju0thW059caahwqakOlyuNt6409C5UyDMPSApUH36Hsmzu6z/+4z/8wz9q7Ok/XD+9ZfHvnMbX4gOoPhym/6p4986avqtO/3rz9A6L33334u/cRfr8h1Uf7r3RgobG+6D49R+bga8Poc22+Otfm4Ffiz/kmp2dfSZmXSAFpIAUWlwKlfKwqN56KFfKSAEpIIUWl0JgpVf91UAKSAEptLgUaFNACkgBKSAFpIAUkELj5eXXzqvQJVJACkgBKYhKTQo0NCIFpIAU3FIIXyAFpIAUkEJVCu0jmSRSQApIodWlYHonVPspcEsSKSCFlpfC0eFhOX9oSH5YbEcKSAEpUH1wtSlwSxIpIAWkoJgYRgpIASkghWvo7UAKSAEpIAXF6LIuKvhOyrkFpIAUkAJSEOJ1qV+IgfPKWaU8fltabTEph5ECUkAKzS2Fg1/UZLkSEBOXtz4WZl5WkAJSQArNLoVsRE12znuE2L3tqdMDuegRUkAKSKHZpXCuygedZx/Uq/DZLUlt5weRAlJACk0vhdS+EBOq9iBEJNN4zVm5KJACUkAKzd/QWF4c+VjWTxROJhqu2J+NtyMFpIAUml8Kw2flciWqXgxVQg1XjJRGBVJACkihBTovja5vB/R4+fMJX6PVpuWqqJPCnuFnpIAUkEIrDsfW+yXVjRSQAlJAClXW5YQQVB+QAlJoCSkMr31MqqrB+EJvg5VyFzuagozvTCMFpIAUmloKC6VKRY/e+qo830gKssoiUkAKSKGZpeCrHE71mUEVMtu3p0b1ASkghaaXQvRsyB5pJZpCCkgBKSAFkY0JWwpv80gBKSAFpCAuIo4UoqdIASkgBaQgkilbCh3Hie8KKVJACkihuaQQ1DcdtBQWygGkgBSQAlIQA9nL4GRl89Va6aQXKSAFpIAUhBg7Ns+DqRyPCqSAFJACUlA8Xdg+SEaXngmkgBSQAlL4ASAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSCF31AKXZPB/bNCKjiIFJACUkAKmkkp05ubxzI3jhSQAlJACoqJDW2D7jfyqAspIAWkgBSqdOfkBFJACkgBKdSIyxmkgBSQAlKo0pGhpIAUkAJScDEnM0+c13uGn5ECUkAKLSyFwaycF0gBKSAFpGDzbF9u0E8BKSAFpFC99bAjY0+QAlJACkjBpmtb7vUIpIAUkAJSsGgPy0SvQApIASkgBYu21zLZL5ACUkAKSMFmTX4eEEgBKSAFpGAzJWVs3TCFFJACUkAKuteSQwApIAWkgBR+zA6QAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpIAWkgBSQAlJACkgBKSAFpIAUkAJSQApIASkgBaSAFJACUkAKSAEpPAApdC0fXGQ2R5ECUkAKSMFywgeZ2diVJR9SQApIASloVmT8mRAzMvMMKSAFpIAUhOjMyjE935aLSAEpIAWkIMSE/GzmszKGFJACUkAKQizKDTMfkVmkgBSQAlIQYk2umflzKZ/a/9oz/PXdT3fl3//j35uB//j3n353/v0//ncz8BBCqWLZHNw9lu/e/RgphGTAaluQcsAjhZ/f/fSA+Pnnn4BYEsrGUnh7b1J4iOztCSCWhPI34ZrqA9EnJ0Mrh/LGhkaiT06G1gzljbckiT45GVozlDd2XiL65GRo0VDe1M2Z6JOToUVDedMPogCgVelaPihkr/50GgAAAAAAAAAAAAAAAACgZZiQ6wThWuTRXdYKyLk7/Q++l55guiSDQkzunkr5nHggBaTQInG8maBMhddnxMt8Kbq+3nPjautyglj/KA8PDxAEpPCApZA+N78TmLPHJ0EKgBRaXQoVa/uVW4KKFL79xLQvHhQy6/36Te9C9LCQ252rVR/W5LJTVFtS0+6lT/mzTwsdrR6zzuVk4SR0NWZCjK6ni5m95e6qAJYqqSE1m/l0kQkP2f97Hji4ON2bbxf1b1T+nYxmZUt0gJ+ThiPXUR9Jjy2GQ0fF7NaYZ6vJrUwpHdJl2CNrezuZgGeZzr6Rk+LJzoJKzAIxfEsGD19EIyfy4Il645PpWDhW0I03thRG5YFZrTNzqYLdl5CZ6PuMjLS1dszSm4Vo+EQeDdTHTMxfyoNw9EgO2lJoW5WJfvNtdhkLp7PrRgr9SfllY/tcbrTVv1mXoUoivDvSClF8tS7z6+vrq66j9krBdy4PIruXpWlPUau0t7EvvwwLsWpt/2o9IXfX16c8y/Qb+Us4dqISXE/JqFpvmGv97hlcplQGfhaXs+rN0Lj+V39CjjtSEPvW15ZPRtV0S4Z61FdbVM63eMx0xuvelJv1MRsvX5gsPPHckkLXWxnT9d6x8vkrIbrC0khhU75XYRxKy4X6N+uyleoXTvWhetQeKQzmC1M6dLnTvuoW0zKlhTkv91zb28Uvz7JpmVUBFx1TVB++K4P7rIi+cRXR5GpVCkvWV2BYzphiQ6d+M1BMtHjMFkwYCpXBuphtO7UtK68+jcqNLv36jTUsZ9+Zzr+DlYIp4s7IVN0blX+johWlYB+1RwpOzXXRNRaRpV797TR6RQqeZQdymjaF7z8xJXOdj1jnpW1iOfhmPSK3qlIYKGfUCs8v8j1aEKvWRgfl7taWgnVTPKpN6Y5Zx5nsd0lh6RcZtNoNUtZYW6pYMKeH4bOugfYLOeB9o/LvfEtKYf4aKRxIq8Q/JsPOBv3yxHqxZLbwSMGzbECediCF/0H92MwG5Y4ObNxulflQlYKI6aLEvHkdlFVa+m6lzFnzkP4uc8es31liV3+l81CAgi2LNZ1/l2XI+m9SqcLzRuVfXW7rW9dMtZAUfNdI4bya2apDmY7VMuByvRQ8y8akqyyLFL7zxFhS2JZbr3o7xLB5Y0thVot6R06aiyC+btOHFGwpuGNWJ4VwoeD7VilMmJPhtKe3ihQmPFJoNwsK8q2d2apVsnGZdTLgVL0UPMuQwg+TQk85YwpdPrcUevLnz15W0roYvCxXCJipPjyrVh88MaurPsz5LmwrXF99OHdXH86t6sNE6+W92lGnrMAOmgUpOVi/wYA8vGZ7SwqeZVQffpgUBmy/ht1SUDGdW7YaE5R/24iYloKpA/frhkZvzLZNb46qFMTkedFnxdA0NPbmrYbGoql9TVsNja43LZZ/S8d1V+2O5c55kymD1wx2fuDpwuFtaPQsczc0hkwxF75PCh25S3125ioeKUzKmNPmsy1f9+r58HSLS+FE35K02hY9MXtVPjdNAc4tSTF5VjT31Spn4+5bklvdKuSH9i1J15vWksJRqdcrhRW51aWClbFvSeZn9HdQp6/WbWNaJo02ns13i6u3JF3LZmTG3JL0meULXOff36awJMux8L5c9Uih/VjKT9bKvXF5uhveSpkb9C0cM9N56VimB+pjJhbKct/deUlM5EtTJmNexsJHuWrnpZOw7q/UXv+mtaQQlEfh0KrrqPtOZGpj73LV7ryUl5+3w7GcdDW5rlRkIhKOF839H68UvMtWpYyHo7rzkhitFLZCITovfacUxHT8NPfBN+iRgo6vo9qu+Z1c6fjjynCLx6xrJVW0uzl7Yqa+5sInpczHpVo351d50yVv9lMhG6l1c04W8rVuzrU3rSWFnuBRye7mbP9naCN7kZirZspg8jyf2px1P3F1PJwuZvdDvrarUvAsM32eT2IL1hk6o5szAAAAAAAAAAAAAAAAAMB94/uGX+F2BFKl7+iQ5Pyo7SrWWJorlbEWC7rVt2Puf/Bjpp2rPf4BfgydyVTnnVdelCfh9YUfLoVn2R2k8I3XPVKAe2P+W4br2JVD37OP26QgAs4P5VtLCs+H+5ACPDz2L77hkTmfpbgXKQy11Ohi4o4P0EEK8LswLjes1oK5WLZwtGm+sIdep4uZ9xPO9Tz76TwbGTL50KAyY38wVcjFpj1XvPWLNbnzJJAqHgetgQSer6ULqZUue5UBs5VdJvDtnmWjo04Beq/cxFncFzrIXSTXrFLBWDR3ujPprj44Pfqty3wgmMyfpsKT9ggqJtyeMcmfrKSK6bWnSAHui1XrN0zdMVmIhXfz5me9p/IgvFupLFiX/GoptvFZflFZenk9L81gSsMn8igcK1mDJ9RJYW8nt7WVlTH9Y5Nn+zKzsX2xaa0ylpWpzQ8X1q/f5yryYzhZCNlSWG3mX61m8/GNrbQ81FaYLMpEOFEJ3iSFgYwK0ka8EBJ9619kxBq7yj0meWdMnm5u5uJ7SAHuiT1rxImQ/PRSX8WTyg/HZlw7X+ly1FzyWTXr2rLGUrIFkJChTiFGc6YloE4KMt6rShKHJqMH5a4qMSiF6FWeHVfmlSmGjy5HVN4/q0ybhx3YUpiSkeaN8bR+fGFnQI+n1nNinLggb5JCwBoU+/moq4bgGZN8USZViaH/QCIFuCfOpM6xA6XiS+c/s3K/zfLEa3PJm6/wMTNEqy2ACZkxT+lcNiNl1kmhYka6WNIS6clbxlkwUliwBxmc1tl+xbqx2XVsS2HIjCfU3BxndHCt8ZfiN0kh6BoUwJGCZ0zyQ2sFH1KAe6JHFvRsxtXQ99oeRn/cXKdHVt57JpM1KazYl/eAvOi8IoUj+5tfrfLKfmrUcyOFbfsOQ5/+wovZo2Ct2VLoladNHOXBheDr9fWM7FXBtYZhW7xJCnMyOdXtlYJnTPKXMm+NdJdFCnA/DMis9Z0frP4ral+v/fLCaKC9dsnbAgjZ2mi70MOP1klhV1iFiXVdJrBVk9OrHFRH1k7ZQxKbi8OSQqe099OMBC6rbYZOcKdukkLHWylL8dVhlxQ8Y5KPW3bWxQekAPdUUijeJgVxNym0O3cfbpJCUm7aI2uvXpVCM5cUpuXx9MsnuvmmsRR2rct8ZDmal+X5mhQ8Y5KP26UvpAD32Kbw9Jbqw1Up1KoPhc664bY9UvBWH2Luga7qqw/N3KYQtutNGXUZX1d9CNnNCEfVy/zJQqXwvCoFz5jkVB/g3tkzX9n9DRoar0rB29DoGW7bI4WeM2laHa2GxiVXaUQErLsNXenq3YeNpg1x1GpundTVhzl7aFt3Q2PAEsVw2XWZH+igRu3+o54xyY9oaIR7xu4gEJK/6K4xTyfNXTNzS7Jo35K8KoU2+5Zk1uRP73DbbimIoNxRpYgh+5bkyeWi/pVF26tX6gvvvDzlviXZzP0UgjLUrqKQ0pdxT8YcqOeW5IQ8VLWwgbi5zGfN9T98UTFPfJmy6x+uMcmX5EE/tyThPhm3vrJ7Prg6L+U9nZeuSkH3PPgcjtqdlzzDbXul8NzbeemLPI6Goxlzp35eyt1wsuh0Xoo3cY/GoZxMhaPFnY/6MvaVZCL8ydN5qS0qs1uxU2v5pjzacvqFTcnTSCjU6x2T3O689Audl+De2C+Y3z50zu+eFo42TO136HW6lN2udnO+KgUxEPxcdLo5e4bb9kpBPA8eF1MBp5tzXyCRP/8cXTD9fX2757noWEv89mFo4/giGXhiNRGMRU/zuz6nm7PpEtazdlw8DHSb5a+CnzLFdNRqhVjYv7AKBO4xybsDn4vp4DO6OcO9Mf8QHmrecr+StFhwPTwO4MHQmfzc9Xt/htYbT8HitZwiA8IDxPf7FxVab+QlzfKOfRcHAECzc74zShQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOBB8/8BR0vcA0Ch6EQAAAAASUVORK5CYII=" alt="A bar chart comparing three estimates of the effect of T on Y: the naive confounded estimate is about 17, the backdoor-adjusted estimate is about 5, and the true effect is 5 — the adjusted bar matches the truth." />
+        <figcaption>Backdoor adjustment recovers the true causal effect (5) from observational data by adjusting for the confounder, fixing the badly biased naive estimate (17).</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="bdlab">
+        <div class="wtitle">▶ Interactive · close the backdoor</div>
+        <div class="whint">The true effect of the treatment is <strong>+5</strong>. The naive estimate is badly confounded. Press <strong>Adjust for Z</strong> to apply backdoor adjustment — compute the effect within each confounder stratum and average — and watch the estimate snap from the confounded value to the true +5. <strong>New data</strong> reshuffles.</div>
+        <canvas id="bdcanvas" width="640" height="300" aria-label="Interactive backdoor adjustment"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="bdadjust">Adjust for Z (close backdoor)</button>
+          <button class="wbtn" id="bdnaive">Show naive again</button>
+          <button class="wbtn" id="bdnew">↻ New data</button>
+        </div>
+        <div class="wreadout" id="bdread">Naive estimate is confounded. Press "Adjust for Z".</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: recovering the true effect</h3>
+        <p class="prose">From <code>backdoor.py</code>: \(Z\to T\), \(Z\to Y\), \(T\to Y\); the true effect of \(T\) is +5.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Naive.</strong> \(E[Y\mid T{=}1] - E[Y\mid T{=}0] = +17\). Confounded — the backdoor \(T\leftarrow Z\to Y\) is wide open.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Within each stratum.</strong> Among \(Z{=}0\): effect ≈ +5. Among \(Z{=}1\): effect ≈ +5. Blocking \(Z\) reveals the true effect in each group.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Average, weighted by \(P(Z)\).</strong> \(P(Z{=}0)=P(Z{=}1)=0.5\), so adjusted \(= 0.5(5) + 0.5(5) = +4.97\) — the true effect.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> Naive +17 → adjusted +4.97, from observational data alone, no experiment. Backdoor adjustment computed the \(do\) answer by closing the confounding path.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: backdoor adjustment</h2>
+      <pre><code>naive = Y[T==1].mean() - Y[T==0].mean()          # +17  (backdoor open)
+
+adj = 0.0
+for z in (0, 1):
+    pz    = (Z == z).mean()                       # P(Z=z) in the whole population
+    eff_z = Y[(T==1)&(Z==z)].mean() - Y[(T==0)&(Z==z)].mean()   # effect WITHIN stratum z
+    adj  += pz * eff_z                            # average, weighted by P(z)  (eq 3.1)
+# adj = +4.97  ==  true effect (5)</code></pre>
+      <p class="prose">
+        The loop is equation (3.1): within-stratum effects, averaged by the confounder's population frequency. For a continuous confounder you'd use regression or the propensity methods of the next lesson instead of a sum, but the principle is identical — block the backdoor by holding the confounder fixed.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The deadly caveat: don't adjust for the wrong thing.</strong> Backdoor adjustment is only correct for a set \(Z\) that <em>blocks all backdoor paths without opening new ones</em> — the formal "backdoor criterion." Adjust for a <em>confounder</em> (common cause): good. But adjust for a <em>mediator</em> (a variable on the causal path \(T\to M\to Y\)) and you remove part of the real effect. Adjust for a <em>collider</em> (a common effect, \(T\to C\leftarrow Y\)) and you <em>create</em> a spurious association out of nothing. This is why you cannot just "control for everything" — the choice of what to adjust for requires the causal graph, and getting it wrong turns a fix into a new bias. Which variables are safe is precisely what the causal diagram tells you.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Controlling for everything.</strong> Adjusting for mediators or colliders introduces bias. Only adjust for a valid backdoor set (confounders), which the graph identifies.</li>
+          <li><strong>Weighting by \(P(z\mid t)\) instead of \(P(z)\).</strong> The population weight \(P(z)\) is what simulates the intervention; the conditional weight would keep the confounding.</li>
+          <li><strong>Assuming you measured all confounders.</strong> Backdoor adjustment only blocks confounders you <em>have</em>. An unmeasured confounder leaves a backdoor open, and the estimate stays biased.</li>
+          <li><strong>Forgetting positivity.</strong> You need some treated and some untreated units in every stratum. If a stratum has only treated (or only untreated) units, you can't compare within it.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>A backdoor path</strong> (\(T\leftarrow Z\to Y\)) is a non-causal route that biases the naive estimate.</li>
+          <li><strong>Backdoor adjustment</strong> blocks it: effect within each \(Z\) stratum, averaged by \(P(Z)\) (eq 3.1) — this equals \(P(Y\mid do(T))\).</li>
+          <li><strong>Weight by \(P(z)\), not \(P(z\mid t)\)</strong> — that's what simulates the intervention.</li>
+          <li><strong>Adjust only for a valid backdoor set (confounders);</strong> mediators and colliders introduce bias — you need the graph.</li>
+          <li><strong>Requires measuring all confounders</strong> and positivity (both treatments present in each stratum).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is a "backdoor path"?</p>
+          <ul class="quiz-options">
+            <li>The direct causal path from T to Y.<div class="quiz-why">That's the front door — the effect you want to keep.</div></li>
+            <li>A non-causal path from T to Y through a confounder (T ← Z → Y).<div class="quiz-why">Correct. It leaks confounding into the naive comparison.</div></li>
+            <li>A path from Y to T.<div class="quiz-why">Backdoor paths specifically run through a common cause.</div></li>
+            <li>The learning rate schedule.<div class="quiz-why">Unrelated.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does backdoor adjustment recover the causal effect?</p>
+          <ul class="quiz-options">
+            <li>By collecting more data.<div class="quiz-why">It's about how you compute, not data volume.</div></li>
+            <li>By deleting the confounder.<div class="quiz-why">You condition on it, not delete it.</div></li>
+            <li>Effect within each confounder stratum, averaged by P(Z).<div class="quiz-why">Correct. Blocking Z within strata, then averaging by the population weight, equals do(T).</div></li>
+            <li>By training a deeper model.<div class="quiz-why">Model depth doesn't remove confounding.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why is "control for everything" a bad strategy?</p>
+          <ul class="quiz-options">
+            <li>It's too slow.<div class="quiz-why">The problem is bias, not speed.</div></li>
+            <li>It always underfits.<div class="quiz-why">Not the issue.</div></li>
+            <li>It uses too much memory.<div class="quiz-why">Not the concern here.</div></li>
+            <li>Adjusting for mediators or colliders introduces new bias.<div class="quiz-why">Correct. Only a valid backdoor set (confounders) is safe; the graph tells you which.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What must be true for backdoor adjustment to give the right answer?</p>
+          <ul class="quiz-options">
+            <li>You measured all confounders that block the backdoor paths.<div class="quiz-why">Correct. Unmeasured confounders leave a backdoor open and bias remains.</div></li>
+            <li>The treatment is binary.<div class="quiz-why">It works for many treatment types.</div></li>
+            <li>There is no causal effect.<div class="quiz-why">It estimates whatever effect exists, including nonzero.</div></li>
+            <li>The dataset is small.<div class="quiz-why">Size isn't the requirement; measuring confounders is.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, press "Adjust for Z." How far does the estimate move, and toward what value? What did adjusting accomplish?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The estimate jumps from the confounded naive value down to about +5, the true causal effect. Adjusting for Z closed the backdoor path T ← Z → Y: instead of comparing treated vs untreated across the whole (imbalanced) population, you compared them <em>within</em> each Z stratum — where Z is held fixed and can't confound — then averaged those honest within-group effects by the population frequency of each Z. That reweighting is what turns a biased observational comparison into the interventional do(T) answer, recovering the truth from data alone. It's the concrete, computable version of "compare like with like."</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> A "collider" is a common <em>effect</em> of T and Y (T → C ← Y). Why does adjusting for a collider <em>create</em> a spurious association, unlike adjusting for a confounder?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A collider starts <em>blocked</em>: with no conditioning, the path T → C ← Y doesn't transmit association (two arrows crashing into C don't connect T and Y). But <em>conditioning</em> on the collider C <em>opens</em> it, inducing a dependence between T and Y that wasn't there. Intuition: if C is caused by both T and Y, then learning C constrains the combination of T and Y — e.g., if C = "hospitalized" and both a disease (Y) and an injury (T) can cause hospitalization, then among hospitalized people, not having the injury makes the disease more likely (something had to explain the hospitalization). So controlling for C manufactures a T–Y correlation from nothing (this is "collider bias" or selection bias). That's the opposite of a confounder, where the path is open by default and conditioning <em>closes</em> it. The takeaway: adjusting isn't universally good — for confounders it removes bias, for colliders it creates bias — and only the causal graph tells you which role a variable plays. "Control for everything" can be actively harmful.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Backdoor adjustment needs you to have measured the confounders. What can you do when a key confounder is <em>unmeasured</em>?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Several strategies, each with assumptions. (1) <em>Instrumental variables</em>: find a variable that affects T but influences Y <em>only</em> through T (and isn't confounded with Y) — like a random encouragement or a policy change — and use it to isolate T's effect despite the unmeasured confounder. (2) <em>Front-door adjustment</em>: if you can measure a full mediator M on the path T → M → Y that is itself unconfounded with Y, Pearl's front-door formula recovers the effect even with an unmeasured T–Y confounder. (3) <em>Difference-in-differences / regression discontinuity / natural experiments</em>: exploit timing or thresholds that mimic randomization. (4) <em>Sensitivity analysis</em>: rather than claim a point estimate, quantify how strong an unmeasured confounder would have to be to overturn your conclusion. (5) Best of all, <em>run a randomized experiment</em>, which needs no confounder to be measured. The honest stance is that with unmeasured confounding the effect may not be identifiable from the data at all — so you either find a clever design that sidesteps it or you bound how wrong you could be. Recognizing when your confounders are incomplete is itself a crucial skill.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Backdoor adjustment (and its generalizations) is the everyday workhorse of causal inference in epidemiology, economics, social science, and tech experimentation, letting analysts estimate effects from observational data when experiments are impossible. Software like DoWhy and CausalML implements it and checks the assumptions. The frontier combines adjustment with machine learning — "double machine learning" and causal forests use flexible models to adjust for many, possibly high-dimensional confounders while still delivering valid causal estimates with error bars — and grapples with high-dimensional and unstructured confounders (adjusting for the information in an image or a text record). The enduring lesson is that the hard part isn't the arithmetic; it's knowing the causal structure well enough to choose what to adjust for. That judgment — encoded in a causal graph — is what separates a credible causal claim from a confidently wrong one.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"A confounder opens a backdoor path T ← Z → Y that biases the naive comparison. Backdoor adjustment closes it: compute the effect within each level of Z, then average weighted by how common each Z is — and that equals the do() effect, from observational data alone. The catch is you must adjust for the right variables (confounders, not mediators or colliders) and have measured them all — which requires the causal graph, not just the numbers."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">book</span> Pearl, Glymour &amp; Jewell (2016), "Causal Inference in Statistics: A Primer" — the backdoor criterion. <a href="http://bayes.cs.ucla.edu/PRIMER/" target="_blank" rel="noopener">ucla.edu</a></li>
+          <li><span class="src-type">tool</span> Sharma &amp; Kiciman, "DoWhy: An End-to-End Library for Causal Inference." <a href="https://arxiv.org/abs/2011.04216" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Chernozhukov et&nbsp;al. (2018), "Double/Debiased Machine Learning." <a href="https://arxiv.org/abs/1608.00060" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: for continuous confounders and real datasets, we need general estimators. <a href="04-estimating-treatment-effects.html">Estimating treatment effects</a> builds propensity scores and inverse-propensity weighting to recover the average treatment effect.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('bdcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var naive=0, adj=0, cur=0, target=0, timer=null;
+    function gen(){
+      var n=20000, sZ=[], sT=[], sY=[];
+      // simulate
+      var c00=0,c01=0,c10=0,c11=0, s00=0,s01=0,s10=0,s11=0, nz1=0;
+      for(var i=0;i<n;i++){ var Z=Math.random()<0.5?1:0; var T=(Math.random()< (Z?0.8:0.2))?1:0; var Y=20*Z+5*T+ (Math.random()*2-1)*2;
+        if(T){ if(Z){s11+=Y;c11++;}else{s10+=Y;c10++;} } else { if(Z){s01+=Y;c01++;}else{s00+=Y;c00++;} } if(Z)nz1++; }
+      var mt1=(s10+s11)/(c10+c11), mt0=(s00+s01)/(c00+c01); naive=mt1-mt0;
+      var pz1=nz1/n, pz0=1-pz1;
+      adj = pz0*((s10/c10)-(s00/c00)) + pz1*((s11/c11)-(s01/c01));
+      cur=naive; target=naive; draw(); document.getElementById('bdread').textContent='Naive estimate = '+naive.toFixed(1)+' (confounded). Press "Adjust for Z".';
+    }
+    function animate(to){ target=to; if(timer)clearInterval(timer); timer=setInterval(function(){ cur+=(target-cur)*0.15; if(Math.abs(cur-target)<0.05){cur=target;clearInterval(timer);} draw(); },30); }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      var ox=80, oy=H-40, gh=H-80, maxv=20;
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(W-30,oy); ctx.stroke();
+      // true line at 5
+      var yT=oy-5/maxv*gh; ctx.strokeStyle='#94a3b8'; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(ox,yT); ctx.lineTo(W-30,yT); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#64748b'; ctx.font='11px system-ui'; ctx.fillText('true effect = 5',W-120,yT-6);
+      // one moving bar (current estimate)
+      var bx=ox+120, bw=140, h=cur/maxv*gh;
+      ctx.fillStyle = Math.abs(cur-5)<1 ? '#059669' : '#dc2626'; ctx.fillRect(bx,oy-h,bw,h);
+      ctx.fillStyle='#0f172a'; ctx.font='bold 18px system-ui'; ctx.textAlign='center'; ctx.fillText(cur.toFixed(1),bx+bw/2,oy-h-10);
+      ctx.font='12px system-ui'; ctx.fillText('estimated effect of T on Y',bx+bw/2,oy+20); ctx.textAlign='left';
+    }
+    document.getElementById('bdadjust').onclick=function(){ animate(adj); document.getElementById('bdread').textContent='Adjusted for Z (backdoor closed): estimate → '+adj.toFixed(1)+' ✓ = true effect. Confounding removed.'; };
+    document.getElementById('bdnaive').onclick=function(){ animate(naive); document.getElementById('bdread').textContent='Naive (backdoor open): '+naive.toFixed(1)+' — biased by the confounder.'; };
+    document.getElementById('bdnew').onclick=gen;
+    gen();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

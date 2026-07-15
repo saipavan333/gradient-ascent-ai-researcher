@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t22-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Correlation vs causation · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Correlation vs causation: why prediction isn't enough</h1>
+      <p class="subtitle">Ice-cream sales predict drownings — but banning ice cream won't save anyone. Machine learning is brilliant at finding correlations, and correlations are exactly the wrong tool for deciding what to <em>do</em>. This track is about the missing piece: causation.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 18 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 1</span>
+      </div>
+
+      <p class="lead prose">
+        Everything you've built predicts: given inputs, guess an output. That's correlation — finding patterns that <em>co-occur</em>. But the questions that matter most in the real world are causal: <em>if I do this, what will happen?</em> Will this drug improve outcomes? Does this ad cause purchases? Would this policy reduce crime? A model that perfectly predicts is useless — even dangerous — for these, because correlation and causation are fundamentally different. The classic example: across summer days, ice-cream sales and drownings rise together, so ice-cream sales <em>predict</em> drownings beautifully. But banning ice cream wouldn't save a single swimmer, because a third factor — hot weather — <em>causes</em> both. That hidden common cause is a <span class="newterm">confounder</span>, and it manufactures correlations between things that have no causal link at all. This is not a rare edge case; it is everywhere, and it's why "the model found a strong relationship" is not a reason to act. This track builds the tools to answer causal questions properly — starting here by seeing, precisely, how a confounder fakes a correlation, and why no amount of predictive accuracy can fix it.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: the third variable pulling the strings</h2>
+      <p class="prose">
+        Whenever two things move together, there are three possible reasons: one causes the other (\(X \to Y\)), the other causes the one (\(Y \to X\)), or a hidden third thing causes both (\(X \leftarrow Z \to Y\)). Correlation alone <em>cannot tell these apart</em> — the data looks identical in all three cases. The ice-cream story is the third: hot weather \(Z\) drives ice-cream sales \(X\) and, independently, swimming (and thus drownings) \(Y\). \(X\) and \(Y\) dance together, but neither leads; \(Z\) is conducting. The tell-tale sign is that if you <em>hold the confounder fixed</em> — compare only days with the same temperature — the correlation between ice cream and drownings vanishes. The relationship was never real; it was \(Z\) all along.
+      </p>
+      <p class="prose">
+        We can measure this. If \(X\) and \(Y\) are both generated from a common cause \(Z\) with no direct link, then the ordinary correlation is high, but the <span class="newterm">partial correlation</span> (the correlation left after statistically removing \(Z\)'s influence) is ~0:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ X = a\,Z + \epsilon_X, \quad Y = b\,Z + \epsilon_Y \;\;\Rightarrow\;\; \text{corr}(X,Y) \text{ large}, \quad \text{corr}(X,Y \mid Z) \approx 0 \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        Read it: \(X\) is built from \(Z\) plus its own noise \(\epsilon_X\); \(Y\) from \(Z\) plus \(\epsilon_Y\); crucially, no \(X\) appears in \(Y\)'s equation and vice versa — there is <em>no</em> causal link. Yet because both share \(Z\), they correlate strongly. Compute the correlation <em>conditional on \(Z\)</em> (i.e., among data with the same \(Z\)) and it collapses to zero — exposing that the apparent relationship was entirely the confounder's doing.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A causal diagram: a common cause Z (hot weather) at the top with arrows down to X (ice-cream sales) and Y (drownings); a red dashed line between X and Y labelled 'spurious correlation, no real X to Y link'." />
+        <figcaption>A confounder Z is a common cause of X and Y. It makes them correlate strongly even though there is no causal link between X and Y.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="cclab">
+        <div class="wtitle">▶ Interactive · watch a confounder fake a correlation</div>
+        <div class="whint">There is <strong>no causal link</strong> between X and Y here — both are driven only by a hidden common cause Z. Slide the <strong>confounder strength</strong> up and watch a strong X–Y correlation appear out of nothing. Then toggle <strong>Control for Z</strong> to statistically remove Z's influence — the correlation vanishes, revealing there was never a real relationship.</div>
+        <canvas id="cccanvas" width="640" height="330" aria-label="Interactive confounding"></canvas>
+        <div class="wrow">
+          <span class="wlab">confounder strength <b id="ccslab">1.5</b></span>
+          <input class="wslider" id="ccs" type="range" min="0" max="30" value="15" />
+          <button class="wbtn primary" id="ccctrl">Control for Z</button>
+        </div>
+        <div class="wreadout" id="ccread">Slide up: a fake correlation appears though X and Y aren't linked.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: a correlation that isn't real</h3>
+        <p class="prose">From <code>correlation_vs_causation.py</code>: \(Z\) drives both \(X\) and \(Y\), with no \(X\)–\(Y\) link.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Generate.</strong> \(Z\) is the common cause. \(X = 2Z + \text{noise}\), \(Y = 2Z + \text{noise}\). Nowhere does \(X\) affect \(Y\) or vice versa.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Naive correlation.</strong> \(\text{corr}(X, Y) = 0.80\). A data scientist ignoring \(Z\) would report a strong relationship and might act on it.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Control for Z.</strong> Regress \(X\) on \(Z\) and \(Y\) on \(Z\), then correlate the leftovers (residuals). Partial correlation: \(0.013\) — essentially zero.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Verdict.</strong> The 0.80 was entirely manufactured by \(Z\). Intervening on \(X\) would do nothing to \(Y\). No model trained on \(X\) to predict \(Y\) — however accurate — could tell you that; you need the causal structure.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: exposing a spurious correlation</h2>
+      <pre><code>Z = rng.standard_normal(n)             # hidden common cause
+X = 2.0*Z + rng.standard_normal(n)     # X caused by Z only
+Y = 2.0*Z + rng.standard_normal(n)     # Y caused by Z only  — NO X->Y link
+
+corr(X, Y)                             # 0.80   — looks like a strong relationship
+# control for Z: correlate the residuals after removing Z's effect from each
+rx = X - fit_line(Z, X);  ry = Y - fit_line(Z, Y)
+corr(rx, ry)                           # 0.01   — vanishes: it was all Z</code></pre>
+      <p class="prose">
+        The two lines <code>corr(X,Y)</code> and <code>corr(rx,ry)</code> tell opposite stories about the same data. The first is what a purely predictive analysis sees; the second is what you get once you account for the confounder. Which one you report is the difference between a useful decision and an expensive mistake.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why ML makes this worse, not better.</strong> A powerful model will happily exploit the ice-cream–drowning correlation to predict drownings — that's its job, and it'll be accurate. But accuracy is exactly what lulls you into trusting it for decisions. The model has no idea which of its features are causes and which are confounded bystanders; it optimizes prediction, not intervention. This is why "explainable AI" that highlights predictive features can mislead: a feature can be highly predictive and causally irrelevant. Deciding what to <em>do</em> requires causal reasoning that prediction alone cannot supply — no matter how big the model.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>"The correlation is strong, so it's real."</strong> Strength says nothing about causation — a confounder can produce an arbitrarily strong spurious correlation.</li>
+          <li><strong>Acting on a predictive model as if it were causal.</strong> A model that predicts \(Y\) from \(X\) tells you nothing about what happens if you <em>change</em> \(X\). Prediction ≠ intervention.</li>
+          <li><strong>Assuming more data fixes it.</strong> A spurious correlation from a confounder gets <em>more</em> statistically significant with more data, not less. Volume can't cure confounding.</li>
+          <li><strong>Controlling for the wrong variable.</strong> You must control for common causes (confounders). Controlling for the wrong things (like a variable on the causal path, or a collider) can <em>create</em> bias — the subject of later lessons.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Correlation ≠ causation:</strong> \(X\)–\(Y\) co-movement can mean \(X\to Y\), \(Y\to X\), or a common cause \(X\leftarrow Z\to Y\) — the data can't distinguish them.</li>
+          <li><strong>A confounder</strong> (common cause) manufactures correlations with no causal link.</li>
+          <li><strong>Controlling for the confounder</strong> (partial correlation) makes a spurious relationship vanish.</li>
+          <li><strong>Prediction can't answer "what if I intervene?"</strong> — you need the causal structure.</li>
+          <li><strong>More data doesn't fix confounding;</strong> it sharpens the spurious signal.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> Ice-cream sales and drownings are strongly correlated. What's the most likely explanation?</p>
+          <ul class="quiz-options">
+            <li>Ice cream causes drowning.<div class="quiz-why">There's no plausible mechanism; the correlation is spurious.</div></li>
+            <li>Drowning causes ice-cream sales.<div class="quiz-why">Also implausible; the link runs through a third factor.</div></li>
+            <li>A common cause (hot weather) drives both.<div class="quiz-why">Correct. The confounder creates the correlation with no direct link.</div></li>
+            <li>Pure coincidence that more data would remove.<div class="quiz-why">More data sharpens the spurious correlation, not removes it.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> What happens to a confounder-induced correlation when you control for the confounder?</p>
+          <ul class="quiz-options">
+            <li>It vanishes (drops to ~0).<div class="quiz-why">Correct. Holding the common cause fixed reveals there's no real link.</div></li>
+            <li>It gets stronger.<div class="quiz-why">Controlling for the true confounder removes the spurious signal.</div></li>
+            <li>It stays the same.<div class="quiz-why">If it were causal it would persist; a spurious one disappears.</div></li>
+            <li>It becomes causal.<div class="quiz-why">Controlling can't create causation.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why can't a highly accurate predictive model answer "what if I intervene on X?"</p>
+          <ul class="quiz-options">
+            <li>Because it's not accurate enough.<div class="quiz-why">Accuracy isn't the issue; it's the wrong kind of question.</div></li>
+            <li>Because it needs more layers.<div class="quiz-why">Architecture can't turn correlation into causation.</div></li>
+            <li>Because prediction requires labels.<div class="quiz-why">Not the point; the issue is prediction vs intervention.</div></li>
+            <li>Prediction captures correlation, which says nothing about the effect of changing X.<div class="quiz-why">Correct. Intervention requires causal structure that prediction doesn't provide.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Does collecting more data fix a spurious correlation from a confounder?</p>
+          <ul class="quiz-options">
+            <li>Yes, it averages out.<div class="quiz-why">The confounder's effect doesn't average away; it's systematic.</div></li>
+            <li>No — it makes the spurious correlation more statistically significant.<div class="quiz-why">Correct. Confounding is systematic bias; more data sharpens it.</div></li>
+            <li>Yes, if you use a bigger model.<div class="quiz-why">Model size doesn't address confounding.</div></li>
+            <li>Only for images.<div class="quiz-why">It's domain-general.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, set the confounder strength to zero, then to maximum. What is the X–Y correlation at each extreme, and what does that prove about X and Y's relationship?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At zero confounder strength, X and Y are just independent noise — their correlation hovers around 0. At maximum strength, the correlation shoots up toward 1, looking like an ironclad relationship. Since the <em>only</em> thing you changed was how strongly the shared cause Z drives each, and there is never any X→Y link in the generator, this proves the entire correlation is manufactured by Z: its size is a dial you control through the confounder, not evidence of any real connection. It's a clean demonstration that correlation strength carries no information about causation — a strong correlation can be entirely spurious.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> A study finds that people who take vitamins live longer. Give a confounding explanation, and what you'd want to control for.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>A likely confounder is overall health-consciousness (or socioeconomic status): people who take vitamins also tend to exercise more, eat better, smoke less, and see doctors regularly — and <em>those</em> behaviors extend life. So the vitamin–longevity correlation could be entirely driven by the common cause "healthy lifestyle," with vitamins themselves doing little. To estimate the real effect you'd want to control for those confounders (exercise, diet, smoking, income, healthcare access) — or better, run a randomized trial where vitamin-taking is assigned by coin flip, breaking any link to lifestyle. This is exactly why observational health findings are treated cautiously and why randomized controlled trials are the gold standard: they eliminate confounding by design, which the later lessons formalize.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> The gold-standard fix for confounding is a randomized controlled trial (RCT). Explain <em>why</em> randomizing who gets the treatment removes confounding, in terms of the causal picture.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Confounding happens because some common cause Z influences <em>both</em> whether a unit gets the treatment T and the outcome Y (the \(Z\to T\) and \(Z\to Y\) arrows). Randomization assigns T by a coin flip — so T is determined <em>only</em> by the coin, and <em>nothing</em> about the unit (not Z, not anything) influences who gets treated. In causal-graph terms, randomizing deletes every arrow <em>into</em> T, including \(Z\to T\). With that arrow gone, there is no longer any confounding path linking T and Y through Z, so any difference in outcomes between the treated and untreated groups must be caused by the treatment itself. This is precisely the "graph surgery" that the do-operator (Lesson 2) formalizes — an RCT physically performs \(do(T)\), which is why it needs no adjustment and is the gold standard. When you can't randomize (cost, ethics), the rest of this track shows how to approximate it from observational data.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Confusing correlation with causation causes real harm: medical treatments adopted on observational evidence and later found useless or harmful in trials, policies that backfire, business decisions that waste fortunes. As machine learning gets deployed to <em>make decisions</em> — who gets a loan, which treatment, what price — the gap between prediction and causation becomes urgent, and a "causal revolution" (led by Judea Pearl and others) has brought rigorous tools to the mainstream. The frontier fuses causal inference with machine learning: causal representation learning, algorithms that estimate treatment effects with neural networks, and using causal structure to build models that are robust and fair rather than merely accurate. Understanding causation is increasingly what separates AI that predicts the world from AI that can safely <em>act</em> in it — the theme of this entire track.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Correlation isn't causation: X and Y can move together because X causes Y, Y causes X, or a hidden common cause Z drives both — and the data can't tell which. A confounder like hot weather fakes the ice-cream–drowning link; control for it and the correlation vanishes. No predictive model, however accurate, can tell you what happens if you intervene — that needs the causal structure, which is what this track builds."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">book</span> Pearl &amp; Mackenzie (2018), "The Book of Why" — the accessible causal-inference classic. <a href="http://bayes.cs.ucla.edu/WHY/" target="_blank" rel="noopener">ucla.edu</a></li>
+          <li><span class="src-type">book</span> Cunningham (2021), "Causal Inference: The Mixtape" — free online, hands-on. <a href="https://mixtape.scunning.com/" target="_blank" rel="noopener">scunning.com</a></li>
+          <li><span class="src-type">book</span> Hernán &amp; Robins, "Causal Inference: What If" — the standard text, free PDF. <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/" target="_blank" rel="noopener">harvard.edu</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: we name the villain precisely. <a href="01-confounding.html">Confounding</a> can not only fake a correlation but <em>reverse</em> a real effect — a treatment that helps everyone can look harmful. Meet Simpson's paradox.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('cccanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var n=300, Z=[], nx=[], ny=[], ctrl=false;
+    for(var i=0;i<n;i++){ Z.push(gauss()); nx.push(gauss()); ny.push(gauss()); }
+    function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0; }
+    function corr(a,b){ var ma=mean(a),mb=mean(b),s=0,sa=0,sb=0; for(var i=0;i<a.length;i++){var da=a[i]-ma,db=b[i]-mb; s+=da*db; sa+=da*da; sb+=db*db;} return s/Math.sqrt(sa*sb+1e-9); }
+    function mean(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]; return s/a.length; }
+    function draw(){
+      var str=+document.getElementById('ccs').value/10; document.getElementById('ccslab').textContent=str.toFixed(1);
+      var X=[],Y=[];
+      for(var i=0;i<n;i++){ X.push(str*Z[i]+nx[i]); Y.push(str*Z[i]+ny[i]); }
+      var px=X, py=Y, label='X vs Y (raw)';
+      if(ctrl){ // residuals after removing Z (slope = str since X=str*Z+noise, best fit slope ~ str)
+        var bx=corr(Z,X)*Math.sqrt(varr(X)/varr(Z)), by=corr(Z,Y)*Math.sqrt(varr(Y)/varr(Z));
+        px=X.map(function(v,i){return v-bx*Z[i];}); py=Y.map(function(v,i){return v-by*Z[i];}); label='residuals after removing Z';
+      }
+      var c=corr(px,py);
+      ctx.clearRect(0,0,W,H);
+      var cx=W/2, cy=H/2, sc=26;
+      ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.moveTo(40,cy); ctx.lineTo(W-16,cy); ctx.moveTo(cx,20); ctx.lineTo(cx,H-20); ctx.stroke();
+      for(var i=0;i<n;i++){
+        var col = 'hsl('+(200- (Z[i]+2)/4*200)+',70%,55%)';
+        ctx.fillStyle=col; ctx.globalAlpha=0.6; ctx.beginPath(); ctx.arc(cx+px[i]*sc, cy-py[i]*sc, 3, 0,7); ctx.fill(); ctx.globalAlpha=1;
+      }
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.fillText(label+'   ·   colour = confounder Z', 46, 24);
+      document.getElementById('ccread').textContent=(ctrl?'Controlling for Z → ':'')+'correlation(X, Y) = '+c.toFixed(2)+(ctrl? '  ✓ vanished — the link was never real' : (Math.abs(c)>0.5?'  (looks strong… but it\'s all Z)':''));
+    }
+    function varr(a){ var m=mean(a),s=0; for(var i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m); return s/a.length; }
+    document.getElementById('ccs').oninput=function(){ ctrl=false; document.getElementById('ccctrl').textContent='Control for Z'; draw(); };
+    document.getElementById('ccctrl').onclick=function(){ ctrl=!ctrl; this.textContent=ctrl?'Show raw X vs Y':'Control for Z'; draw(); };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

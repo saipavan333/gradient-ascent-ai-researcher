@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t22-l02">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The do-operator · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>The do-operator: the difference between seeing and doing</h1>
+      <p class="subtitle">Ordinary probability can express "seeing" — what's likely given an observation. Causal questions are about "doing" — what happens if we intervene. The do-operator is the notation that finally tells them apart, and it's the mathematical heart of causal inference.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 18 · Lesson 2</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~19 min</span>
+        <span class="chip">Builds on: Lesson 1</span>
+      </div>
+
+      <p class="lead prose">
+        The previous lessons showed the danger; now we get the language to reason precisely. Ordinary probability has a glaring blind spot: it can only talk about <em>observing</em>. \(P(Y \mid X=x)\) means "among cases where \(X\) happens to equal \(x\), how is \(Y\) distributed?" — pure observation, and it's contaminated by any confounder that made \(X\) take that value. But the questions we care about are about <em>acting</em>: "if I <em>set</em> \(X=x\), what will \(Y\) be?" These are genuinely different, and standard notation couldn't distinguish them — which is why causation was a philosophical muddle for so long. Judea Pearl's breakthrough was the <span class="newterm">do-operator</span>, written \(P(Y \mid do(X=x))\): the distribution of \(Y\) when we <em>intervene</em> to force \(X=x\), overriding whatever would normally have set it. Seeing a barometer drop tells you a storm is coming (\(P(\text{storm} \mid \text{barometer low})\) is high); but <em>forcing</em> the barometer down with your hand does nothing (\(P(\text{storm} \mid do(\text{barometer low}))\) is unchanged). Same variable, opposite answers. The do-operator is defined by a beautifully concrete operation — a "surgery" on the causal graph — and it turns causal questions into something you can actually compute. This lesson builds it.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: cut the strings, then pull the lever</h2>
+      <p class="prose">
+        Picture the world as a machine of gears, where each variable is set by the gears feeding into it (its causes). To <em>observe</em> \(X=x\) is to notice a gear happens to be in position \(x\) — and that tells you about all the other gears connected to it, including the ones that <em>caused</em> \(x\). To <em>intervene</em> and <em>do</em> \(X=x\) is different: you reach in, <em>disconnect</em> the gear from whatever was driving it, and set it to \(x\) by hand. Now \(x\) tells you nothing about its old causes (you overrode them), but it still drives everything downstream. That disconnection is the key: intervention <em>severs the incoming causes</em> of \(X\) while keeping its outgoing effects. This is exactly what a randomized experiment does physically — assigning treatment by coin flip cuts the link between the treatment and everything that would normally influence who gets it.
+      </p>
+      <p class="prose">
+        Formally, \(do(X=x)\) is defined by <span class="newterm">graph surgery</span>: take the causal diagram, delete all arrows pointing <em>into</em> \(X\) (its normal causes), fix \(X=x\), and compute \(Y\) in this modified graph:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ P(Y \mid do(X=x)) \;=\; P_{X\to x}(Y) \qquad \text{— probability of } Y \text{ in the graph with } X\text{'s incoming arrows cut} \]</span>
+        <span class="eqn-num">(2.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the interventional distribution \(P(Y\mid do(X{=}x))\) is computed not in the original world but in a <em>surgically modified</em> one where \(X\)'s incoming arrows are removed (so nothing confounds \(X\) anymore) and \(X\) is pinned to \(x\). Because the confounding arrows into \(X\) are gone, this isolates \(X\)'s genuine downstream effect on \(Y\). When there's no confounding, \(P(Y\mid do(x)) = P(Y\mid x)\) — seeing equals doing. When there is, they diverge, and the do-operator gives the answer you actually want.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Two causal diagrams side by side. Left, 'observational P(Y|T)': Z points to both T and Y, and T points to Y. Right, 'interventional P(Y|do(T))': the arrow from Z into T is scissored (cut) so T is set by fiat, while Z to Y and T to Y remain." />
+        <figcaption>The do-operator is graph surgery: to compute P(Y | do(T)), delete the arrows pointing INTO T (its normal causes, cutting the confounding path) and set T by fiat, then read off Y.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="dolab">
+        <div class="wtitle">▶ Interactive · seeing vs doing</div>
+        <div class="whint">The graph has a confounder Z affecting both treatment T and outcome Y. Toggle between <strong>SEE</strong> (observe T — the confounder path stays) and <strong>DO</strong> (intervene on T — cut the arrow into T). Watch the arrow get scissored and the estimated effect change from the confounded "seeing" number to the true causal "doing" number.</div>
+        <canvas id="docanvas" width="640" height="330" aria-label="Interactive do-operator"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="dosee">👁 SEE  P(Y | T)</button>
+          <button class="wbtn primary" id="dodo">✋ DO  P(Y | do T)</button>
+        </div>
+        <div class="wreadout" id="doread">Toggle SEE vs DO and compare the estimated effect.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: seeing ≠ doing</h3>
+        <p class="prose">From <code>do_operator.py</code>: a structural causal model with \(Z\to T\), \(Z\to Y\), \(T\to Y\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The model.</strong> \(Z\) (a confounder) makes \(T\) more likely and raises \(Y\); \(T\) genuinely adds +5 to \(Y\). So \(Y = 20Z + 5T + \text{noise}\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Seeing.</strong> \(E[Y\mid T{=}1] - E[Y\mid T{=}0] = +17\). Observing \(T{=}1\) also signals \(Z{=}1\) (since \(Z\) drives \(T\)), and \(Z\) inflates \(Y\) — so the observed gap mixes the +5 real effect with the confounder.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Doing.</strong> Simulate \(do(T{=}1)\): <em>force</em> \(T{=}1\) for everyone regardless of \(Z\) (cut \(Z\to T\)), then read \(Y\). Compare to \(do(T{=}0)\). The gap is \(+5.1\) — the true effect.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The lesson.</strong> Seeing said +17; doing said +5. The +12 difference was the confounder \(Z\) riding along in the observational comparison. The do-operator, via graph surgery, strips it out.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: simulating an intervention</h2>
+      <pre><code>def scm(n, force_T=None):
+    Z = (rng.random(n) &lt; 0.5).astype(int)
+    if force_T is None:
+        T = rng.random(n) &lt; np.where(Z==1, 0.8, 0.2)   # observational: Z drives T
+    else:
+        T = np.full(n, force_T)                        # do(T): CUT Z->T, set T by fiat
+    Y = 20*Z + 5*T + noise
+    return Z, T, Y
+
+see = Y[T==1].mean() - Y[T==0].mean()                  # +17  (condition — confounded)
+do  = scm(n, force_T=1).Y.mean() - scm(n, force_T=0).Y.mean()   # +5  (intervene — true)</code></pre>
+      <p class="prose">
+        The single line <code>T = np.full(n, force_T)</code> <em>is</em> the do-operator in code: instead of letting \(Z\) decide \(T\) (the <code>np.where</code> branch), we override it and set \(T\) ourselves. Cutting that dependency is the graph surgery. In a real experiment, the coin flip does exactly this in the physical world.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why this notation was revolutionary.</strong> Before the do-operator, there was no way to even <em>write down</em> the difference between "the sales given we observed a price" and "the sales if we set a price" — so causal claims couldn't be stated precisely, let alone computed. The do-operator turned causation from philosophy into algebra: you can now write causal questions, derive when they're answerable from data, and compute them. It underpins the entire modern "causal revolution," and it's why a randomized trial (which physically performs \(do\)) and a clever observational analysis (which computes \(do\) from data, next lesson) can be understood as answering the exact same mathematical question.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Reading \(P(Y\mid X)\) as causal.</strong> Conditioning is seeing, not doing. It answers "what does observing \(X\) tell me about \(Y\)," which includes confounding — not "what happens if I change \(X\)."</li>
+          <li><strong>Thinking you always need an experiment to compute \(do\).</strong> Sometimes you can compute \(P(Y\mid do(X))\) from observational data <em>if</em> you know the causal graph and measured the right variables (next lesson). Sometimes you can't — the graph tells you which.</li>
+          <li><strong>Forgetting that \(do\) keeps downstream effects.</strong> Surgery cuts arrows <em>into</em> \(X\), not out of it. \(X\)'s effect on \(Y\) is exactly what you're isolating.</li>
+          <li><strong>Assuming seeing and doing always differ.</strong> With no confounding (e.g., after randomization), \(P(Y\mid X)=P(Y\mid do(X))\). The gap is specifically the confounding.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>\(P(Y\mid X)\) is seeing</strong> (observe X, confounding included); <strong>\(P(Y\mid do(X))\) is doing</strong> (intervene to set X).</li>
+          <li><strong>The do-operator = graph surgery:</strong> delete arrows <em>into</em> X, fix X, then compute Y (eq 2.1).</li>
+          <li><strong>Surgery cuts incoming causes, keeps outgoing effects</strong> — isolating X's true effect.</li>
+          <li><strong>A randomized experiment physically performs \(do(X)\)</strong> (the coin flip cuts X's normal causes).</li>
+          <li><strong>No confounding ⇒ seeing = doing;</strong> confounding is exactly the gap between them.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What is the difference between \(P(Y\mid X)\) and \(P(Y\mid do(X))\)?</p>
+          <ul class="quiz-options">
+            <li>Nothing — they're the same.<div class="quiz-why">They differ whenever there's confounding.</div></li>
+            <li>The first is observing X; the second is intervening to set X.<div class="quiz-why">Correct. Seeing vs doing — the core distinction.</div></li>
+            <li>The second requires more data.<div class="quiz-why">It's a different quantity, not a data-amount issue.</div></li>
+            <li>The first is causal.<div class="quiz-why">Conditioning is observational; the do-operator is the causal one.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How is \(P(Y\mid do(X{=}x))\) defined via graph surgery?</p>
+          <ul class="quiz-options">
+            <li>Delete arrows out of X.<div class="quiz-why">Then X couldn't affect Y — the opposite of the point.</div></li>
+            <li>Delete Y.<div class="quiz-why">Y is what you're computing.</div></li>
+            <li>Add an arrow from X to Z.<div class="quiz-why">Surgery removes arrows, and into X specifically.</div></li>
+            <li>Delete arrows into X, fix X=x, then compute Y.<div class="quiz-why">Correct. Cutting X's incoming causes removes confounding; X's outgoing effect stays.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> A randomized experiment corresponds to which operation?</p>
+          <ul class="quiz-options">
+            <li>\(do(T)\) — it physically cuts T's normal causes via the coin flip.<div class="quiz-why">Correct. Randomizing assignment severs any link between T and confounders.</div></li>
+            <li>Conditioning on T.<div class="quiz-why">That's observation; randomization does more.</div></li>
+            <li>Deleting the outcome.<div class="quiz-why">The outcome is measured, not deleted.</div></li>
+            <li>Nothing causal.<div class="quiz-why">It's the canonical causal intervention.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> When are seeing and doing equal?</p>
+          <ul class="quiz-options">
+            <li>Always.<div class="quiz-why">They differ under confounding.</div></li>
+            <li>Never.<div class="quiz-why">They coincide when there's no confounding.</div></li>
+            <li>When there is no confounding of X.<div class="quiz-why">Correct. With no back-door path (e.g., after randomization), \(P(Y\mid X)=P(Y\mid do(X))\).</div></li>
+            <li>Only for binary X.<div class="quiz-why">It's about confounding, not the type of X.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, toggle SEE then DO. Which arrow gets cut in the DO view, and why does that change the estimated effect?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The arrow cut is <em>Z → T</em> (the confounder's influence on the treatment). In the SEE view that arrow is intact, so observing T=1 also tells you Z is likely high, and since Z inflates Y, the observed effect (+17) is contaminated by the confounder. In the DO view, cutting Z → T means T is set independently of Z — so treated and untreated groups have the same distribution of Z, and the estimated effect (+5) reflects only T's genuine push on Y. Severing that one arrow is the entire difference between the confounded "seeing" number and the true causal "doing" number, which is exactly what the do-operator's graph surgery formalizes.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Explain the barometer example with the do-operator: why is \(P(\text{storm}\mid \text{barometer low})\) high but \(P(\text{storm}\mid do(\text{barometer low}))\) unchanged?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The causal structure is: atmospheric pressure → barometer reading, and atmospheric pressure → storm (low pressure causes both a low barometer and a storm). <em>Seeing</em> a low barometer is evidence that pressure is low, which raises the chance of a storm — so \(P(\text{storm}\mid\text{barometer low})\) is high (the barometer is an informative <em>signal</em>). But <em>doing</em> \(do(\text{barometer low})\) — forcing the needle down with your hand — performs graph surgery that cuts the arrow <em>into</em> the barometer (from pressure), so the reading no longer carries information about pressure; you've overridden its cause. With that arrow gone, the barometer has no path to the storm (it never caused storms — pressure did), so \(P(\text{storm}\mid do(\text{barometer low}))\) equals the baseline storm rate, unchanged. This crisply captures why manipulating a mere <em>indicator</em> of a cause does nothing, even though observing it is predictive — the essence of seeing vs doing.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Sometimes \(P(Y\mid do(X))\) can be computed from observational data, and sometimes it can't (you'd need an experiment). What determines which?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It depends on the causal graph and which variables you measured — specifically, whether you can "block" all the confounding (back-door) paths between X and Y using variables you have. If every confounding path can be blocked by adjusting for measured variables (the back-door criterion, next lesson), then \(P(Y\mid do(X))\) is <em>identifiable</em> from observational data — you can compute the interventional answer without an experiment. If there's an <em>unmeasured</em> confounder on a path you can't block, the effect is <em>not identifiable</em> from that data alone, and no amount of clever statistics recovers it — you genuinely need an experiment (or an instrumental variable, or another design). Pearl's "do-calculus" is a set of rules that mechanically decides identifiability from the graph. This is the profound payoff of the do-operator: it turns "can this question even be answered from my data?" into a checkable graphical property, telling you in advance whether to analyze or to run the experiment.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">The do-operator and its do-calculus are the foundation of modern causal inference, used to determine whether a causal question can be answered from available data <em>before</em> collecting more — saving experiments where observation suffices and flagging where it doesn't. It underlies causal analysis in epidemiology, economics, and tech-company experimentation, and it's increasingly fused with machine learning: estimating interventional distributions with neural networks, causal reinforcement learning (agents that reason about the effects of their actions), and off-policy evaluation (predicting how a new policy would perform without deploying it — a \(do\) query). The distinction between seeing and doing is also central to building AI that can plan and act safely rather than merely pattern-match. Pearl argues it's a missing ingredient for human-level reasoning — machines that know the difference between correlation and intervention.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Ordinary probability only expresses seeing: \(P(Y\mid X)\), which includes confounding. The do-operator expresses doing: \(P(Y\mid do(X))\), the effect of intervening to set X. It's defined by graph surgery — delete the arrows into X, fix X, compute Y — which cuts confounding while keeping X's real effect. A randomized trial performs \(do\) physically; seeing and doing agree only when there's no confounding, and their gap is exactly the confounding."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">book</span> Pearl (2009), "Causality: Models, Reasoning, and Inference" — the do-calculus source. <a href="http://bayes.cs.ucla.edu/BOOK-2K/" target="_blank" rel="noopener">ucla.edu</a></li>
+          <li><span class="src-type">paper</span> Pearl (1995), "Causal Diagrams for Empirical Research." <a href="https://ftp.cs.ucla.edu/pub/stat_ser/r218-B.pdf" target="_blank" rel="noopener">ucla.edu</a></li>
+          <li><span class="src-type">book</span> Pearl, Glymour &amp; Jewell (2016), "Causal Inference in Statistics: A Primer." <a href="http://bayes.cs.ucla.edu/PRIMER/" target="_blank" rel="noopener">ucla.edu</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: when you <em>can't</em> run the experiment, how do you compute \(P(Y\mid do(T))\) from observational data? <a href="03-backdoor-adjustment.html">Backdoor adjustment</a> gives the recipe: block the confounding paths by adjusting for the right variables.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('docanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var mode='see';
+    function node(x,y,lab,fc){ ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(x,y,26,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='bold 16px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lab,x,y); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+    function arrow(x1,y1,x2,y2,col,dashed){ var a=Math.atan2(y2-y1,x2-x1); var sx=x1+Math.cos(a)*26, sy=y1+Math.sin(a)*26, ex=x2-Math.cos(a)*26, ey=y2-Math.sin(a)*26; ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.setLineDash(dashed?[4,4]:[]); ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]); var h=10; ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-h*Math.cos(a-0.4),ey-h*Math.sin(a-0.4)); ctx.lineTo(ex-h*Math.cos(a+0.4),ey-h*Math.sin(a+0.4)); ctx.closePath(); ctx.fillStyle=col; ctx.fill(); }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      var Z=[320,70], T=[170,230], Y=[470,230];
+      // Z->T (cut in DO mode)
+      if(mode==='see'){ arrow(Z[0],Z[1],T[0],T[1],'#334155',false); }
+      else { ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(Z[0]-20,Z[1]+30); ctx.lineTo(T[0]+15,T[1]-25); ctx.stroke();
+        var mx=(Z[0]+T[0])/2, my=(Z[1]+T[1])/2; ctx.strokeStyle='#dc2626'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(mx-14,my-14); ctx.lineTo(mx+14,my+14); ctx.moveTo(mx+14,my-14); ctx.lineTo(mx-14,my+14); ctx.stroke();
+        ctx.fillStyle='#dc2626'; ctx.font='bold 12px system-ui'; ctx.fillText('cut',mx+16,my); }
+      arrow(Z[0],Z[1],Y[0],Y[1],'#334155',false);
+      arrow(T[0],T[1],Y[0],Y[1],'#2563eb',false);
+      node(Z[0],Z[1],'Z','#6d28d9'); node(T[0],T[1],'T','#2563eb'); node(Y[0],Y[1],'Y','#059669');
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.fillText('Z = confounder',Z[0]+34,Z[1]); ctx.fillText('T = treatment',T[0]-30,T[1]+46); ctx.fillText('Y = outcome',Y[0]-24,Y[1]+46);
+      var effect = mode==='see' ? 17 : 5;
+      ctx.fillStyle=mode==='see'?'#dc2626':'#059669'; ctx.font='bold 15px system-ui';
+      ctx.fillText(mode==='see'?'SEEING: effect ≈ +17 (confounded)':'DOING: effect ≈ +5 (true causal effect)', 120, H-24);
+      document.getElementById('doread').textContent=mode==='see'
+        ? 'SEE: P(Y|T) keeps the Z→T path, so the estimate (+17) mixes in the confounder.'
+        : 'DO: cutting Z→T (graph surgery) isolates T\'s real effect on Y (+5).';
+    }
+    document.getElementById('dosee').onclick=function(){ mode='see'; draw(); };
+    document.getElementById('dodo').onclick=function(){ mode='do'; draw(); };
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
