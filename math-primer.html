@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math &amp; Notation Primer · Gradient Ascent</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .oramp{max-width:var(--measure);}
+    .symtable{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.7rem;margin:.9rem 0 0;}
+    .symrow{display:flex;gap:.9rem;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem .85rem;box-shadow:var(--shadow);}
+    .sym{flex:0 0 auto;min-width:3.4rem;text-align:center;font-size:1.1rem;color:var(--primary-ink);padding-top:.1rem;}
+    .symbody{min-width:0;}
+    .symname{font-weight:700;color:var(--text);font-size:.95rem;}
+    .symmean{color:var(--text-muted);font-size:.9rem;line-height:1.4;margin:.1rem 0;}
+    .symex{color:var(--text-faint);font-size:.85rem;}
+  </style>
+</head>
+<body data-page="home">
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="home-wrap oramp">
+
+      <section class="hero">
+        <div class="kicker">Math &amp; notation primer</div>
+        <h1>Every symbol, in plain English.</h1>
+        <p>
+          Formulas look scary only because the symbols are unfamiliar — each one is really just a
+          short word. Here&rsquo;s the whole alphabet the course uses, decoded. You don&rsquo;t need to
+          memorize this: skim it once, then come back whenever a squiggle looks strange. Inside every
+          lesson, each symbol is also explained the moment it first appears.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="start-here.html">&larr; Back to Start Here</a>
+          <a class="btn ghost" href="lessons/track-1-linear-algebra-probability/00-overview.html">Begin Track&nbsp;1</a>
+        </div>
+      </section>
+
+      <h2 class="section-h">Reading a formula</h2>
+      <p class="section-s">The little marks that change what a symbol means.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$x_i$</div>
+        <div class="symbody"><div class="symname">Subscript</div><div class="symmean">Picks out one item — the i-th one.</div><div class="symex">$x_3$ is the 3rd entry of the list $x$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$x^{2}$</div>
+        <div class="symbody"><div class="symname">Superscript / power</div><div class="symmean">Usually a power (here, squared). Sometimes just a label.</div><div class="symex">$x^2 = x\times x$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\hat{y}$</div>
+        <div class="symbody"><div class="symname">Hat</div><div class="symmean">An estimate or prediction — not the true value.</div><div class="symex">$\hat{y}$ is the model's guess for $y$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\bar{x}$</div>
+        <div class="symbody"><div class="symname">Bar</div><div class="symmean">The average of the thing under it.</div><div class="symex">$\bar{x}$ = mean of all the $x$ values.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\theta \leftarrow \theta-\alpha g$</div>
+        <div class="symbody"><div class="symname">Left arrow</div><div class="symmean">Update: replace the left with the right.</div><div class="symex">One learning step.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$a := b$</div>
+        <div class="symbody"><div class="symname">Defined as</div><div class="symmean">The left is defined to equal the right.</div><div class="symex">Sets up a definition.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Adding & multiplying many things</h2>
+      <p class="section-s">Compact ways to say &lsquo;do this to every term&rsquo;.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\sum_{i=1}^{n} x_i$</div>
+        <div class="symbody"><div class="symname">Sigma — sum</div><div class="symmean">Add up all the terms, from $i=1$ to $n$.</div><div class="symex">$\sum x_i = x_1+x_2+\dots+x_n$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\prod_{i} x_i$</div>
+        <div class="symbody"><div class="symname">Pi — product</div><div class="symmean">Multiply all the terms together.</div><div class="symex">$\prod x_i = x_1\cdot x_2\cdots$</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Calculus</h2>
+      <p class="section-s">How things change — the engine of learning.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\tfrac{d}{dx}$</div>
+        <div class="symbody"><div class="symname">Derivative</div><div class="symmean">The slope: how fast the output changes as $x$ changes.</div><div class="symex">Big slope = steep.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\partial$</div>
+        <div class="symbody"><div class="symname">Partial derivative</div><div class="symmean">The slope in one variable, holding the others fixed.</div><div class="symex">Used for multi-input functions.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\nabla f$</div>
+        <div class="symbody"><div class="symname">Gradient (nabla)</div><div class="symmean">The vector of all partial derivatives; points straight uphill.</div><div class="symex">Gradient descent walks the other way.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\int$</div>
+        <div class="symbody"><div class="symname">Integral</div><div class="symmean">The area under a curve — a continuous sum.</div><div class="symex">Total from adding up infinitely many slivers.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Sets & spaces</h2>
+      <p class="section-s">Where numbers and vectors live.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\mathbb{R}$</div>
+        <div class="symbody"><div class="symname">Real numbers</div><div class="symmean">All ordinary numbers, decimals included.</div><div class="symex">$3,\ -1.5,\ \pi$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mathbb{R}^{n}$</div>
+        <div class="symbody"><div class="symname">n-dimensional space</div><div class="symmean">A list of $n$ real numbers — a point or vector.</div><div class="symex">$\mathbb{R}^2$ = the flat plane.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\in$</div>
+        <div class="symbody"><div class="symname">Element of</div><div class="symmean">&lsquo;is in&rsquo; / &lsquo;belongs to&rsquo;.</div><div class="symex">$x \in \mathbb{R}$: $x$ is a real number.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\{0,1\}$</div>
+        <div class="symbody"><div class="symname">Set</div><div class="symmean">A collection of things, in braces.</div><div class="symex">Here, just 0 and 1.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$|S|$</div>
+        <div class="symbody"><div class="symname">Size of a set</div><div class="symmean">How many items $S$ has.</div><div class="symex">$|\{a,b,c\}| = 3$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\subset$</div>
+        <div class="symbody"><div class="symname">Subset</div><div class="symmean">Is contained within.</div><div class="symex">Cats $\subset$ animals.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Comparing & relating</h2>
+      <p class="section-s">Symbols that link two quantities.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\approx$</div>
+        <div class="symbody"><div class="symname">Approximately equal</div><div class="symmean">Close, but not exactly.</div><div class="symex">$\pi \approx 3.14$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\propto$</div>
+        <div class="symbody"><div class="symname">Proportional to</div><div class="symmean">Grows in step with (up to a constant).</div><div class="symex">$y \propto x$: double $x$, double $y$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\le \;\; \ge$</div>
+        <div class="symbody"><div class="symname">Less / greater than or equal</div><div class="symmean">At most / at least.</div><div class="symex">$x \ge 0$: $x$ is non-negative.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\ll \;\; \gg$</div>
+        <div class="symbody"><div class="symname">Much less / much greater</div><div class="symmean">One is tiny next to the other.</div><div class="symex">$0.001 \ll 1000$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\Rightarrow$</div>
+        <div class="symbody"><div class="symname">Implies</div><div class="symmean">If the left holds, the right follows.</div><div class="symex">rain $\Rightarrow$ wet ground.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\forall$</div>
+        <div class="symbody"><div class="symname">For all</div><div class="symmean">Every one of them.</div><div class="symex">$\forall x$: &lsquo;for every $x$&rsquo;.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\exists$</div>
+        <div class="symbody"><div class="symname">There exists</div><div class="symmean">At least one.</div><div class="symex">$\exists x$: &lsquo;for some $x$&rsquo;.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Vectors & matrices</h2>
+      <p class="section-s">The objects ML actually computes with.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\mathbf{v}$</div>
+        <div class="symbody"><div class="symname">Bold = vector</div><div class="symmean">A list of numbers (a point/arrow), not one number.</div><div class="symex">$\mathbf{v}=(3,2)$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$A^{\top}$</div>
+        <div class="symbody"><div class="symname">Transpose</div><div class="symmean">Flip a matrix: rows become columns.</div><div class="symex">$A^\top$ reads $A$ sideways.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mathbf{a}\cdot\mathbf{b}$</div>
+        <div class="symbody"><div class="symname">Dot product</div><div class="symmean">Multiply matching entries, add them up; measures alignment.</div><div class="symex">$0$ means perpendicular.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\lVert \mathbf{x} \rVert$</div>
+        <div class="symbody"><div class="symname">Norm / length</div><div class="symmean">The length of a vector.</div><div class="symex">$\lVert(3,4)\rVert = 5$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$A\mathbf{x}$</div>
+        <div class="symbody"><div class="symname">Matrix &times; vector</div><div class="symmean">Apply the transformation $A$ to $\mathbf{x}$.</div><div class="symex">Rotate, scale, or shear it.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Probability & statistics</h2>
+      <p class="section-s">Reasoning under uncertainty.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$P(A)$</div>
+        <div class="symbody"><div class="symname">Probability</div><div class="symmean">The chance of $A$, from 0 to 1.</div><div class="symex">$P=0.5$ is a coin flip.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$P(A\mid B)$</div>
+        <div class="symbody"><div class="symname">Conditional probability</div><div class="symmean">The chance of $A$ given that $B$ happened.</div><div class="symex">&lsquo;$A$ given $B$&rsquo;.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mathbb{E}[X]$</div>
+        <div class="symbody"><div class="symname">Expectation</div><div class="symmean">The long-run average value of $X$.</div><div class="symex">Average payout of a bet.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mathrm{Var}(X)$</div>
+        <div class="symbody"><div class="symname">Variance</div><div class="symmean">How spread out $X$ is.</div><div class="symex">Big variance = wide swings.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$X \sim \mathcal{N}(\mu,\sigma^{2})$</div>
+        <div class="symbody"><div class="symname">Distributed as</div><div class="symmean">$X$ is drawn from this distribution (here a Gaussian).</div><div class="symex">$\mu$ = mean, $\sigma^2$ = spread.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\arg\max_x f(x)$</div>
+        <div class="symbody"><div class="symname">Argmax</div><div class="symmean">The $x$ that makes $f$ biggest — the winner, not the value.</div><div class="symex">argmin is the smallest.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Functions you&rsquo;ll meet a lot</h2>
+      <p class="section-s">A few recurring building blocks.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\log x$</div>
+        <div class="symbody"><div class="symname">Logarithm</div><div class="symmean">Inverse of exponentiation; turns multiplying into adding.</div><div class="symex">Grows very slowly.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$e^{x}=\exp(x)$</div>
+        <div class="symbody"><div class="symname">Exponential</div><div class="symmean">$e$ to the power $x$; rapid growth.</div><div class="symex">Undoes $\log$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\sigma(x)$</div>
+        <div class="symbody"><div class="symname">Sigmoid</div><div class="symmean">Squashes any number into $(0,1)$ — a soft yes/no.</div><div class="symex">Used for probabilities.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mathrm{softmax}$</div>
+        <div class="symbody"><div class="symname">Softmax</div><div class="symmean">Turns a list of scores into probabilities that sum to 1.</div><div class="symex">Picks a &lsquo;soft&rsquo; winner.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$|x|$</div>
+        <div class="symbody"><div class="symname">Absolute value</div><div class="symmean">Distance from zero (drop the minus sign).</div><div class="symex">$|-4| = 4$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\lfloor x \rfloor$</div>
+        <div class="symbody"><div class="symname">Floor</div><div class="symmean">Round down to the nearest whole number.</div><div class="symex">$\lfloor 3.9 \rfloor = 3$.</div></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Greek letters — the usual ML meanings</h2>
+      <p class="section-s">Same letters keep showing up; here&rsquo;s what they usually stand for.</p>
+      <div class="symtable">
+      <div class="symrow">
+        <div class="sym">$\alpha$</div>
+        <div class="symbody"><div class="symname">alpha</div><div class="symmean">Learning rate — how big each step is.</div><div class="symex">Also a generic constant.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\gamma$</div>
+        <div class="symbody"><div class="symname">gamma</div><div class="symmean">Discount factor in reinforcement learning.</div><div class="symex">How much the future counts.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\epsilon$</div>
+        <div class="symbody"><div class="symname">epsilon</div><div class="symmean">A tiny number, or an exploration rate.</div><div class="symex">&lsquo;a little bit&rsquo;.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\eta$</div>
+        <div class="symbody"><div class="symname">eta</div><div class="symmean">Another symbol for the learning rate.</div><div class="symex">Same idea as $\alpha$.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\theta$</div>
+        <div class="symbody"><div class="symname">theta</div><div class="symmean">The model&rsquo;s parameters (its weights).</div><div class="symex">What training adjusts.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\lambda$</div>
+        <div class="symbody"><div class="symname">lambda</div><div class="symmean">Regularization strength — or an eigenvalue.</div><div class="symex">Depends on context.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\mu \;\; \sigma$</div>
+        <div class="symbody"><div class="symname">mu, sigma</div><div class="symmean">Mean and standard deviation.</div><div class="symex">Center and spread.</div></div>
+      </div>
+      <div class="symrow">
+        <div class="sym">$\pi$</div>
+        <div class="symbody"><div class="symname">pi</div><div class="symmean">A policy (RL) — or the number 3.14159&hellip;</div><div class="symex">Context tells you which.</div></div>
+      </div>
+      </div>
+
+      <div class="callout intuition">
+        <div class="co-h">💡 One habit that makes math easy</div>
+        <p style="margin:0">Read a formula out loud as a sentence, replacing each symbol with its plain word.
+        $\sum_{i} x_i$ becomes &ldquo;add up all the $x$&rsquo;s.&rdquo; $\hat{y} \approx \theta^\top x$ becomes
+        &ldquo;my prediction is roughly the weights dotted with the input.&rdquo; Once it&rsquo;s a sentence, it&rsquo;s just an idea.</p>
+      </div>
+
+      <div class="cta" style="margin-top:2rem">
+        <a class="btn primary" href="lessons/track-1-linear-algebra-probability/00-overview.html">Start Track&nbsp;1 &rarr;</a>
+        <a class="btn ghost" href="start-here.html">Start Here guide</a>
+      </div>
+
+      <div class="foot"><p>Gradient Ascent — understand AI from first principles.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="assets/vendor/katex/katex.min.js"></script>
+  <script src="assets/vendor/katex/auto-render.min.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

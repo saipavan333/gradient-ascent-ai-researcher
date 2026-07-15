@@ -328,6 +328,13 @@
       '</div>';
     sb.appendChild(head);
 
+    const onramp = el("div");
+    onramp.style.cssText = "display:flex;gap:.4rem;padding:.5rem .9rem .2rem;";
+    onramp.innerHTML =
+      '<a href="' + ROOT + 'start-here.html" style="flex:1;text-align:center;font-size:.8rem;font-weight:600;text-decoration:none;color:var(--primary-ink);background:var(--primary-weak);border-radius:8px;padding:.42rem .3rem">\u{1F680} Start Here</a>' +
+      '<a href="' + ROOT + 'math-primer.html" style="flex:1;text-align:center;font-size:.8rem;font-weight:600;text-decoration:none;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.42rem .3rem">\u2211 Math</a>';
+    sb.appendChild(onramp);
+
     const nav = el("nav", "sb-nav");
     TRACKS.forEach((t) => {
       const det = el("details", "sb-track");

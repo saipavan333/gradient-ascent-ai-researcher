@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Start Here · Gradient Ascent</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .oramp{max-width:var(--measure);}
+    .steps{display:grid;gap:.7rem;margin:1rem 0 0;}
+    .stepit{display:flex;gap:.8rem;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.8rem .9rem;box-shadow:var(--shadow);}
+    .stepit .sn{flex:0 0 auto;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--primary-weak);color:var(--primary-ink);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.85rem;}
+    .stepit b{color:var(--text);}
+    .map{display:grid;gap:1rem;margin:1.2rem 0 0;}
+    .phase{border:1px solid var(--border);border-left:4px solid var(--pc);border-radius:var(--radius);background:var(--surface);padding:1rem 1.1rem;box-shadow:var(--shadow);}
+    .ph-head{display:flex;gap:.8rem;align-items:center;margin-bottom:.7rem;}
+    .ph-num{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--pc);opacity:.85;}
+    .ph-name{font-weight:700;font-size:1.05rem;color:var(--text);}
+    .ph-sub{color:var(--text-muted);font-size:.9rem;line-height:1.35;}
+    .ph-chips,.pc-chips{display:flex;flex-wrap:wrap;gap:.45rem;}
+    .mchip{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;background:var(--bg);border:1px solid var(--border-strong);border-radius:999px;padding:.32rem .7rem .32rem .35rem;color:var(--text);transition:.15s;font-size:.86rem;}
+    .mchip:hover{border-color:var(--pc);transform:translateY(-1px);box-shadow:var(--shadow);}
+    .mchip .mn{flex:0 0 auto;width:1.4rem;height:1.4rem;border-radius:50%;background:var(--pc);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+    .mchip .mt{white-space:nowrap;}
+    .paths{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin:1.2rem 0 0;}
+    .pathcard{border:1px solid var(--border);border-top:3px solid var(--pc);border-radius:var(--radius);background:var(--surface);padding:1rem 1.05rem;box-shadow:var(--shadow);}
+    .pc-name{font-weight:700;color:var(--text);font-size:1.02rem;}
+    .pc-tag{color:var(--text-muted);font-size:.9rem;margin:.15rem 0 .7rem;line-height:1.35;}
+    .pc-chips{gap:.35rem;}
+    .pathcard .mchip{font-size:.8rem;padding:.26rem .6rem .26rem .3rem;}
+    .pathcard .mchip .mt{white-space:normal;}
+    @media (max-width:640px){ .mchip .mt{white-space:normal;} }
+  </style>
+</head>
+<body data-page="home">
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="home-wrap oramp">
+
+      <section class="hero">
+        <div class="kicker">New here? Start in the right place.</div>
+        <h1>Welcome — here&rsquo;s how to go from zero to AI researcher.</h1>
+        <p>
+          This is a complete, self-paced path that builds every idea in modern AI from the ground up:
+          intuition first, then the math with <em>every symbol explained</em>, then a from-scratch
+          implementation you run yourself, then an experiment. You don&rsquo;t need a degree — just
+          curiosity and a little patience. This page shows you what you need, how the lessons work,
+          the whole map, and a few routes through it.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="lessons/track-1-linear-algebra-probability/00-overview.html">Begin at Track&nbsp;1 &rarr;</a>
+          <a class="btn ghost" href="math-primer.html">Math &amp; notation primer</a>
+        </div>
+      </section>
+
+      <h2 class="section-h">What you need to start</h2>
+      <p class="section-s">Less than you think. Everything technical is taught in place.</p>
+      <div class="callout intuition">
+        <div class="co-h">✅ The honest prerequisites</div>
+        <p style="margin:0 0 .5rem">
+          <strong>Comfort with high-school algebra</strong> (moving symbols around, reading a graph) and
+          <strong>willingness to run a little Python</strong>. That&rsquo;s the real list.
+        </p>
+        <p style="margin:0">
+          You do <em>not</em> need university calculus, linear algebra, or statistics beforehand — those
+          are built up from scratch inside the course, always starting from a picture. If a symbol ever
+          looks unfamiliar, the <a href="math-primer.html">Math &amp; Notation primer</a> decodes every
+          one of them in plain English.
+        </p>
+      </div>
+
+      <h2 class="section-h">How every lesson works</h2>
+      <p class="section-s">The same &ldquo;gold standard&rdquo; shape each time, so you always know what to expect.</p>
+      <div class="steps">
+        <div class="stepit"><span class="sn">1</span><div><b>Intuition first.</b> A vivid, everyday picture of the idea before any formula.</div></div>
+        <div class="stepit"><span class="sn">2</span><div><b>The math, gently.</b> The equations — with every symbol named and explained the moment it appears.</div></div>
+        <div class="stepit"><span class="sn">3</span><div><b>An interactive widget.</b> Drag a slider, press a button, and watch the idea move. Play with it until it clicks.</div></div>
+        <div class="stepit"><span class="sn">4</span><div><b>From-scratch code.</b> A real implementation in plain NumPy you can run locally or open in Google&nbsp;Colab with one click.</div></div>
+        <div class="stepit"><span class="sn">5</span><div><b>Worked examples &amp; common mistakes.</b> Numbers carried all the way through, and the traps everyone falls into.</div></div>
+        <div class="stepit"><span class="sn">6</span><div><b>Quiz, practice &amp; recap.</b> Check yourself, stretch yourself, then a one-sentence summary you could say to a friend.</div></div>
+      </div>
+
+      <h2 class="section-h">The whole map</h2>
+      <p class="section-s">Twenty-four tracks in six phases. Each builds only on what came before — click any track to jump in.</p>
+      <div class="map">
+      <div class="phase" style="--pc:var(--primary)">
+        <div class="ph-head"><span class="ph-num">01</span><div><div class="ph-name">Foundations</div><div class="ph-sub">The language and machinery of ML — vectors, gradients, information, and what &ldquo;learning&rdquo; even means.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-13-information-theory/00-entropy.html"><span class="mn">3</span><span class="mt">Information Theory</span></a><a class="mchip" href="lessons/track-3-ml-theory/00-generalization.html"><span class="mn">4</span><span class="mt">ML Theory</span></a></div>
+      </div>
+      <div class="phase" style="--pc:var(--green)">
+        <div class="ph-head"><span class="ph-num">02</span><div><div class="ph-name">Core Learning</div><div class="ph-sub">From a single neuron and a line of best fit to deep networks trained by hand.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-12-classical-ml/00-linear-logistic-regression.html"><span class="mn">5</span><span class="mt">Classical ML</span></a><a class="mchip" href="lessons/track-4-deep-learning/00-neuron-graph.html"><span class="mn">6</span><span class="mt">Deep Learning from Scratch</span></a></div>
+      </div>
+      <div class="phase" style="--pc:var(--violet)">
+        <div class="ph-head"><span class="ph-num">03</span><div><div class="ph-name">Modern Architectures</div><div class="ph-sub">Vision, sequences, the Transformer you build yourself, LLMs, and generative models.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-15-cnns-vision/00-convolution.html"><span class="mn">7</span><span class="mt">Convolutional Networks & Vision</span></a><a class="mchip" href="lessons/track-16-sequence-models/00-rnn.html"><span class="mn">8</span><span class="mt">Sequence Models (RNN/LSTM/GRU)</span></a><a class="mchip" href="lessons/track-5-transformers/00-sequences-attention.html"><span class="mn">9</span><span class="mt">Transformers from Scratch</span></a><a class="mchip" href="lessons/track-11-llms/00-tokenization-bpe.html"><span class="mn">10</span><span class="mt">Large Language Models</span></a><a class="mchip" href="lessons/track-6-generative/00-what-is-generative.html"><span class="mn">11</span><span class="mt">Generative Models</span></a></div>
+      </div>
+      <div class="phase" style="--pc:var(--teal)">
+        <div class="ph-head"><span class="ph-num">04</span><div><div class="ph-name">Beyond Supervised Learning</div><div class="ph-sub">Agents that act, graphs, honest uncertainty, and learning to learn.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-7-rl/00-mdps.html"><span class="mn">12</span><span class="mt">Reinforcement Learning</span></a><a class="mchip" href="lessons/track-17-learning-paradigms/00-learning-paradigms.html"><span class="mn">13</span><span class="mt">Learning Paradigms</span></a><a class="mchip" href="lessons/track-20-graph-neural-networks/00-graphs-as-data.html"><span class="mn">14</span><span class="mt">Graph Neural Networks</span></a><a class="mchip" href="lessons/track-21-bayesian-ml/00-bayesian-inference.html"><span class="mn">15</span><span class="mt">Probabilistic & Bayesian ML</span></a><a class="mchip" href="lessons/track-19-meta-learning/00-few-shot-learning.html"><span class="mn">16</span><span class="mt">Meta, Few-Shot & Continual Learning</span></a></div>
+      </div>
+      <div class="phase" style="--pc:var(--amber)">
+        <div class="ph-head"><span class="ph-num">05</span><div><div class="ph-name">Systems &amp; Trust</div><div class="ph-sub">Training at scale, keeping data private, and telling cause from correlation.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-18-federated-privacy/00-federated-averaging.html"><span class="mn">17</span><span class="mt">Federated & Privacy-Preserving ML</span></a><a class="mchip" href="lessons/track-22-causal-inference/00-correlation-vs-causation.html"><span class="mn">18</span><span class="mt">Causal Inference</span></a><a class="mchip" href="lessons/track-23-efficient-ml/00-knowledge-distillation.html"><span class="mn">19</span><span class="mt">Efficient & Scalable ML</span></a></div>
+      </div>
+      <div class="phase" style="--pc:var(--accent)">
+        <div class="ph-head"><span class="ph-num">06</span><div><div class="ph-name">Frontier &amp; Research Craft</div><div class="ph-sub">The cutting edge — and how to read papers, run experiments, and do research yourself.</div></div></div>
+        <div class="ph-chips"><a class="mchip" href="lessons/track-24-frontier-agents/00-mixture-of-experts.html"><span class="mn">20</span><span class="mt">Frontier Architectures & Agents</span></a><a class="mchip" href="lessons/track-8-papers/00-how-to-read.html"><span class="mn">21</span><span class="mt">Reading & Reproducing Papers</span></a><a class="mchip" href="lessons/track-9-methods/00-designing-experiments.html"><span class="mn">22</span><span class="mt">Research Methods</span></a><a class="mchip" href="lessons/track-14-safety/00-alignment-problem.html"><span class="mn">23</span><span class="mt">AI Safety & Interpretability</span></a><a class="mchip" href="lessons/track-10-capstones/00-capstone-namegen.html"><span class="mn">24</span><span class="mt">Research Capstones</span></a></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Pick a path</h2>
+      <p class="section-s">The complete path is best, but if you have a specific goal, here are shorter routes. Do the tracks in the order shown.</p>
+      <div class="paths">
+      <div class="pathcard" style="--pc:var(--primary)">
+        <div class="pc-name">The Complete Path</div>
+        <div class="pc-tag">All 24 tracks, in order. Nothing ever depends on something taught later.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-13-information-theory/00-entropy.html"><span class="mn">3</span><span class="mt">Information Theory</span></a><a class="mchip" href="lessons/track-3-ml-theory/00-generalization.html"><span class="mn">4</span><span class="mt">ML Theory</span></a><a class="mchip" href="lessons/track-12-classical-ml/00-linear-logistic-regression.html"><span class="mn">5</span><span class="mt">Classical ML</span></a><a class="mchip" href="lessons/track-4-deep-learning/00-neuron-graph.html"><span class="mn">6</span><span class="mt">Deep Learning from Scratch</span></a><a class="mchip" href="lessons/track-15-cnns-vision/00-convolution.html"><span class="mn">7</span><span class="mt">Convolutional Networks & Vision</span></a><a class="mchip" href="lessons/track-16-sequence-models/00-rnn.html"><span class="mn">8</span><span class="mt">Sequence Models (RNN/LSTM/GRU)</span></a><a class="mchip" href="lessons/track-5-transformers/00-sequences-attention.html"><span class="mn">9</span><span class="mt">Transformers from Scratch</span></a><a class="mchip" href="lessons/track-11-llms/00-tokenization-bpe.html"><span class="mn">10</span><span class="mt">Large Language Models</span></a><a class="mchip" href="lessons/track-6-generative/00-what-is-generative.html"><span class="mn">11</span><span class="mt">Generative Models</span></a><a class="mchip" href="lessons/track-7-rl/00-mdps.html"><span class="mn">12</span><span class="mt">Reinforcement Learning</span></a><a class="mchip" href="lessons/track-17-learning-paradigms/00-learning-paradigms.html"><span class="mn">13</span><span class="mt">Learning Paradigms</span></a><a class="mchip" href="lessons/track-20-graph-neural-networks/00-graphs-as-data.html"><span class="mn">14</span><span class="mt">Graph Neural Networks</span></a><a class="mchip" href="lessons/track-21-bayesian-ml/00-bayesian-inference.html"><span class="mn">15</span><span class="mt">Probabilistic & Bayesian ML</span></a><a class="mchip" href="lessons/track-19-meta-learning/00-few-shot-learning.html"><span class="mn">16</span><span class="mt">Meta, Few-Shot & Continual Learning</span></a><a class="mchip" href="lessons/track-18-federated-privacy/00-federated-averaging.html"><span class="mn">17</span><span class="mt">Federated & Privacy-Preserving ML</span></a><a class="mchip" href="lessons/track-22-causal-inference/00-correlation-vs-causation.html"><span class="mn">18</span><span class="mt">Causal Inference</span></a><a class="mchip" href="lessons/track-23-efficient-ml/00-knowledge-distillation.html"><span class="mn">19</span><span class="mt">Efficient & Scalable ML</span></a><a class="mchip" href="lessons/track-24-frontier-agents/00-mixture-of-experts.html"><span class="mn">20</span><span class="mt">Frontier Architectures & Agents</span></a><a class="mchip" href="lessons/track-8-papers/00-how-to-read.html"><span class="mn">21</span><span class="mt">Reading & Reproducing Papers</span></a><a class="mchip" href="lessons/track-9-methods/00-designing-experiments.html"><span class="mn">22</span><span class="mt">Research Methods</span></a><a class="mchip" href="lessons/track-14-safety/00-alignment-problem.html"><span class="mn">23</span><span class="mt">AI Safety & Interpretability</span></a><a class="mchip" href="lessons/track-10-capstones/00-capstone-namegen.html"><span class="mn">24</span><span class="mt">Research Capstones</span></a></div>
+      </div>
+      <div class="pathcard" style="--pc:var(--violet)">
+        <div class="pc-name">Fast-track to a GPT</div>
+        <div class="pc-tag">The shortest honest route to building a Transformer by hand.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-3-ml-theory/00-generalization.html"><span class="mn">4</span><span class="mt">ML Theory</span></a><a class="mchip" href="lessons/track-4-deep-learning/00-neuron-graph.html"><span class="mn">6</span><span class="mt">Deep Learning from Scratch</span></a><a class="mchip" href="lessons/track-16-sequence-models/00-rnn.html"><span class="mn">8</span><span class="mt">Sequence Models (RNN/LSTM/GRU)</span></a><a class="mchip" href="lessons/track-5-transformers/00-sequences-attention.html"><span class="mn">9</span><span class="mt">Transformers from Scratch</span></a></div>
+      </div>
+      <div class="pathcard" style="--pc:var(--green)">
+        <div class="pc-name">LLM Engineer</div>
+        <div class="pc-tag">Understand, build, fine-tune, and ship large language models.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-4-deep-learning/00-neuron-graph.html"><span class="mn">6</span><span class="mt">Deep Learning from Scratch</span></a><a class="mchip" href="lessons/track-5-transformers/00-sequences-attention.html"><span class="mn">9</span><span class="mt">Transformers from Scratch</span></a><a class="mchip" href="lessons/track-11-llms/00-tokenization-bpe.html"><span class="mn">10</span><span class="mt">Large Language Models</span></a><a class="mchip" href="lessons/track-23-efficient-ml/00-knowledge-distillation.html"><span class="mn">19</span><span class="mt">Efficient & Scalable ML</span></a><a class="mchip" href="lessons/track-24-frontier-agents/00-mixture-of-experts.html"><span class="mn">20</span><span class="mt">Frontier Architectures & Agents</span></a></div>
+      </div>
+      <div class="pathcard" style="--pc:var(--teal)">
+        <div class="pc-name">Theory &amp; Math First</div>
+        <div class="pc-tag">The mathematical spine — for the proof-minded.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-13-information-theory/00-entropy.html"><span class="mn">3</span><span class="mt">Information Theory</span></a><a class="mchip" href="lessons/track-3-ml-theory/00-generalization.html"><span class="mn">4</span><span class="mt">ML Theory</span></a><a class="mchip" href="lessons/track-21-bayesian-ml/00-bayesian-inference.html"><span class="mn">15</span><span class="mt">Probabilistic & Bayesian ML</span></a><a class="mchip" href="lessons/track-22-causal-inference/00-correlation-vs-causation.html"><span class="mn">18</span><span class="mt">Causal Inference</span></a></div>
+      </div>
+      <div class="pathcard" style="--pc:var(--amber)">
+        <div class="pc-name">Reinforcement Learning</div>
+        <div class="pc-tag">Agents that learn by trial, reward, and planning.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-2-optimization/00-derivatives-gradients.html"><span class="mn">2</span><span class="mt">Optimization</span></a><a class="mchip" href="lessons/track-4-deep-learning/00-neuron-graph.html"><span class="mn">6</span><span class="mt">Deep Learning from Scratch</span></a><a class="mchip" href="lessons/track-7-rl/00-mdps.html"><span class="mn">12</span><span class="mt">Reinforcement Learning</span></a><a class="mchip" href="lessons/track-24-frontier-agents/00-mixture-of-experts.html"><span class="mn">20</span><span class="mt">Frontier Architectures & Agents</span></a></div>
+      </div>
+      <div class="pathcard" style="--pc:var(--accent)">
+        <div class="pc-name">Become a Researcher</div>
+        <div class="pc-tag">Read papers, design experiments, and publish your own.</div>
+        <div class="pc-chips"><a class="mchip" href="lessons/track-1-linear-algebra-probability/00-overview.html"><span class="mn">1</span><span class="mt">Linear Algebra & Probability</span></a><a class="mchip" href="lessons/track-3-ml-theory/00-generalization.html"><span class="mn">4</span><span class="mt">ML Theory</span></a><a class="mchip" href="lessons/track-8-papers/00-how-to-read.html"><span class="mn">21</span><span class="mt">Reading & Reproducing Papers</span></a><a class="mchip" href="lessons/track-9-methods/00-designing-experiments.html"><span class="mn">22</span><span class="mt">Research Methods</span></a><a class="mchip" href="lessons/track-14-safety/00-alignment-problem.html"><span class="mn">23</span><span class="mt">AI Safety & Interpretability</span></a><a class="mchip" href="lessons/track-10-capstones/00-capstone-namegen.html"><span class="mn">24</span><span class="mt">Research Capstones</span></a></div>
+      </div>
+      </div>
+
+      <h2 class="section-h">Your first week</h2>
+      <p class="section-s">A gentle way to build the habit without burning out.</p>
+      <div class="callout key">
+        <div class="co-h">🗓️ A relaxed starter plan</div>
+        <p style="margin:0 0 .5rem"><strong>Day 1–2:</strong> Read this page, skim the <a href="math-primer.html">notation primer</a>, and do <a href="lessons/track-1-linear-algebra-probability/00-overview.html">Track&nbsp;1, Lesson&nbsp;0</a>. Play with the first widget.</p>
+        <p style="margin:0 0 .5rem"><strong>Day 3–5:</strong> One lesson a day from Track&nbsp;1. Run the code for at least one of them — locally or in Colab. Don&rsquo;t rush; let each idea settle.</p>
+        <p style="margin:0"><strong>Day 6–7:</strong> Redo the quizzes without looking, and try one &ldquo;stretch&rdquo; practice problem. If you can explain a lesson to someone else, you&rsquo;ve got it.</p>
+      </div>
+
+      <div class="cta" style="margin-top:2rem">
+        <a class="btn primary" href="lessons/track-1-linear-algebra-probability/00-overview.html">Start Track&nbsp;1 &rarr;</a>
+        <a class="btn ghost" href="researcher-path.html">See the full curriculum</a>
+      </div>
+
+      <div class="foot">
+        <p>Gradient Ascent — understand AI from first principles. Every model built by hand.</p>
+      </div>
+
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>
