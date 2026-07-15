@@ -15,7 +15,7 @@
       <p class="subtitle">A model’s weights are a frozen snapshot of its training data — it can’t know your documents or today’s news. RAG fixes this by giving the model an external memory it searches at question time. It’s the architecture behind most real-world LLM applications.</p>
       <div class="meta-row">
         <span class="chip b">Track 10 · Lesson 4</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Tracks 1, 9, Lesson 0</span>
       </div>
@@ -60,6 +60,25 @@ def retrieve(query):
         <strong>Why RAG matters.</strong> It attacks the three biggest weaknesses of a bare LLM at once. <em>Knowledge cutoff</em>: swap in fresh or private documents without retraining. <em>Hallucination</em>: grounding answers in retrieved text (and citing it) makes them checkable. <em>Cost</em>: updating a database is far cheaper than fine-tuning. Real systems replace bag-of-words with learned neural embeddings and a fast approximate-nearest-neighbor index over millions of documents — but the core you just built, cosine similarity in embedding space, is exactly the mechanism.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="rgcvbox">
+        <div class="wtitle">▶ Interactive · retrieve the nearest documents, then answer</div>
+        <div class="whint">RAG (Retrieval-Augmented Generation) turns every document into a vector, then answers a question by pulling the <strong>k nearest</strong> documents and feeding them to the model as context. Here the blue dot is your query and the grey dots are documents in embedding space. Slide k and watch which documents get retrieved — the closer a document sits to the query, the more relevant it is.</div>
+        <canvas id="rgcv" width="640" height="300" aria-label="retrieve the nearest documents, then answer"></canvas>
+        <div class="wrow"><span class="wlab">retrieve top-k: <b id="rgk">3</b></span><input class="wslider" id="rgs" type="range" min="1" max="8" value="3" /></div>
+        <div class="wreadout" id="rgcvread">The k closest documents become the model's context.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: answering from your own documents</h3>
+        <p class="prose">RAG lets a frozen model use knowledge it was never trained on, by retrieving relevant text at question time.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Index (once).</strong> Split your documents into chunks, embed each chunk into a vector with an embedding model, and store the vectors in a database.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Retrieve (per query).</strong> Embed the question the same way, then find the \(k\) chunks whose vectors are closest (highest cosine similarity) to the question's vector.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Augment + generate.</strong> Paste those chunks into the prompt: "Using this context, answer…". The model reads real, current text and grounds its answer in it.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Why it beats fine-tuning for facts.</strong> Update knowledge by editing the database — no retraining — and cite sources, which cuts hallucination on questions about your private or fast-changing data.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -69,6 +88,17 @@ def retrieve(query):
           <li><strong>Embeddings put meaning in geometry</strong> — similar texts get nearby vectors, so relevance becomes nearest-neighbor search.</li>
           <li><strong>RAG fixes knowledge cutoff, hallucination, and update cost</strong> without retraining the model.</li>
           <li><strong>Production RAG</strong> uses learned embeddings + approximate nearest-neighbor indexes over huge corpora — same core mechanism.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Chunking badly.</strong> Chunks too large bury the answer in noise; too small and they lose context. Chunk size and overlap are the biggest quality levers in a RAG system.</li>
+          <li><strong>Trusting retrieval blindly.</strong> If the right document isn't retrieved, the model can't use it — and may confidently make something up. Garbage retrieval → garbage answer.</li>
+          <li><strong>Ignoring embedding–query mismatch.</strong> Questions and documents are phrased differently; a good embedding model (or a re-ranking step) is what bridges the gap.</li>
+          <li><strong>Thinking RAG replaces the model's reasoning.</strong> RAG supplies <em>facts</em>; the model still has to read and reason over them. Retrieval and generation are a team, not a substitute.</li>
         </ul>
       </div>
 
@@ -148,6 +178,18 @@ def retrieve(query):
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">RAG is how most real LLM products handle private or up-to-date knowledge — customer-support bots, "chat with your documents," internal search, coding assistants that pull in your codebase. It sidesteps two big weaknesses of a frozen model: stale knowledge and hallucination, by grounding answers in retrieved sources you can cite. The frontier is making retrieval smarter: hybrid keyword+vector search, re-rankers, query rewriting, "agentic" retrieval where the model decides what to look up and iterates, and long-context models that blur the line between retrieving and just reading everything. Retrieval quality — not the language model — is usually what makes or breaks a RAG system.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"RAG embeds your documents into vectors, finds the k nearest to the question, and pastes them into the prompt so the model answers from real sources instead of memory. It beats fine-tuning for facts — update the database, no retraining, and cite sources to cut hallucination. The catch: it's only as good as its retrieval, so chunking and embedding quality are everything."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -160,6 +202,27 @@ def retrieve(query):
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('rgcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var q=[300,150];
+    var docs=[[120,60],[200,110],[260,180],[340,120],[420,90],[380,220],[180,230],[470,180],[120,200],[500,90],[240,50],[430,250]];
+    var labels=docs.map(function(_,i){return 'D'+(i+1);});
+    function draw(){ var k=+document.getElementById('rgs').value; document.getElementById('rgk').textContent=k;
+      var d=docs.map(function(p,i){return {i:i,dist:Math.hypot(p[0]-q[0],p[1]-q[1])};});
+      d.sort(function(a,b){return a.dist-b.dist;}); var chosen={}; for(var j=0;j<k;j++) chosen[d[j].i]=1;
+      ctx.clearRect(0,0,Wd,Ht);
+      for(var i=0;i<docs.length;i++){ if(chosen[i]){ ctx.strokeStyle='#93c5fd'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(q[0],q[1]); ctx.lineTo(docs[i][0],docs[i][1]); ctx.stroke(); } }
+      for(var i2=0;i2<docs.length;i2++){ var sel=chosen[i2]; ctx.fillStyle=sel?'#059669':'#cbd5e1';
+        ctx.beginPath(); ctx.arc(docs[i2][0],docs[i2][1],sel?9:6,0,6.29); ctx.fill();
+        ctx.fillStyle=sel?'#065f46':'#94a3b8'; ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText(labels[i2],docs[i2][0],docs[i2][1]-12); }
+      ctx.fillStyle='#2563eb'; ctx.beginPath(); ctx.arc(q[0],q[1],10,0,6.29); ctx.fill();
+      ctx.fillStyle='#1e3a8a'; ctx.font='bold 11px system-ui'; ctx.fillText('query',q[0],q[1]+24);
+      var names=[]; for(var j2=0;j2<k;j2++) names.push(labels[d[j2].i]);
+      document.getElementById('rgcvread').textContent='Retrieved (nearest '+k+'): '+names.join(', ')+' → these get pasted into the prompt as context, so the model answers from real documents, not just memory.'; }
+    document.getElementById('rgs').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

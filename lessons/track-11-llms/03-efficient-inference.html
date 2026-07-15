@@ -15,7 +15,7 @@
       <p class="subtitle">Training gets the headlines, but <em>serving</em> a model to users is where most of the compute is spent. Two techniques make it affordable: the KV-cache (never recompute the past) and quantization (store weights in fewer bits). Both are simple, and you’ll build them.</p>
       <div class="meta-row">
         <span class="chip b">Track 10 · Lesson 3</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Track 9, Lesson 2</span>
       </div>
@@ -64,6 +64,25 @@ for t in range(T):
         <strong>Inference is memory-bound.</strong> Generating one token multiplies the input by every weight <em>once</em> — very little math reuse — so the bottleneck is usually <em>reading the weights from memory</em>, not the arithmetic. That reframes both techniques: quantization means fewer bytes to read per weight; the KV-cache means not re-reading the past. Combined (e.g. QLoRA fine-tunes a 4-bit base with LoRA adapters from Lesson&nbsp;2), they’re what let large models run on modest hardware.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="qzcvbox">
+        <div class="wtitle">▶ Interactive · shrink the model by storing weights in fewer bits</div>
+        <div class="whint">A 7-billion-parameter model stores one number per weight. At 32-bit that's 28&nbsp;GB — too big for most GPUs. <strong>Quantization</strong> stores each weight in fewer bits (16, 8, even 4), shrinking memory proportionally with only a small quality cost. Slide the precision and watch a 7B model go from 'needs a data-centre card' to 'runs on a laptop.'</div>
+        <canvas id="qzcv" width="640" height="300" aria-label="shrink the model by storing weights in fewer bits"></canvas>
+        <div class="wrow"><span class="wlab">precision: <b id="qzb">16</b>-bit</span><input class="wslider" id="qzs" type="range" min="0" max="3" value="2" /><span class="wlab">(4 / 8 / 16 / 32)</span></div>
+        <div class="wreadout" id="qzcvread">Fewer bits per weight = less memory.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: fitting a 7B model on your GPU</h3>
+        <p class="prose">Inference memory is dominated by the weights: (parameters × bits) ÷ 8 bytes.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Full precision.</strong> 7B params × 32 bits ÷ 8 = 28&nbsp;GB. Won't fit on a 24&nbsp;GB card.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Half precision (FP16).</strong> 7B × 16 ÷ 8 = 14&nbsp;GB. Now it fits, at essentially no quality loss — FP16/BF16 is the standard for inference.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>8-bit and 4-bit.</strong> 7&nbsp;GB and 3.5&nbsp;GB. 4-bit runs on a laptop; the trick is keeping the few "outlier" weights in higher precision so accuracy barely moves.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The other memory hog: the KV cache.</strong> Every generated token caches its keys and values, so memory grows with sequence length. Tricks like grouped-query attention and paged KV caches keep long-context generation affordable.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -73,6 +92,17 @@ for t in range(T):
           <li><strong>Quantization:</strong> \(q=\operatorname{round}(W/s)\) with \(s=\max|W|/127\); int8 is 4× smaller than float32 with tiny error.</li>
           <li><strong>Inference is memory-bound:</strong> the win is fewer bytes read (quantization) and not re-reading the past (cache).</li>
           <li><strong>They compose</strong> (e.g. QLoRA) to run and adapt large models on modest hardware.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Quantizing everything uniformly.</strong> A handful of outlier weights carry huge magnitudes; crush them to 4-bit and accuracy tanks. Good methods keep those in higher precision.</li>
+          <li><strong>Ignoring the KV cache.</strong> People size their GPU for the weights and forget the cache, which grows with batch size × sequence length and can dominate memory for long contexts.</li>
+          <li><strong>Assuming smaller = slower.</strong> Often the opposite: generation is memory-bandwidth-bound, so moving fewer bytes per weight makes a quantized model <em>faster</em>, not just smaller.</li>
+          <li><strong>Confusing throughput with latency.</strong> Batching many requests raises tokens/second (throughput) but can raise the wait for any single user (latency). They're different targets you tune separately.</li>
         </ul>
       </div>
 
@@ -152,6 +182,18 @@ for t in range(T):
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Efficient inference is where LLMs meet economics: serving is a bigger lifetime cost than training, so the field is full of sharp engineering. Quantization (INT8, INT4, and research into even lower) shrinks weights; FlashAttention makes attention memory-efficient; paged KV caches (vLLM) pack GPU memory like an operating system; speculative decoding uses a small draft model to propose tokens a big model verifies in parallel; grouped-query attention shrinks the cache. Together these turn models that once needed a server rack into things that run on a phone — and decide whether an AI product is profitable to run at scale.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Inference memory ≈ parameters × bits ÷ 8. Quantization stores each weight in fewer bits — 16-bit is near-lossless, 4-bit shrinks a 7B model to ~3.5&nbsp;GB so it runs on a laptop — as long as you protect the outlier weights. Watch the KV cache too, since it grows with sequence length. Because generation is bandwidth-bound, smaller often means faster, which is why serving tricks like FlashAttention, paged caches, and speculative decoding matter so much."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -164,6 +206,24 @@ for t in range(T):
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('qzcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var P=7e9, bitsArr=[4,8,16,32], note={4:'~laptop / phone; small quality drop',8:'~one consumer GPU; near-lossless',16:'~one data-centre GPU; standard',32:'full precision; rarely needed for inference'};
+    function draw(){ var idx=+document.getElementById('qzs').value; var bits=bitsArr[idx]; document.getElementById('qzb').textContent=bits;
+      var memGB=P*bits/8/1e9;
+      ctx.clearRect(0,0,Wd,Ht);
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.textAlign='left'; ctx.fillText('memory for a 7B-parameter model:',40,30);
+      var y=56, bh=40;
+      for(var i=0;i<4;i++){ var b=bitsArr[i], m=P*b/8/1e9, w=m/28*440;
+        ctx.fillStyle = b===bits ? '#2563eb' : '#cbd5e1'; ctx.fillRect(150,y,w,bh-10);
+        ctx.fillStyle='#334155'; ctx.textAlign='right'; ctx.fillText(b+'-bit',140,y+18);
+        ctx.textAlign='left'; ctx.fillStyle='#0f172a'; ctx.fillText(m.toFixed(1)+' GB',150+w+8,y+18); y+=bh; }
+      ctx.fillStyle='#64748b'; ctx.font='12px system-ui'; ctx.fillText(note[bits],40,Ht-24);
+      document.getElementById('qzcvread').textContent=bits+'-bit → '+memGB.toFixed(1)+' GB ('+note[bits]+'). Going 32→4 bit is an 8× memory cut for a modest accuracy loss.'; }
+    document.getElementById('qzs').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

@@ -15,7 +15,7 @@
       <p class="subtitle">You can’t retrain a billion-parameter model on your laptop — but you can adapt one. LoRA freezes the giant pretrained weights and learns a tiny low-rank update, matching full fine-tuning at a fraction of the cost. It’s how most custom LLMs are actually built.</p>
       <div class="meta-row">
         <span class="chip b">Track 10 · Lesson 2</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Tracks 1, 6, Lesson 1</span>
       </div>
@@ -66,6 +66,25 @@ for step in range(steps):
         <strong>Why this is transformative in practice.</strong> On a real LLM with \(d\) in the thousands, LoRA trains well under 1% of the parameters — small enough to fine-tune on a single consumer GPU. And because \(W_0\) is untouched, one frozen base model can host <em>many</em> tiny LoRA “adapters” (one per task/customer), swapped in at will, instead of storing a full model copy each. This is the backbone of modern parameter-efficient fine-tuning (PEFT) and of the LoRA-adapter ecosystems around open models.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="locvbox">
+        <div class="wtitle">▶ Interactive · train 1% of the weights, keep almost all the quality</div>
+        <div class="whint">A weight matrix \(W\) is \(d\times d\) — a million numbers at \(d=1000\). LoRA freezes \(W\) and learns a low-rank update \(BA\) instead: a \(d\times r\) matrix times an \(r\times d\) matrix, with \(r\) tiny. Slide the rank and watch the trainable parameter count collapse while the update still covers the directions that matter.</div>
+        <canvas id="locv" width="640" height="300" aria-label="train 1% of the weights, keep almost all the quality"></canvas>
+        <div class="wrow"><span class="wlab">rank r: <b id="lor">8</b></span><input class="wslider" id="los" type="range" min="1" max="64" value="8" /></div>
+        <div class="wreadout" id="locvread">Low rank = far fewer trainable parameters.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: counting the savings</h3>
+        <p class="prose">LoRA (Low-Rank Adaptation) replaces the full weight update with two skinny matrices.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Full fine-tune.</strong> One \(1000\times1000\) layer has \(10^6\) weights, and you'd update every one — then store a full copy per task.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>LoRA, rank 8.</strong> Learn \(B\ (1000\times8)\) and \(A\ (8\times1000)\). Trainable \(=2\cdot1000\cdot8=16{,}000\) — <strong>1.6%</strong> of the layer. The update is \(W'=W+BA\).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Why it works.</strong> Fine-tuning nudges a model in only a few directions; that update is approximately low-rank, so a small \(r\) captures most of it. Rank 8–16 is often enough.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Deployment win.</strong> Store one frozen base model plus tiny per-task adapters (a few MB each), and merge \(BA\) back into \(W\) at the end so inference runs at full speed with no overhead.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -75,6 +94,17 @@ for step in range(steps):
           <li><strong>Init \(B=0\)</strong> so training begins at the pretrained model; merge \(BA\) into \(W_0\) for zero added latency.</li>
           <li><strong>Matches full fine-tuning</strong> on suitable tasks at a fraction of the trainable parameters (12% here; &lt;1% on real LLMs).</li>
           <li><strong>One frozen base + many small adapters</strong> — cheap to train, store, and swap per task.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Setting rank too low for a big shift.</strong> Rank 8 suits light adaptation. Teaching a genuinely new skill or domain may need rank 32–64 — too small and the model can't move far enough.</li>
+          <li><strong>Forgetting the scaling factor.</strong> LoRA scales the update by \(\alpha/r\). Change \(r\) without adjusting \(\alpha\) and your effective learning rate shifts underneath you.</li>
+          <li><strong>Thinking LoRA adds inference cost.</strong> It doesn't — merge \(BA\) into \(W\) after training and the deployed model is identical in size and speed to the original.</li>
+          <li><strong>Adapting every layer blindly.</strong> Attention projection matrices usually give the most benefit per parameter; adapting everything wastes budget for little gain.</li>
         </ul>
       </div>
 
@@ -154,6 +184,18 @@ for step in range(steps):
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">LoRA (Hu et&nbsp;al. 2021) made fine-tuning large models affordable for everyone: instead of a full GPU-cluster fine-tune and a full model copy per task, you train megabytes of adapters on a single GPU. QLoRA pushed it further by fine-tuning on top of a 4-bit quantized base, putting 65B-parameter fine-tuning on one consumer card. The ecosystem now swaps LoRA adapters like plugins — one base model serving thousands of specialized behaviours, hot-swapped per request. It's the default way people customise open LLMs, and a clean illustration that fine-tuning updates are approximately low-rank.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"LoRA freezes the big weight matrix and learns a low-rank update \(BA\) — two skinny matrices — so you train ~1% of the parameters instead of all of them. Fine-tuning is approximately low-rank, so a small rank captures most of the change. You store tiny per-task adapters, merge them back for free at inference, and QLoRA even fine-tunes on a 4-bit base on a single GPU."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -166,6 +208,26 @@ for step in range(steps):
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('locv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var d=1000;
+    function draw(){ var r=+document.getElementById('los').value; document.getElementById('lor').textContent=r;
+      var full=d*d, lora=2*d*r, pct=lora/full*100;
+      ctx.clearRect(0,0,Wd,Ht); var S=150, ox=40, oy=60;
+      ctx.fillStyle='#dbeafe'; ctx.strokeStyle='#2563eb'; ctx.fillRect(ox,oy,S,S); ctx.strokeRect(ox,oy,S,S);
+      ctx.fillStyle='#1e3a8a'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('W (frozen)',ox+S/2,oy+S/2); ctx.fillText(d+'×'+d+' = 1,000,000',ox+S/2,oy+S/2+16);
+      var bx=ox+S+70; var rw=Math.max(6,S*r/d*6);
+      ctx.fillStyle='#059669'; ctx.fillRect(bx,oy,rw,S); ctx.fillStyle='#065f46'; ctx.font='10px system-ui'; ctx.fillText('B',bx+rw/2,oy+S+14);
+      ctx.fillStyle='#d97706'; ctx.fillRect(bx+rw+20,oy,S,rw); ctx.fillStyle='#92400e'; ctx.fillText('A',bx+rw+20+S/2,oy-6);
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.textAlign='left';
+      ctx.fillText('B ('+d+'×'+r+') · A ('+r+'×'+d+')',bx,oy+S+40);
+      ctx.fillStyle='#059669'; ctx.font='bold 14px system-ui'; ctx.fillText('trainable = 2·d·r = '+lora.toLocaleString(),bx,oy+S+64);
+      ctx.fillStyle='#0f172a'; ctx.fillText('= '+pct.toFixed(2)+'% of the full matrix',bx,oy+S+84);
+      document.getElementById('locvread').textContent='Rank '+r+': train '+lora.toLocaleString()+' params instead of '+full.toLocaleString()+' — just '+pct.toFixed(2)+'%. Merge BA into W at the end for zero extra inference cost.'; }
+    document.getElementById('los').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

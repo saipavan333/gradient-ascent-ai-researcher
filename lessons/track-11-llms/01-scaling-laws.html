@@ -15,7 +15,7 @@
       <p class="subtitle">Why did the field bet billions on making models bigger? Because loss falls with scale in a startlingly <em>predictable</em> way — a power law you can fit on cheap small models and extrapolate. This is the equation behind “just scale it up.”</p>
       <div class="meta-row">
         <span class="chip b">Track 10 · Lesson 1</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Track 4, Lesson 0</span>
       </div>
@@ -59,6 +59,25 @@
         <strong>Compute-optimal training (Chinchilla).</strong> Given a fixed compute budget \(C\approx 6ND\) (parameters × data), should you spend it on a bigger model or more data? Scaling laws answer this. The 2022 “Chinchilla” result showed most large models were <em>under-trained</em> — for compute-optimal training, parameters and tokens should grow in roughly equal proportion (≈20 tokens per parameter). It’s why a well-trained smaller model can beat a bigger, data-starved one. Scaling isn’t just “make \(N\) huge”; it’s balancing \(N\) and \(D\) under a compute constraint.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="slcvbox">
+        <div class="wtitle">▶ Interactive · more compute, less loss — on a straight line</div>
+        <div class="whint">Test loss falls as a <strong>power law</strong> in model size: \(L(N)=L_\infty+(N_c/N)^\alpha\). On log–log axes that's a straight line — every 10× in parameters buys the same drop in loss, until you hit the irreducible floor \(L_\infty\) (the noise no model can beat). Slide the model size and watch the point ride down the line.</div>
+        <canvas id="slcv" width="640" height="300" aria-label="more compute, less loss — on a straight line"></canvas>
+        <div class="wrow"><span class="wlab">model size N: <b id="sln">1e9</b> params</span><input class="wslider" id="sls" type="range" min="60" max="110" value="90" /></div>
+        <div class="wreadout" id="slcvread">Bigger models get predictably better — until the floor.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: how much compute for a target loss?</h3>
+        <p class="prose">Scaling laws let you <em>predict</em> a big model's loss from small ones — you fit the curve on cheap runs, then extrapolate.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Fit on small models.</strong> Train models at 1e7, 1e8, 1e9 params. Plot loss vs size on log–log axes — the points fall on a line. Read off the slope \(\alpha\) and floor \(L_\infty\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Extrapolate.</strong> Want loss 2.2? Extend the line until it crosses 2.2 and read the x-value: about 1e11 params. You now know the model size <em>before</em> spending the compute.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Chinchilla balance.</strong> A fixed compute budget \(C\approx 6ND\) (params × tokens) is best split roughly equally: scale parameters \(N\) and data \(D\) <em>together</em>, ~20 tokens per parameter. Doubling params without more data wastes the budget.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The payoff.</strong> This is why labs can promise a model's quality before training it — the curve is smooth and reliable across many orders of magnitude.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -68,6 +87,17 @@
           <li><strong>Small \(\alpha\)</strong> means exponential scale buys linear loss reduction: predictable diminishing returns.</li>
           <li><strong>Fit on cheap small models, extrapolate</strong> to forecast large ones before spending the compute.</li>
           <li><strong>Compute-optimal (Chinchilla):</strong> under a budget \(C\approx6ND\), grow parameters and data together (~20 tokens/param).</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Scaling only the model.</strong> A giant model on too little data is "undertrained." Chinchilla showed you must scale <em>data and parameters together</em> — many early large models were far too big for their token count.</li>
+          <li><strong>Expecting loss to hit zero.</strong> It can't. \(L_\infty\) is the irreducible entropy of language itself — the floor of the power law.</li>
+          <li><strong>Confusing loss with capability.</strong> Loss falls smoothly, but some abilities appear to "emerge" suddenly at scale. Lower loss is necessary, not a full description of what the model can do.</li>
+          <li><strong>Reading the axes as linear.</strong> The straight line lives on <em>log–log</em> axes. On linear axes it's a steep curve that flattens — the same law, easy to misread.</li>
         </ul>
       </div>
 
@@ -147,6 +177,18 @@
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Scaling laws (Kaplan et&nbsp;al. 2020, Hoffmann et&nbsp;al./Chinchilla 2022) turned model building from guesswork into planning: labs fit the curve on small runs and extrapolate to decide the size, data, and compute for a flagship model before spending millions of dollars. The frontier now asks where the laws bend — data is becoming the bottleneck (we may run out of high-quality text), so the action has moved to data quality, repetition, synthetic data, and scaling <em>inference-time</em> compute (letting a model "think" longer) instead of only training-time size. The smooth predictability of loss is one of the most important empirical facts in modern AI.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Test loss follows a power law in model size, data, and compute: a straight line on log–log axes down to an irreducible floor. That means you can predict a huge model's loss from small cheap runs. Chinchilla added the key twist — scale parameters and data together (~20 tokens per parameter), or you waste compute. It's why labs can promise a model's quality before training it."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -159,6 +201,30 @@
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('slcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var Linf=1.7, Nc=8.8e13, al=0.076;
+    function L(N){ return Linf+Math.pow(Nc/N,al); }
+    var Lmax=L(1e6), Lmin=L(1e11);
+    function px(le){ return 60+(le-6)/(11-6)*(Wd-90); }        // le = log10(N)
+    function py(v){ return 30+(v-Lmin)/(Lmax-Lmin)*(Ht-80); }
+    function draw(){ var le=+document.getElementById('sls').value/10; var N=Math.pow(10,le);
+      document.getElementById('sln').textContent='1e'+le.toFixed(1);
+      ctx.clearRect(0,0,Wd,Ht);
+      ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
+      for(var e=6;e<=11;e++){ var x=px(e); ctx.beginPath(); ctx.moveTo(x,30); ctx.lineTo(x,Ht-46); ctx.stroke();
+        ctx.fillStyle='#94a3b8'; ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText('1e'+e,x,Ht-30); }
+      ctx.strokeStyle='#94a3b8'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(60,py(Linf)); ctx.lineTo(Wd-30,py(Linf)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#64748b'; ctx.textAlign='left'; ctx.fillText('irreducible loss L∞ = '+Linf.toFixed(2),64,py(Linf)-5);
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2.5; ctx.beginPath();
+      for(var e2=6;e2<=11;e2+=0.1){ var x=px(e2),y=py(L(Math.pow(10,e2))); if(e2===6)ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke();
+      var cx=px(le),cy=py(L(N)); ctx.fillStyle='#dc2626'; ctx.beginPath(); ctx.arc(cx,cy,6,0,6.29); ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.fillText('loss '+L(N).toFixed(2),cx,cy-12);
+      document.getElementById('slcvread').textContent='At N=1e'+le.toFixed(1)+' params, predicted loss ≈ '+L(N).toFixed(3)+'. A 10× bigger model → loss '+L(N*10).toFixed(3)+' (a fixed step down the line).'; }
+    document.getElementById('sls').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>
