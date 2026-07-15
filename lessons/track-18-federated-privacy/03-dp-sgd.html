@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t18-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DP-SGD · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>DP-SGD: training a model that can't memorize you</h1>
+      <p class="subtitle">Differential privacy protected a single statistic. DP-SGD makes an entire trained neural network differentially private, with two small changes to ordinary training: clip each example's gradient, then add noise. The model learns the pattern without memorizing any individual.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 17 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~19 min</span>
+        <span class="chip">Builds on: Lesson 2</span>
+      </div>
+
+      <p class="lead prose">
+        Lesson&nbsp;2 made a single released number private. But a trained model is the product of <em>millions</em> of computations on the data, and it can memorize individual training examples — large language models have been shown to regurgitate verbatim training text, including private information. <span class="newterm">DP-SGD</span> (Differentially Private Stochastic Gradient Descent) makes the whole training process differentially private, so the final model provably reveals almost nothing about any single training example. The genius is how little it changes: ordinary SGD computes gradients from a batch and steps; DP-SGD adds exactly two operations. First, <span class="newterm">clip</span> each individual example's gradient to a maximum length — so no single example can push the model very far. Second, add <span class="newterm">Gaussian noise</span> to the summed gradient before the step — blurring the exact contribution. Clipping bounds how much one person can influence each update (the sensitivity from Lesson&nbsp;2); noise hides that bounded influence. Together they give a formal privacy guarantee for the trained model, at a modest cost in accuracy. This is the workhorse of private deep learning, and combined with federated learning it's how models get trained on sensitive data responsibly.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: cap every vote, then add static</h2>
+      <p class="prose">
+        Think of each training example as casting a "vote" (its gradient) for how the model should change. The danger to privacy is a loud, distinctive vote — an outlier example that shoves the model in a unique direction, leaving its fingerprint in the weights. DP-SGD does two things. It <em>caps the volume</em> of every vote (gradient clipping), so even the most extreme example can only nudge the model by a bounded amount — no one can shout. Then it <em>adds static</em> to the tally (Gaussian noise), so the exact combination of votes is fuzzy. The model still hears the <em>consensus</em> — the pattern shared across many examples survives the noise — but any single distinctive voice is capped and blurred beyond recognition. It learns the crowd's signal without recording any individual's.
+      </p>
+      <p class="prose">
+        The DP-SGD update, compared to plain SGD:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ g_i \leftarrow g_i \cdot \min\!\Big(1, \tfrac{C}{\lVert g_i\rVert}\Big) \;\;(\text{clip to norm } C), \qquad \theta \leftarrow \theta - \eta\,\frac{1}{B}\Big(\sum_i g_i + \mathcal{N}(0, \sigma^2 C^2)\Big) \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        Read it: for each example \(i\), if its gradient \(g_i\) is longer than \(C\), scale it down to length \(C\) (clipping — capping the vote); otherwise leave it. Then sum the clipped gradients, add Gaussian noise \(\mathcal{N}(0,\sigma^2C^2)\) (scaled to the clip \(C\) and a noise multiplier \(\sigma\)), and take the step. The clip \(C\) bounds each example's sensitivity; \(\sigma\) sets how much noise (and thus how much privacy). Everything else is ordinary SGD.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A schematic of DP-SGD's two extra steps: step 1 clips each example's gradient to a circle of radius C (grey originals capped to red), step 2 adds a cloud of Gaussian noise to the summed gradient before the update step." />
+        <figcaption>DP-SGD = ordinary SGD plus two steps: clip each example's gradient to length C (so no one dominates), then add Gaussian noise to the sum (blurring the exact update).</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="dslab">
+        <div class="wtitle">▶ Interactive · the privacy–accuracy dial for training</div>
+        <div class="whint">A real classifier trained with DP-SGD. Slide the <strong>noise</strong> up (more privacy) and press <strong>Train</strong>: the decision boundary gets shakier and accuracy dips a little — the price of privacy. At zero noise it's ordinary SGD (best accuracy, no guarantee); at high noise it's very private but wobbly. Find the sweet spot where it's private <em>and</em> still accurate.</div>
+        <canvas id="dscanvas" width="640" height="320" aria-label="Interactive DP-SGD"></canvas>
+        <div class="wrow">
+          <span class="wlab">noise σ = <b id="dsslab">1.0</b></span>
+          <input class="wslider" id="dss" type="range" min="0" max="60" value="10" />
+          <button class="wbtn primary" id="dstrain">▶ Train</button>
+        </div>
+        <div class="wreadout" id="dsread">Set the noise, then press Train.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: DP-SGD vs plain SGD</h3>
+        <p class="prose">From <code>dp_sgd.py</code>: a classifier trained normally, then with DP-SGD (clip + noise).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Plain SGD.</strong> Ordinary training, no privacy. Test accuracy: <strong>0.966</strong>. But the model may have memorized specifics of its training data.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Clip (step 1).</strong> Compute each example's gradient, and cap any whose norm exceeds \(C=1\) — no single example dominates a step.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Noise (step 2).</strong> Add Gaussian noise (multiplier \(\sigma=1\)) to the summed clipped gradients, then step.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> DP-SGD accuracy: <strong>0.965</strong> — essentially unchanged, now with a privacy guarantee. On this easy task the cost is tiny; on harder tasks with strong privacy (small \(\varepsilon\)), the accuracy hit is larger. The clip + noise bought provable protection for ~0.1% accuracy.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: DP-SGD's two extra lines</h2>
+      <pre><code>gw = per_example_gradients(X, y, w)                 # one gradient per example
+norms = np.linalg.norm(gw, axis=1)
+gw = gw * np.minimum(1.0, C / norms)[:, None]      # (1) CLIP each to norm C
+noise = rng.normal(0, sigma * C, gw.shape[1])      # (2) ADD Gaussian noise
+grad = (gw.sum(0) + noise) / len(y)                # noised, clipped average gradient
+w -= lr * grad                                     # ordinary step
+
+# plain SGD 0.966  ->  DP-SGD 0.965   (privacy for ~0.1% accuracy here)</code></pre>
+      <p class="prose">
+        The two privacy operations are the clip line and the noise line — everything else is standard SGD. Real libraries (Opacus for PyTorch, TensorFlow Privacy) add efficient per-example gradient computation and a <span class="newterm">privacy accountant</span> that tracks the total \(\varepsilon\) spent over all the training steps, so you know exactly how private your final model is.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why clipping must come first.</strong> The order matters: you clip <em>per-example</em> gradients <em>before</em> summing, not the summed gradient. Only per-example clipping bounds how much a single person can affect the update — which is the sensitivity the noise is calibrated to. Clipping the sum would let one huge example dominate before the cap. This per-example clipping is also the main engineering cost of DP-SGD (you can't just use the batched gradient), and it's why specialized libraries exist. The reward is a rigorous statement: "this model is \((\varepsilon,\delta)\)-differentially private," meaning it provably didn't memorize any individual.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Clipping the batch gradient instead of per-example.</strong> Only per-example clipping bounds each person's influence. Clipping the sum gives no privacy guarantee.</li>
+          <li><strong>Setting the clip norm \(C\) badly.</strong> Too small and you throw away useful gradient signal (slow, poor learning); too large and you need more noise for the same privacy. \(C\) needs tuning.</li>
+          <li><strong>Ignoring the privacy accountant.</strong> Without tracking cumulative \(\varepsilon\) over all steps, you don't actually know how private your model is — "we added noise" isn't a guarantee.</li>
+          <li><strong>Expecting free privacy.</strong> Strong privacy (small \(\varepsilon\)) genuinely costs accuracy, more so on hard tasks and small datasets. There's no way around the trade-off.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>DP-SGD</strong> makes a whole trained model differentially private with two changes to SGD (eq 3.1).</li>
+          <li><strong>(1) Clip</strong> each per-example gradient to norm \(C\) — bounds one person's influence per step.</li>
+          <li><strong>(2) Add Gaussian noise</strong> (multiplier \(\sigma\)) to the summed gradients — hides the exact contribution.</li>
+          <li><strong>A privacy accountant</strong> tracks total \(\varepsilon\) over all steps; libraries (Opacus, TF-Privacy) handle it.</li>
+          <li><strong>Modest accuracy cost</strong> (0.966 → 0.965 here); larger for strong privacy on hard tasks.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What are DP-SGD's two changes to ordinary SGD?</p>
+          <ul class="quiz-options">
+            <li>Bigger batches and a smaller learning rate.<div class="quiz-why">Those are ordinary tuning, not the privacy mechanism.</div></li>
+            <li>Dropout and weight decay.<div class="quiz-why">Those are regularizers, not DP operations.</div></li>
+            <li>Clip each per-example gradient, then add Gaussian noise to the sum.<div class="quiz-why">Correct. Clip bounds each person's influence; noise hides it.</div></li>
+            <li>Encrypt the weights and the data.<div class="quiz-why">DP-SGD adds noise, not encryption.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why clip <em>per-example</em> gradients rather than the batch gradient?</p>
+          <ul class="quiz-options">
+            <li>Only per-example clipping bounds how much one person affects the update.<div class="quiz-why">Correct. That bounded sensitivity is what the noise is calibrated to.</div></li>
+            <li>It's faster.<div class="quiz-why">It's actually slower/costlier — the opposite.</div></li>
+            <li>To increase accuracy.<div class="quiz-why">It's about privacy, not accuracy.</div></li>
+            <li>It uses less memory.<div class="quiz-why">Per-example gradients use more memory.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What does the privacy accountant do?</p>
+          <ul class="quiz-options">
+            <li>Speeds up training.<div class="quiz-why">It tracks privacy, not speed.</div></li>
+            <li>Clips the gradients.<div class="quiz-why">Clipping is a separate step; the accountant measures privacy.</div></li>
+            <li>Chooses the learning rate.<div class="quiz-why">Not its role.</div></li>
+            <li>Tracks the total privacy budget \(\varepsilon\) spent across all training steps.<div class="quiz-why">Correct. It tells you how private the final model actually is.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What's the cost of DP-SGD?</p>
+          <ul class="quiz-options">
+            <li>It always halves accuracy.<div class="quiz-why">The cost is often small; it depends on the task and \(\varepsilon\).</div></li>
+            <li>Some accuracy, more so for strong privacy on hard tasks.<div class="quiz-why">Correct. Easy tasks lose little; strong privacy on hard tasks costs more.</div></li>
+            <li>Nothing.<div class="quiz-why">There's a real (if sometimes small) accuracy trade-off.</div></li>
+            <li>It requires no tuning.<div class="quiz-why">Clip norm and noise need tuning.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, train with zero noise, then with high noise. What happens to the boundary and the accuracy, and what have you gained for that cost?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At zero noise the boundary is crisp and accuracy is highest — but this is ordinary SGD with no privacy guarantee. As you raise the noise, the boundary jitters (each step is perturbed) and accuracy dips modestly. What you've gained for that cost is privacy: the noise (with per-example clipping) provably limits how much the trained model reflects any single example, so it can't memorize individuals. That's the whole DP-SGD trade-off in one slider — a little accuracy for a formal guarantee. The practical goal is to pick the least noise that still meets your required privacy level (ε), keeping accuracy as high as possible.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> DP-SGD's accuracy cost is much larger on small datasets than large ones. Why, connecting to Lesson 2?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Because privacy is cheaper in a crowd. On a large dataset, each example is one of many, so the fixed amount of noise DP-SGD adds is small relative to the strong, consistent signal from thousands of examples — the consensus easily survives. On a small dataset, each example carries more of the signal (and more of the sensitivity), so the same privacy level requires noise that is large relative to the signal, drowning it and hurting accuracy a lot. This mirrors Lesson 2's point that a private mean needs less noise as \(n\) grows: individual influence shrinks with more people. The implication is practical — DP works best with lots of data, and combining many users' data (e.g., via federated learning) is one way to get the scale that makes strong privacy affordable.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> How do federated learning, DP-SGD, and secure aggregation (next lesson) fit together into a privacy stack?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>They defend different points and compose into layered protection. <em>Federated learning</em> (Lesson 0) keeps raw data on-device — the server never sees examples, only model updates. <em>DP-SGD</em> (this lesson) makes each client's contributed update differentially private — even if someone sees the update, it provably reveals little about any individual example (this is "local" or "user-level" DP depending on where the noise is added). <em>Secure aggregation</em> (next lesson) ensures the server sees only the <em>sum</em> of client updates, never any individual client's update, using cryptographic masks. Stacked: data never leaves the device (FL), each update is noised so it can't memorize individuals (DP), and updates are cryptographically hidden so the server only learns the aggregate (secure agg). Together they address the three leaks — the data, the per-example memorization, and the per-client exposure — giving a defense far stronger than any one alone. Real privacy-preserving systems (like Google's federated analytics) combine all three.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">DP-SGD is how models get trained on sensitive data with a guarantee: medical models, models on user text and behavior, and increasingly large language models where memorization of private training data is a documented risk. Libraries like Opacus and TensorFlow Privacy make it usable, and DP training is becoming a compliance expectation for sensitive applications. The frontier works hard to shrink its cost — better clipping strategies, tighter privacy accounting, architectures friendlier to DP, and pre-training on public data then privately fine-tuning on sensitive data. The tension DP-SGD embodies — strong privacy really does cost accuracy, and can affect groups unevenly — is one of the defining practical challenges of trustworthy AI, and progress here directly expands what can be learned from data people are unwilling, or legally unable, to share.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"DP-SGD makes a trained model differentially private with two extra steps: clip each example's gradient so no one dominates, then add Gaussian noise so the exact contributions are blurred. The model learns the consensus pattern but can't memorize any individual. A privacy accountant tracks the total ε. The accuracy cost is modest here (0.966 → 0.965) and larger for strong privacy on hard or small-data tasks — no free lunch, but a real guarantee."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Abadi et&nbsp;al. (2016), "Deep Learning with Differential Privacy" (DP-SGD, moments accountant). <a href="https://arxiv.org/abs/1607.00133" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Carlini et&nbsp;al. (2021), "Extracting Training Data from Large Language Models." <a href="https://arxiv.org/abs/2012.07805" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">tool</span> Opacus — DP-SGD for PyTorch. <a href="https://opacus.ai/" target="_blank" rel="noopener">opacus.ai</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: DP protects against memorization, but the server still sees each client's update. <a href="04-secure-aggregation.html">Secure aggregation</a> uses cryptographic masks so the server learns only the <em>sum</em> of updates — never any single one.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('dscanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height, plot=380;
+    function rnd(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.0;}
+    var pts=[]; (function(){ for(var i=0;i<120;i++){ var x=(Math.random()*2-1)*2.6, y=(Math.random()*2-1)*2.6; var l=(1.1*x - y + 0.2)>0?1:0; pts.push({x:x,y:y,l:l}); } })();
+    var w=[0,0], b=0;
+    function sig(z){return 1/(1+Math.exp(-z));}
+    function toX(x){return plot/2 + x*(plot/6.2);} function toY(y){return H/2 - y*(H/6.2);}
+    function train(){
+      var sigma=+document.getElementById('dss').value/10; var C=1.0;
+      w=[0,0]; b=0;
+      for(var s=0;s<250;s++){
+        var sw=[0,0], sb=0;
+        for(var i=0;i<pts.length;i++){ var p=pts[i]; var e=sig(w[0]*p.x+w[1]*p.y+b)-p.l;
+          var gx=e*p.x, gy=e*p.y, gb=e; var nrm=Math.sqrt(gx*gx+gy*gy+gb*gb)+1e-9; var cl=Math.min(1,C/nrm);
+          sw[0]+=gx*cl; sw[1]+=gy*cl; sb+=gb*cl;
+        }
+        var nz=function(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)*sigma*C;};
+        var n=pts.length;
+        w[0]-=0.3*(sw[0]+nz())/n; w[1]-=0.3*(sw[1]+nz())/n; b-=0.3*(sb+nz())/n;
+      }
+      draw();
+      var c=0; pts.forEach(function(p){ if(((sig(w[0]*p.x+w[1]*p.y+b)>0.5)?1:0)===p.l)c++; });
+      var acc=c/pts.length;
+      document.getElementById('dsread').textContent='noise σ='+sigma.toFixed(1)+(sigma<0.05?'  (plain SGD, no privacy)':'  (DP-SGD: clip + noise)')+'  →  training accuracy '+(acc*100).toFixed(0)+'%';
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // decision shading
+      for(var gx=0;gx<plot;gx+=12)for(var gy=0;gy<H;gy+=12){ var xx=(gx-plot/2)/(plot/6.2), yy=(H/2-gy)/(H/6.2); ctx.fillStyle=(sig(w[0]*xx+w[1]*yy+b)>0.5)?'rgba(37,99,235,0.10)':'rgba(220,38,38,0.10)'; ctx.fillRect(gx,gy,12,12); }
+      pts.forEach(function(p){ ctx.fillStyle=p.l?'#2563eb':'#dc2626'; ctx.beginPath(); ctx.arc(toX(p.x),toY(p.y),3.5,0,7); ctx.fill(); });
+      ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.strokeRect(0,0,plot,H);
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.fillText('clip C=1 · noise hides exact gradients', plot+16, 30);
+      ctx.fillText('blue vs red classes', plot+16, 52);
+    }
+    document.getElementById('dss').oninput=function(){ document.getElementById('dsslab').textContent=(this.value/10).toFixed(1); };
+    document.getElementById('dstrain').onclick=train;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

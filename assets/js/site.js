@@ -203,11 +203,11 @@
       n: 17, id: "t18", title: "Federated & Privacy-Preserving ML",
       desc: "Train without pooling data: federated averaging, non-IID data, differential privacy, and DP-SGD.",
       lessons: [
-        { id: "t18-l00", title: "Federated averaging (FedAvg)", file: "#", status: "soon" },
-        { id: "t18-l01", title: "The non-IID challenge", file: "#", status: "soon" },
-        { id: "t18-l02", title: "Differential privacy", file: "#", status: "soon" },
-        { id: "t18-l03", title: "DP-SGD", file: "#", status: "soon" },
-        { id: "t18-l04", title: "Secure aggregation", file: "#", status: "soon" },
+        { id: "t18-l00", title: "Federated averaging (FedAvg)", file: "lessons/track-18-federated-privacy/00-federated-averaging.html", status: "done" },
+        { id: "t18-l01", title: "The non-IID challenge", file: "lessons/track-18-federated-privacy/01-non-iid.html", status: "done" },
+        { id: "t18-l02", title: "Differential privacy", file: "lessons/track-18-federated-privacy/02-differential-privacy.html", status: "done" },
+        { id: "t18-l03", title: "DP-SGD", file: "lessons/track-18-federated-privacy/03-dp-sgd.html", status: "done" },
+        { id: "t18-l04", title: "Secure aggregation", file: "lessons/track-18-federated-privacy/04-secure-aggregation.html", status: "done" },
       ],
     },
     {

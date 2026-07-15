@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t18-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Secure aggregation · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Secure aggregation: the server sees only the sum</h1>
+      <p class="subtitle">In FedAvg the server sees each client's individual update — which can leak private data. Secure aggregation uses a beautiful cryptographic trick: clients add pairwise masks that cancel out, so the server learns only the <em>total</em> of everyone's updates, never any single one.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 17 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~17 min</span>
+        <span class="chip">Builds on: Lesson 0</span>
+      </div>
+
+      <p class="lead prose">
+        Federated averaging (Lesson&nbsp;0) has a quiet weakness: the server receives each client's individual model update. Even though raw data never moves, a single update can leak a lot — researchers have reconstructed training images from one gradient. FedAvg only ever <em>needs</em> the average of the updates, so why should the server see them individually at all? <span class="newterm">Secure aggregation</span> is the elegant fix: it lets the server compute the exact <em>sum</em> (and hence average) of all clients' updates while learning <em>nothing</em> about any individual update. The trick is a cryptographic one, and it's almost magical in its simplicity. Every <em>pair</em> of clients agrees on a shared random mask: one adds it, the other subtracts it. Each client adds up all its masks and tacks the total onto its real update before sending. Because every mask appears once as \(+s\) and once as \(-s\), when the server sums all the messages, <em>every mask cancels</em> — leaving exactly the sum of the true updates. But any single masked message, on its own, is drowned in random masks and reveals nothing. This is how federated learning gets a real privacy guarantee against the server itself, and it's a gem of applied cryptography that you can fully understand from scratch.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: secret numbers that cancel</h2>
+      <p class="prose">
+        Here's a party trick that captures the whole idea. Three friends want to know the <em>total</em> money in their wallets without anyone revealing their own amount. Solution: each pair of friends secretly agrees on a random number — friend A and B pick 50 (A will add it, B will subtract it); A and C pick 30; B and C pick 20. Now each friend announces their wallet <em>plus all their agreed numbers</em>: A says (wallet + 50 + 30), B says (wallet − 50 + 20), C says (wallet − 30 − 20). Each announced number is meaningless gibberish — masked by the random agreements. But add all three announcements: the +50 and −50 cancel, +30 and −30 cancel, +20 and −20 cancel, leaving exactly the total wallet money. Everyone learns the sum; no one learns any individual amount. That is secure aggregation, and the "wallets" are model updates.
+      </p>
+      <p class="prose">
+        Formally, each pair of clients \((i,j)\) shares a random mask \(s_{ij}\) with the antisymmetric property \(s_{ij} = -s_{ji}\). Client \(i\) sends its true update \(u_i\) plus the sum of its masks; the server adds up the messages:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{client } i \text{ sends: } \; y_i = u_i + \sum_{j \ne i} s_{ij}, \qquad \sum_i y_i = \sum_i u_i + \underbrace{\sum_{i}\sum_{j\ne i} s_{ij}}_{= \,0 \text{ (masks cancel)}} = \sum_i u_i \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        Read it: each client's message \(y_i\) is its real update \(u_i\) hidden under the sum of its pairwise masks. When the server totals all messages, every mask \(s_{ij}\) meets its partner \(s_{ji} = -s_{ij}\) and they cancel, so the double sum of masks is exactly zero — the server is left with \(\sum_i u_i\), the true total, and nothing else. Each \(y_i\) alone looks like random noise (it's masked by large random numbers), so an individual client's update stays hidden.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="Three clients each send their update plus pairwise masks (u1+s12+s13, u2-s12+s23, u3-s13-s23) up to a server; a note shows the masks cancel in pairs so the server's sum equals u1+u2+u3 exactly, while each individual message looks like noise." />
+        <figcaption>Secure aggregation: each client masks its update with pairwise masks that cancel in the total, so the server recovers the exact sum but never sees any individual update.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="salab">
+        <div class="wtitle">▶ Interactive · masks that vanish in the sum</div>
+        <div class="whint">Four clients each have a private update (green). Toggle <strong>Add masks</strong> to see what each actually <em>sends</em> (blue) — random-looking gibberish that hides the true value. Yet press <strong>Server sums them</strong> and the masked total exactly equals the true total: every mask met its negative and cancelled. The server learns the sum, never an individual update.</div>
+        <canvas id="sacanvas" width="640" height="330" aria-label="Interactive secure aggregation"></canvas>
+        <div class="wrow">
+          <button class="wbtn primary" id="samask">Add masks</button>
+          <button class="wbtn primary" id="sasum">Server sums them</button>
+          <button class="wbtn" id="sanew">↻ New updates</button>
+        </div>
+        <div class="wreadout" id="saread">Toggle masks and sum to see the cancellation.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: masks cancel exactly</h3>
+        <p class="prose">From <code>secure_aggregation.py</code>: 6 clients, each with a private update vector, masked and summed.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Setup.</strong> Each pair \((i,j)\) draws a random mask \(s_{ij}\) (large, scale 5); client \(i\) holds \(+s_{ij}\), client \(j\) holds \(-s_{ij}\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Mask.</strong> Each client sends \(u_i + \sum_j s_{ij}\). These masked messages look nothing like the true updates — a single one differs from its real update by <strong>~3600%</strong> (pure noise to an observer).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Sum.</strong> The server adds the 6 masked messages. Every \(+s_{ij}\) meets its \(-s_{ij}\); all masks vanish.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Exactness.</strong> The masked sum equals the true sum to floating-point precision (<code>np.allclose</code> passes). The server recovers the exact aggregate for FedAvg, while every individual update stayed hidden. Perfect utility, real privacy.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: pairwise masks</h2>
+      <pre><code>S = np.zeros((N, N, d))
+for i in range(N):
+    for j in range(i+1, N):
+        s = rng.standard_normal(d) * 5          # random mask for the pair (i, j)
+        S[i, j] = s;  S[j, i] = -s              # antisymmetric: i adds +s, j adds -s
+
+masked = np.array([updates[i] + S[i].sum(0) for i in range(N)])   # what each client SENDS
+masked_sum = masked.sum(0)                       # the server only ever computes this
+assert np.allclose(masked_sum, updates.sum(0))   # masks cancel -> exact true sum</code></pre>
+      <p class="prose">
+        The antisymmetry <code>S[i,j] = -S[j,i]</code> is the entire secret: it guarantees the masks come in canceling pairs. In a real deployment the shared masks are established without a trusted third party using cryptographic key agreement (Diffie–Hellman), and the scheme is made robust to clients dropping out mid-round — but the mathematical heart is exactly these two lines.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The dropout problem — and why it's the hard part.</strong> There's a catch: if a client goes offline after masks are set up but before sending, its masks don't get canceled by its partners, and the sum is corrupted with leftover noise. Real secure aggregation (Bonawitz et&nbsp;al., 2017) solves this with <em>secret sharing</em>: each client's mask can be reconstructed by a threshold of others if it drops, so the server can still cancel the orphaned masks. Handling dropouts efficiently, at the scale of millions of phones, is what makes practical secure aggregation a genuine engineering achievement — but the core "masks that cancel" idea is exactly what you built.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking secure aggregation adds noise like DP.</strong> It doesn't — the masks cancel <em>exactly</em>, so the aggregate is unchanged (no accuracy cost). It hides individual updates, not the memorization DP addresses. They're complementary.</li>
+          <li><strong>Forgetting the dropout problem.</strong> If a masked client vanishes, its masks don't cancel and the sum is ruined. Real schemes need secret-sharing recovery.</li>
+          <li><strong>Assuming it hides the aggregate too.</strong> The server <em>does</em> learn the exact sum/average — that's the goal. To also protect the aggregate, add differential privacy on top.</li>
+          <li><strong>Confusing it with encryption of data.</strong> It's a masking protocol for aggregation, not encryption of the raw data (which never moves anyway in FL).</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Secure aggregation</strong> lets the server learn only the <em>sum</em> of client updates, never an individual one.</li>
+          <li><strong>Pairwise masks</strong> \(s_{ij}=-s_{ji}\): each client adds its masks to its update (eq 4.1); masks cancel in the total.</li>
+          <li><strong>Exact, no accuracy cost</strong> — unlike DP's noise, the masks cancel perfectly.</li>
+          <li><strong>Individual messages look random;</strong> only the aggregate is meaningful.</li>
+          <li><strong>Dropouts are the hard part;</strong> real schemes use secret sharing to recover a missing client's masks.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does secure aggregation let the server learn?</p>
+          <ul class="quiz-options">
+            <li>Each client's individual update.<div class="quiz-why">The whole point is that it does <em>not</em> see individuals.</div></li>
+            <li>The raw data.<div class="quiz-why">Raw data never moves in federated learning.</div></li>
+            <li>Only the sum (or average) of all clients' updates.<div class="quiz-why">Correct. That's exactly what FedAvg needs, and nothing more.</div></li>
+            <li>Nothing at all.<div class="quiz-why">It learns the aggregate — which is the useful part.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why do the masks cancel when the server sums the messages?</p>
+          <ul class="quiz-options">
+            <li>Each pair's mask appears once as \(+s\) and once as \(-s\), so they add to zero.<div class="quiz-why">Correct. The antisymmetric \(s_{ij}=-s_{ji}\) guarantees exact cancellation in the total.</div></li>
+            <li>The server subtracts them manually.<div class="quiz-why">The server never sees the masks; they cancel automatically.</div></li>
+            <li>They're very small.<div class="quiz-why">They're large; cancellation, not size, is why they vanish.</div></li>
+            <li>They're encrypted.<div class="quiz-why">Cancellation is arithmetic, not encryption.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> How does secure aggregation differ from differential privacy?</p>
+          <ul class="quiz-options">
+            <li>They're the same.<div class="quiz-why">They address different leaks and compose.</div></li>
+            <li>Secure aggregation adds noise to the result.<div class="quiz-why">Its masks cancel exactly — no noise, no accuracy cost.</div></li>
+            <li>DP hides the sum.<div class="quiz-why">DP noises outputs; secure agg hides individual updates but reveals the exact sum.</div></li>
+            <li>Secure aggregation hides individual updates exactly; DP adds noise to prevent memorization.<div class="quiz-why">Correct. They're complementary — one hides who contributed what, the other limits what's memorized.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What is the main practical difficulty of secure aggregation?</p>
+          <ul class="quiz-options">
+            <li>It's too slow to ever use.<div class="quiz-why">It's deployed at scale; the difficulty is more specific.</div></li>
+            <li>Client dropouts leave un-canceled masks, corrupting the sum.<div class="quiz-why">Correct. Real schemes use secret sharing to recover a dropped client's masks.</div></li>
+            <li>It reduces accuracy.<div class="quiz-why">The masks cancel exactly — no accuracy cost.</div></li>
+            <li>It needs the raw data.<div class="quiz-why">It works on updates; raw data isn't involved.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, add masks and look at what each client sends. Can you guess any client's true update from its masked message? Now sum them. What just happened?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>No — each masked message is dominated by large random masks, so it bears no visible relation to the true update; a client's real value is completely hidden. Yet summing all the masked messages returns exactly the true total, because every mask \(+s_{ij}\) is canceled by its partner \(-s_{ij}\) somewhere in the sum. This is the "aha" of secure aggregation: information that is perfectly hidden at the individual level becomes exactly recoverable in aggregate, with no approximation. The server gets precisely what FedAvg needs (the sum) and provably nothing about any one client — hiding and utility at the same time, for free.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Secure aggregation reveals the exact sum. In what situation is the <em>sum itself</em> still a privacy risk, and what would you add?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The sum can leak when there are very few contributors or when an attacker knows all-but-one. If only two clients participate, learning the sum plus your own value reveals the other's exactly. More subtly, a server that runs many rounds and watches how the aggregate changes as specific clients join or leave can infer individual contributions (a differencing attack). The fix is to add <em>differential privacy</em> on top: each client adds a little calibrated noise (or the server adds noise to the aggregate), so even the exact sum is protected against these inferences — the noise makes the aggregate itself differentially private. This is why real systems combine secure aggregation (hide individual updates) <em>with</em> DP (protect the aggregate) — neither alone covers both threats. Layering them is the state of the art in private federated analytics.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Sketch how you'd handle a client that sets up its masks but then drops offline before sending, so its masks don't cancel.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>The problem: client \(k\)'s masks \(s_{kj}\) were held (as \(-s_{kj}\)) by its partners, who will still include them; without \(k\)'s message contributing the \(+s_{kj}\) side, those masks won't cancel and the sum is corrupted by leftover noise. The real solution (Bonawitz et al.) uses <em>threshold secret sharing</em>: before the round, each client splits the secret needed to reconstruct its masks into shares distributed to the others, such that any sufficient subset (a threshold) can reconstruct it, but no small group can. If client \(k\) drops, the server asks the surviving clients for their shares of \(k\)'s mask seeds, reconstructs the orphaned masks, and subtracts them from the sum — recovering the correct aggregate. Crucially the threshold prevents the server from reconstructing masks for clients that <em>didn't</em> drop (which would break privacy). Balancing robustness to dropouts against not leaking survivors' masks, efficiently and at scale, is the core engineering of practical secure aggregation — but it all rests on the simple canceling-masks idea you built.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Secure aggregation is deployed in Google's federated learning at the scale of millions of phones, ensuring the server that coordinates training never sees any user's individual model update — only the aggregate. It's a keystone of privacy-preserving AI, and it composes with the rest of this track: federated learning keeps data on-device, secure aggregation hides each client's update, and differential privacy protects the aggregate — together a defense far stronger than any alone. The frontier improves efficiency (the cryptography and dropout-recovery are costly at scale), extends the ideas with fully homomorphic encryption and multiparty computation, and studies how these protocols compose with DP for end-to-end guarantees. This closes the track: you've built the complete privacy-preserving stack, from "don't move the data" to "prove nothing leaks" — the tools that let AI learn from the world's most sensitive data without betraying the people in it.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Secure aggregation lets the server compute the sum of client updates without seeing any single one. Every pair of clients shares a random mask — one adds it, the other subtracts it — and each client tacks its masks onto its update. Individually the messages are gibberish, but in the total every mask cancels its negative, leaving the exact sum. It's exact (no accuracy cost), it composes with DP, and the tricky part is recovering masks when clients drop offline."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Bonawitz et&nbsp;al. (2017), "Practical Secure Aggregation for Privacy-Preserving Machine Learning." <a href="https://eprint.iacr.org/2017/281" target="_blank" rel="noopener">iacr.org</a></li>
+          <li><span class="src-type">paper</span> Bonawitz et&nbsp;al. (2019), "Towards Federated Learning at Scale: System Design." <a href="https://arxiv.org/abs/1902.01046" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">survey</span> Kairouz et&nbsp;al. (2021), "Advances and Open Problems in Federated Learning." <a href="https://arxiv.org/abs/1912.04977" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes Federated &amp; Privacy-Preserving ML: train without pooling data (FedAvg), survive skewed clients (non-IID), guarantee privacy (DP, DP-SGD), and hide individual updates (secure aggregation) — the stack for learning from sensitive data responsibly. The final tracks turn to efficiency and the frontier.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('sacanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var N=4, u=[], S=[], masked=[], showMask=false, showSum=false;
+    function gen(){
+      u=[]; for(var i=0;i<N;i++) u.push(Math.round((Math.random()*4-2)*10)/10);
+      S=[]; for(var i=0;i<N;i++){ S.push(new Array(N).fill(0)); }
+      for(var i=0;i<N;i++) for(var j=i+1;j<N;j++){ var s=Math.round((Math.random()*10-5)*10)/10; S[i][j]=s; S[j][i]=-s; }
+      masked=[]; for(var i=0;i<N;i++){ var m=u[i]; for(var j=0;j<N;j++) m+=S[i][j]; masked.push(Math.round(m*10)/10); }
+      showMask=false; showSum=false; draw();
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      // server box
+      ctx.fillStyle='#dbeafe'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2;
+      roundRect(230,14,180,52,8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#0f172a'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillText('SERVER',320,34);
+      if(showSum){ var ms=masked.reduce(function(a,b){return a+b;},0); var ts=u.reduce(function(a,b){return a+b;},0);
+        ctx.fillText('sum of messages = '+ms.toFixed(1),320,52); }
+      else ctx.fillText('(waiting for messages)',320,52);
+      ctx.textAlign='left';
+      // clients
+      var xs=[30,190,350,510];
+      for(var i=0;i<N;i++){
+        var x=xs[i], y=170;
+        ctx.fillStyle='#dcfce7'; ctx.strokeStyle='#059669'; ctx.lineWidth=2; roundRect(x,y,110,120,8); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#0f172a'; ctx.font='bold 11px system-ui'; ctx.fillText('Client '+(i+1),x+8,y+18);
+        ctx.font='11px system-ui'; ctx.fillStyle='#059669'; ctx.fillText('true update:',x+8,y+42); ctx.fillStyle='#0f172a'; ctx.font='bold 13px system-ui'; ctx.fillText(u[i].toFixed(1),x+8,y+60);
+        if(showMask){ ctx.fillStyle='#2563eb'; ctx.font='11px system-ui'; ctx.fillText('sends (masked):',x+8,y+86); ctx.font='bold 13px system-ui'; ctx.fillText(masked[i].toFixed(1),x+8,y+104); }
+        // arrow up if showSum
+        if(showSum){ ctx.strokeStyle='#d97706'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+55,y); ctx.lineTo(320,66); ctx.stroke(); }
+      }
+      var msg;
+      if(!showMask) msg='Each client has a private true update (green). Press "Add masks".';
+      else if(!showSum) msg='Each masked message (blue) is random gibberish — the true update is hidden. Now press "Server sums them".';
+      else { var ms=masked.reduce(function(a,b){return a+b;},0), ts=u.reduce(function(a,b){return a+b;},0);
+        msg='masked sum '+ms.toFixed(1)+'  =  true sum '+ts.toFixed(1)+'  ✓  masks cancelled! Server learned the total, no individual update.'; }
+      document.getElementById('saread').textContent=msg;
+    }
+    function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    document.getElementById('samask').onclick=function(){ showMask=true; draw(); };
+    document.getElementById('sasum').onclick=function(){ showMask=true; showSum=true; draw(); };
+    document.getElementById('sanew').onclick=gen;
+    gen();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
