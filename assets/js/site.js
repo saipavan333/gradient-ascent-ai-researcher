@@ -610,50 +610,77 @@
     if (!document.getElementById("code-play-css")) {
       var st = document.createElement("style"); st.id = "code-play-css";
       st.textContent =
-        ".code-tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.6rem 0 .1rem}" +
-        ".code-run,.code-edit{font:600 .8rem var(--sans);cursor:pointer;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);border-radius:7px;padding:.28rem .75rem}" +
-        ".code-run{background:var(--primary-weak);color:var(--primary-ink);border-color:transparent}" +
-        ".code-run:hover{filter:brightness(.97)}.code-run:disabled{opacity:.6;cursor:default}" +
-        ".code-note{color:var(--text-faint);font-size:.78rem}" +
-        ".code-out{display:none;white-space:pre-wrap;background:var(--code-bg);color:var(--code-text);border-radius:9px;padding:.7rem .85rem;margin:.45rem 0 0;font:.82rem/1.55 var(--mono);max-height:340px;overflow:auto}";
+        ".code-h .code-actions{margin-left:auto;display:flex;gap:.4rem;align-items:center}" +
+        ".code-run,.code-edit{font:600 .72rem var(--sans);text-transform:none;letter-spacing:0;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);border-radius:6px;padding:.22rem .62rem;line-height:1.15}" +
+        ".code-run{background:var(--primary);color:#fff;border-color:transparent}" +
+        ".code-run:hover{filter:brightness(1.06)}.code-run:disabled{opacity:.55;cursor:default}" +
+        ".code-edit:hover{border-color:var(--primary);color:var(--primary-ink)}" +
+        ".code-edit.on{background:var(--primary-weak);color:var(--primary-ink);border-color:transparent}" +
+        ".code-outwrap{display:none;margin:.55rem 0 1.4rem}" +
+        ".code-outh{display:flex;align-items:center;gap:.5rem;font:600 .72rem var(--sans);text-transform:uppercase;letter-spacing:.4px;color:var(--text-faint);margin:0 0 .35rem;padding-left:.2rem}" +
+        ".code-outh .odot{width:9px;height:9px;border-radius:50%;background:var(--green)}" +
+        ".code-outh.busy .odot{background:var(--amber)}.code-outh.err .odot{background:var(--red)}" +
+        ".code-out{margin:0;background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:.8rem 1rem;white-space:pre-wrap;font:.82rem/1.55 var(--mono);max-height:340px;overflow:auto;border:1px solid #1e293b}" +
+        ".code-out.err{color:#fca5a5}" +
+        "code.codeedit{outline:2px solid var(--primary);outline-offset:4px;border-radius:5px}";
       document.head.appendChild(st);
     }
     var reIsPy = /(^|\n)\s*(import |from |def |class |print\(|np\.|for |while |if |return |#|[A-Za-z_]\w*\s*=)/;
     blocks.forEach(function (code) {
       var pre = code.parentElement;
+      if (pre.getAttribute("data-play") === "1") return;
+      var prev = pre.previousElementSibling;
+      if (prev && prev.classList && prev.classList.contains("code-h") && prev.classList.contains("out")) return;
       var txt = code.innerText || "";
       if (txt.trim().length < 3 || !reIsPy.test(txt)) return;
-      if (pre.getAttribute("data-play") === "1") return;
       pre.setAttribute("data-play", "1");
-      var tools = document.createElement("div"); tools.className = "code-tools";
+      var header;
+      if (prev && prev.classList && prev.classList.contains("code-h")) {
+        header = prev;
+      } else {
+        header = document.createElement("div"); header.className = "code-h";
+        header.innerHTML = '<span class="dot"></span> python';
+        pre.parentNode.insertBefore(header, pre);
+      }
+      var actions = document.createElement("span"); actions.className = "code-actions";
       var runBtn = document.createElement("button"); runBtn.className = "code-run"; runBtn.type = "button"; runBtn.textContent = "▶ Run";
+      runBtn.title = "Run this Python in your browser — numpy included";
       var editBtn = document.createElement("button"); editBtn.className = "code-edit"; editBtn.type = "button"; editBtn.textContent = "✎ Edit";
-      var note = document.createElement("span"); note.className = "code-note"; note.textContent = "runs in your browser · numpy included";
-      tools.appendChild(runBtn); tools.appendChild(editBtn); tools.appendChild(note);
-      var out = document.createElement("pre"); out.className = "code-out";
-      pre.parentNode.insertBefore(tools, pre);
-      pre.parentNode.insertBefore(out, pre.nextSibling);
+      editBtn.title = "Edit the code, then Run";
+      actions.appendChild(runBtn); actions.appendChild(editBtn); header.appendChild(actions);
+      var outwrap = document.createElement("div"); outwrap.className = "code-outwrap";
+      outwrap.innerHTML = '<div class="code-outh"><span class="odot"></span> output</div>';
+      var out = document.createElement("pre"); out.className = "code-out"; outwrap.appendChild(out);
+      pre.parentNode.insertBefore(outwrap, pre.nextSibling);
       editBtn.addEventListener("click", function () {
         var on = code.contentEditable !== "true";
         code.contentEditable = on ? "true" : "false";
-        code.style.outline = on ? "2px solid var(--primary)" : "none";
-        code.style.borderRadius = "6px";
+        code.classList.toggle("codeedit", on);
+        editBtn.classList.toggle("on", on);
+        editBtn.textContent = on ? "✎ Editing" : "✎ Edit";
         if (on) code.focus();
       });
-      runBtn.addEventListener("click", function () { runCode(code.innerText, out, runBtn); });
+      runBtn.addEventListener("click", function () { runCode(code.innerText, outwrap, out, runBtn); });
     });
-    function runCode(src, out, btn) {
-      out.style.display = "block";
-      out.textContent = "Loading Python… the first run downloads ~10 MB, then it is instant.";
+    function runCode(src, outwrap, out, btn) {
+      outwrap.style.display = "block";
+      var oh = outwrap.querySelector(".code-outh");
+      oh.className = "code-outh busy"; out.className = "code-out";
+      out.textContent = "Loading Python… the first run downloads it once (~10 MB), then it is instant.";
       btn.disabled = true; var label = btn.textContent; btn.textContent = "… running";
       __loadPy().then(function (py) {
         var buf = "";
         py.setStdout({ batched: function (s) { buf += s + "\n"; } });
         py.setStderr({ batched: function (s) { buf += s + "\n"; } });
         return py.runPythonAsync(src).then(function () {
+          oh.className = "code-outh"; out.className = "code-out";
           out.textContent = buf.trim() === "" ? "✓ ran — no printed output. Add print(...) to see values." : buf;
-        }).catch(function (e) { out.textContent = (buf ? buf + "\n" : "") + String((e && e.message) || e); });
+        }).catch(function (e) {
+          oh.className = "code-outh err"; out.className = "code-out err";
+          out.textContent = (buf ? buf + "\n" : "") + String((e && e.message) || e);
+        });
       }).catch(function (e) {
+        oh.className = "code-outh err"; out.className = "code-out err";
         out.textContent = "⚠ " + String((e && e.message) || e);
       }).then(function () { btn.disabled = false; btn.textContent = label; });
     }
