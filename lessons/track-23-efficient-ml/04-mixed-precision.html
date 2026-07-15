@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t23-l04">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mixed precision · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Mixed precision: training in 16 bits, safely</h1>
+      <p class="subtitle">Training in 16-bit floating point instead of 32-bit halves memory and roughly doubles speed on modern hardware. But 16-bit numbers can't represent tiny gradients, which silently vanish. One clever trick — loss scaling — fixes it, and mixed precision became the default for training large models.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 19 · Lesson 4</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~17 min</span>
+        <span class="chip">Builds on: Lesson 3</span>
+      </div>
+
+      <p class="lead prose">
+        Quantization (Lesson&nbsp;2) reduced precision for a <em>deployed</em> model; <span class="newterm">mixed precision</span> reduces precision during <em>training</em> itself. The default is 32-bit floating point (fp32), but modern GPUs have special hardware that does 16-bit float (fp16) math roughly twice as fast, and fp16 numbers take half the memory. Training in 16 bits would therefore be a huge win — faster and letting you fit bigger models and batches. The catch is fp16's tiny range: it can only represent numbers down to about \(6\times10^{-5}\); anything smaller rounds to zero (<span class="newterm">underflow</span>). Neural network gradients are often exactly that small, so in naive fp16 they silently vanish, and training stalls or diverges. The elegant fix is <span class="newterm">loss scaling</span>: before backpropagation, multiply the loss by a large constant \(S\) (say 1024). By the chain rule, this multiplies <em>every</em> gradient by \(S\) too, lifting the tiny ones up out of the underflow zone so they survive in fp16. Then, just before applying the update, you divide the gradients back by \(S\) — recovering their true values. The name "mixed" precision is because you keep a master copy of the weights in fp32 for the update (precision where it matters) while doing the heavy matrix math in fp16 (speed where it matters). This lesson builds loss scaling and closes the efficiency track.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: turn up the volume before recording</h2>
+      <p class="prose">
+        Imagine recording a very quiet sound on equipment that can't capture anything below a certain volume — the quiet parts just don't register, they become silence. The trick audio engineers use: turn the volume <em>way up</em> before recording, so the quiet parts are now loud enough to capture, then turn it back down afterward. You lose nothing, because scaling up and back down is exactly reversible, but now the faint signal survived the recording. Loss scaling is precisely this. The "quiet sound" is the tiny gradients; the "equipment that can't capture quiet" is fp16's underflow floor; multiplying the loss by \(S\) is turning up the volume so the gradients are loud enough to survive fp16; dividing by \(S\) before the weight update turns it back down. The gradient information is preserved, just temporarily amplified through the danger zone.
+      </p>
+      <p class="prose">
+        The loss-scaling recipe:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \text{scale up: } \mathcal{L}' = S\cdot\mathcal{L} \;\Rightarrow\; \nabla' = S\cdot\nabla \ \ (\text{now above the fp16 floor}), \qquad \text{scale down: } \theta \leftarrow \theta - \eta\,\frac{\nabla'}{S} \]</span>
+        <span class="eqn-num">(4.1)</span>
+      </div>
+      <p class="prose">
+        Read it: multiply the loss by a big \(S\) before backprop; by the chain rule every gradient \(\nabla\) becomes \(S\nabla\), which is large enough to be represented in fp16 without underflowing. Compute and store those scaled gradients safely in fp16. Then, before the weight update, divide by \(S\) to get back the true gradient \(\nabla\), and take the normal step. The scaling is perfectly undone, so the training is mathematically the same as fp32 — it just survived the trip through 16-bit storage.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A log-scale number line with a red fp16 underflow zone below about 6e-5. A tiny gradient at 2e-5 sits in the zone and is marked LOST; a green arrow labelled 'loss scaling' multiplies it by 1024 to about 0.02, moving it out of the zone where it is SAFE." />
+        <figcaption>Mixed precision & loss scaling: tiny gradients below the fp16 floor (~6e-5) underflow to zero and are lost; multiplying the loss by S=1024 lifts them out of the danger zone, then dividing by S restores their true value.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="mplab">
+        <div class="wtitle">▶ Interactive · lift gradients above the fp16 floor</div>
+        <div class="whint">The dots are gradient values on a log scale. The red zone is fp16's underflow region — anything there rounds to zero and is <strong>lost</strong>. Slide the <strong>loss scale S</strong> up and watch the whole cloud of gradients shift right, out of the danger zone, so they survive. The readout shows how many are saved.</div>
+        <canvas id="mpcanvas" width="640" height="300" aria-label="Interactive loss scaling"></canvas>
+        <div class="wrow">
+          <span class="wlab">loss scale S = <b id="mpslab">1</b></span>
+          <input class="wslider" id="mps" type="range" min="0" max="14" value="0" />
+        </div>
+        <div class="wreadout" id="mpread">At S=1, most tiny gradients underflow. Raise S to rescue them.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: underflow and rescue</h3>
+        <p class="prose">From <code>mixed_precision.py</code>: a batch of tiny gradients (magnitude ~2e-5), with and without loss scaling.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The problem.</strong> These gradients are around \(2\times10^{-5}\), below fp16's floor of \(6\times10^{-5}\). Stored directly in fp16: <strong>100% underflow to zero</strong> — the update is garbage.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Scale up.</strong> Multiply by \(S=1024\): the gradients become ~\(0.02\), far above the floor. Stored in fp16: <strong>0% underflow</strong> — all survive.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Scale down.</strong> Divide the recovered gradients by \(S\): back to ~\(2\times10^{-5}\), now faithfully preserved.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> Naive fp16 recovered the gradient with <strong>123% relative error</strong> (it was mostly zeros); loss scaling recovered it with <strong>0.0% error</strong>. Same math as fp32, at half the memory and roughly double the speed.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: loss scaling</h2>
+      <pre><code>S = 1024.0
+grad = backprop(loss * S)        # scale the loss -> all gradients multiplied by S (above fp16 floor)
+grad = to_fp16(grad)             # store in fp16 safely (no underflow now)
+w -= lr * grad / S               # UNSCALE before the update -> true gradient recovered
+
+# naive fp16 (S=1): 100% of tiny gradients underflow to 0, 123% error
+# loss scaling (S=1024): 0% underflow, 0.0% error — same as fp32</code></pre>
+      <p class="prose">
+        The two extra operations — <code>* S</code> before backprop and <code>/ S</code> before the update — are the entire trick, and they exactly cancel. In practice the master weights are kept in fp32 (so the small update <code>lr * grad / S</code> isn't itself lost to fp16 rounding), while the large fp16 matrix multiplies do the heavy lifting — hence "mixed" precision. Modern frameworks pick \(S\) automatically (dynamic loss scaling), raising it until gradients start to overflow, then backing off.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>Why this is the default now.</strong> Mixed precision is standard for training large models — it's often a one-line change (<code>autocast</code> in PyTorch) that roughly halves memory and speeds up training 1.5–3× on modern GPUs with essentially no accuracy loss. It's why you can train bigger models and batches on the same hardware. Newer formats like <span class="newterm">bfloat16</span> (bf16) sidestep the underflow problem differently: bf16 keeps fp32's wide range (so gradients don't underflow) at the cost of fewer precision bits, so it often needs no loss scaling at all — which is why it's now common on hardware that supports it. Either way, training in 16 bits — with the range problem handled — is how modern large-scale training gets its speed.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Forgetting loss scaling with fp16.</strong> Naive fp16 training silently fails as gradients underflow. You must scale (or use bf16, which avoids the issue).</li>
+          <li><strong>Keeping master weights in fp16.</strong> The tiny weight update can itself underflow when added to a weight in fp16. Keep an fp32 master copy for the update.</li>
+          <li><strong>Setting the scale too high.</strong> Too large an \(S\) makes gradients <em>overflow</em> to infinity. Dynamic loss scaling finds the sweet spot automatically.</li>
+          <li><strong>Confusing bf16 and fp16.</strong> Both are 16-bit, but bf16 trades precision for range (no underflow, usually no loss scaling needed), while fp16 has more precision but the underflow problem. Know which your hardware uses.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Mixed precision</strong> trains in 16-bit float (half memory, ~2× faster on modern GPUs) while keeping fp32 master weights.</li>
+          <li><strong>fp16 underflow:</strong> tiny gradients (below ~6e-5) round to zero and vanish.</li>
+          <li><strong>Loss scaling:</strong> multiply the loss by \(S\) before backprop (lifts gradients above the floor), divide by \(S\) before the update (eq 4.1) — exactly reversible.</li>
+          <li><strong>Dynamic loss scaling</strong> picks \(S\) automatically; too high overflows, too low underflows.</li>
+          <li><strong>bf16</strong> keeps fp32's range, avoiding underflow — often no loss scaling needed.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What problem does fp16 cause for gradients?</p>
+          <ul class="quiz-options">
+            <li>They become too large.<div class="quiz-why">The issue is the small end (underflow), not large.</div></li>
+            <li>They train too fast.<div class="quiz-why">Speed is the benefit, not the problem.</div></li>
+            <li>Tiny gradients underflow to zero and vanish.<div class="quiz-why">Correct. fp16 can't represent values below ~6e-5.</div></li>
+            <li>They become negative.<div class="quiz-why">Sign isn't affected by precision.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does loss scaling fix underflow?</p>
+          <ul class="quiz-options">
+            <li>Multiply the loss by S before backprop (scaling gradients up), then divide by S before the update.<div class="quiz-why">Correct. The gradients ride above the fp16 floor and the scaling is exactly undone.</div></li>
+            <li>Round the gradients up.<div class="quiz-why">That would change their values; scaling is reversible.</div></li>
+            <li>Use more layers.<div class="quiz-why">Unrelated to precision.</div></li>
+            <li>Delete tiny gradients.<div class="quiz-why">The point is to preserve them, not delete them.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> Why keep a master copy of the weights in fp32?</p>
+          <ul class="quiz-options">
+            <li>To make training slower.<div class="quiz-why">It's about correctness, not speed.</div></li>
+            <li>fp32 weights train worse.<div class="quiz-why">fp32 is the safe reference precision.</div></li>
+            <li>To store more models.<div class="quiz-why">It's one model, in higher precision for the update.</div></li>
+            <li>The tiny weight update can itself underflow if added in fp16.<div class="quiz-why">Correct. The update needs fp32 precision to accumulate correctly.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> How does bf16 differ from fp16?</p>
+          <ul class="quiz-options">
+            <li>bf16 is 32-bit.<div class="quiz-why">Both are 16-bit.</div></li>
+            <li>bf16 keeps fp32's range (avoiding underflow) at the cost of precision, so it often needs no loss scaling.<div class="quiz-why">Correct. bf16 trades precision bits for range; fp16 trades range for precision.</div></li>
+            <li>bf16 is always more accurate.<div class="quiz-why">It has fewer precision bits than fp16.</div></li>
+            <li>They're identical.<div class="quiz-why">They allocate their 16 bits differently.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, start at S=1 and raise the loss scale. What happens to the cloud of gradients relative to the red underflow zone, and how many are saved?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At S=1 most of the gradient cloud sits inside the red fp16 underflow zone, so those gradients round to zero and are lost. As you raise S, the entire cloud slides to the right (multiplying by S shifts every value up by log(S) on the log axis), and progressively more gradients clear the red floor until, at a high enough S, essentially all of them survive. The readout shows the fraction saved climbing from near zero to 100%. Because the shift is a pure multiplication that you undo by dividing by S before the update, no gradient information is distorted — they're just temporarily lifted through the danger zone. This is loss scaling working exactly as designed: rescue the tiny gradients with a reversible scale-up.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> If you set the loss scale too high, training can break in a new way. What goes wrong, and how does "dynamic" loss scaling avoid both failure modes?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Too <em>low</em> a scale leaves tiny gradients underflowing to zero (the original problem). Too <em>high</em> a scale pushes large gradients past fp16's <em>maximum</em> representable value (~65504), so they <em>overflow</em> to infinity/NaN and corrupt the update — the opposite danger. There's a window of good scales in between. Dynamic loss scaling finds it automatically: it starts with a high scale and, whenever it detects an overflow (inf/NaN in the gradients), it skips that update and halves the scale; and if many steps pass with no overflow, it doubles the scale to keep gradients as high as safely possible. This automatically tracks the right scale as gradient magnitudes change over training, avoiding both underflow (scale too low) and overflow (scale too high) without any manual tuning — which is why it's the default in modern frameworks.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Step back over the whole track. You've built distillation, pruning, quantization, parallelism, and mixed precision. Organize them: which make <em>training</em> cheaper, which make <em>deployment</em> cheaper?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p><em>Training-time efficiency</em> (make it feasible to train big models): <strong>parallelism</strong> (data/model/pipeline) splits training across many devices so huge models and datasets are trainable at all; <strong>mixed precision</strong> halves memory and speeds up the math during training, letting you fit bigger models/batches. <em>Deployment-time efficiency</em> (make a trained model cheap to run): <strong>distillation</strong> replaces a big model with a small one that mimics it; <strong>pruning</strong> deletes redundant weights from a trained model; <strong>quantization</strong> stores the surviving weights in fewer bits for less memory and faster integer math. (Some blur the line — quantization-aware training and mixed precision touch both, and you can distill/prune/quantize during or after training.) The unifying theme is that modern models are extravagant with compute, memory, and precision, and each technique reclaims one kind of waste: redundant capacity (distillation, pruning), excess numerical precision (quantization, mixed precision), or single-machine limits (parallelism). Mastering the whole toolkit is what lets you take a model from "exists in a research lab on a supercomputer" to "runs cheaply in production on a phone" — arguably as important to real-world impact as the model architecture itself.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Mixed-precision training is the default for essentially all large-model training today — it's built into PyTorch and TensorFlow as a near-automatic feature, and modern accelerators are designed around 16-bit (and now 8-bit, FP8) math. bf16 has become the preferred format on hardware that supports it precisely because it dodges the underflow problem. The frontier pushes to even lower precision for training itself — 8-bit floating point (FP8) training is now used for the largest models, with its own scaling and stability tricks descended directly from loss scaling. This closes the efficient-ML track: from making trained models tiny (distillation, pruning, quantization) to making training possible and fast (parallelism, mixed precision), you've seen the full toolkit that turns the theoretical possibility of a huge model into a practical, deployable, affordable reality. Efficiency isn't a footnote to modern AI — it's a large part of what makes it work.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Mixed precision trains in 16-bit floats to halve memory and roughly double speed, keeping an fp32 master copy of the weights for the update. The snag is that fp16 can't represent tiny gradients — they underflow to zero. Loss scaling fixes it: multiply the loss by a big S before backprop to lift the gradients above fp16's floor, then divide by S before the update — perfectly reversible. bf16 avoids the problem by keeping fp32's range. It's a one-line change that's now standard for training big models."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Micikevicius et&nbsp;al. (2018), "Mixed Precision Training." <a href="https://arxiv.org/abs/1710.03740" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Kalamkar et&nbsp;al. (2019), "A Study of BFLOAT16 for Deep Learning Training." <a href="https://arxiv.org/abs/1905.12322" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Micikevicius et&nbsp;al. (2022), "FP8 Formats for Deep Learning." <a href="https://arxiv.org/abs/2209.05433" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">That completes Efficient &amp; Scalable ML: distillation, pruning, and quantization to shrink models; parallelism and mixed precision to train them. The final track looks ahead to the frontier — the architectures and agent systems pushing AI forward.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('mpcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var grads=[]; for(var i=0;i<200;i++){ grads.push(2e-5*Math.exp((Math.random()-0.5)*2)); }  // tiny gradients ~2e-5
+    var FLOOR=6.1e-5;
+    function draw(){
+      var pow=+document.getElementById('mps').value; var S=Math.pow(2,pow); document.getElementById('mpslab').textContent=S>=1?S.toFixed(0):S.toFixed(2);
+      ctx.clearRect(0,0,W,H);
+      // log axis from 1e-8 to 1e2
+      var lo=-8, hi=2, ox=40, gw=W-70, cy=170;
+      function X(logv){ return ox + (logv-lo)/(hi-lo)*gw; }
+      var floorX=X(Math.log10(FLOOR));
+      ctx.fillStyle='#fee2e2'; ctx.fillRect(ox,60,floorX-ox,180);
+      ctx.fillStyle='#dc2626'; ctx.font='11px system-ui'; ctx.fillText('fp16 underflow zone (→ 0)', ox+10, 78);
+      ctx.strokeStyle='#dc2626'; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(floorX,60); ctx.lineTo(floorX,240); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillText('fp16 floor 6e-5', floorX-30, 55);
+      // axis
+      ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(ox,cy); ctx.lineTo(ox+gw,cy); ctx.stroke();
+      for(var e=lo;e<=hi;e+=2){ var x=X(e); ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(x,cy-4); ctx.lineTo(x,cy+4); ctx.stroke(); ctx.fillStyle='#64748b'; ctx.font='9px system-ui'; ctx.textAlign='center'; ctx.fillText('1e'+e,x,cy+18); }
+      ctx.textAlign='left';
+      var saved=0;
+      grads.forEach(function(g){ var gs=g*S; var lx=X(Math.log10(gs)); var alive=gs>=FLOOR; if(alive)saved++;
+        ctx.fillStyle=alive?'rgba(5,150,105,0.5)':'rgba(220,38,38,0.5)'; ctx.beginPath(); ctx.arc(Math.max(ox,Math.min(ox+gw,lx)), cy-30+Math.random()*60, 3, 0,7); ctx.fill(); });
+      var pct=(saved/grads.length*100).toFixed(0);
+      document.getElementById('mpread').textContent='loss scale S='+(S>=1?S.toFixed(0):S.toFixed(2))+'  →  '+pct+'% of gradients survive fp16 (green), '+(100-pct)+'% still underflow'+(saved===grads.length?'  ✓ all rescued':'');
+    }
+    document.getElementById('mps').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

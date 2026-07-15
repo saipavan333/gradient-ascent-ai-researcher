@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t23-l03">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data & model parallelism · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Data &amp; model parallelism: training on many machines</h1>
+      <p class="subtitle">Modern models are trained on thousands of GPUs. Data parallelism splits the batch across workers and averages their gradients; model parallelism splits one giant model across devices. Both let you train what no single machine could.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 19 · Lesson 3</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 2</span>
+      </div>
+
+      <p class="lead prose">
+        The other side of efficiency is scale: some models are so large, and trained on so much data, that no single machine could ever do the job — a frontier language model might train on thousands of GPUs for months. Making that work is <span class="newterm">parallelism</span>: splitting the training across many devices. There are two fundamental ways to split, and understanding them is understanding how large-scale AI is actually built. The first, <span class="newterm">data parallelism</span>, handles the case where your <em>data</em> is huge: put a full copy of the model on every worker, split each batch of data among them, let each compute gradients on its slice, then average the gradients and everyone applies the same update. The beautiful fact is that this is <em>mathematically identical</em> to training on the whole batch on one machine — just faster, because the work was shared. The second, <span class="newterm">model parallelism</span>, handles the case where the <em>model itself</em> is too big to fit on one device: split the model across devices, so each holds part of it and the data flows through them like an assembly line. Real systems combine both. This lesson builds data parallelism from its exact gradient math and explains when you need model parallelism instead.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: divide the work, combine the results</h2>
+      <p class="prose">
+        <strong>Data parallelism</strong> is like grading a huge stack of exams with a team of teaching assistants who all use the same answer key. Split the stack among the TAs; each grades their pile; then combine the results. Since they all used the same key (the same model), combining their grades gives exactly what one person grading the whole stack would have — just done in a fraction of the time. In training, the "grade" is the gradient, the "answer key" is the current model, and "combining" is averaging the gradients. <strong>Model parallelism</strong> is different: it's for when the answer key is so enormous it doesn't fit in one person's hands. You split the key itself across several people, and each exam passes through all of them in turn, each applying their portion — an assembly line for one huge model.
+      </p>
+      <p class="prose">
+        The exactness of data parallelism comes from a simple property of gradients: the gradient of a sum is the sum of the gradients. So the full-batch gradient equals the (size-weighted) average of the per-shard gradients:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ \nabla \mathcal{L}_{\text{full batch}} \;=\; \frac{1}{N}\sum_{i=1}^{N} \nabla \ell_i \;=\; \sum_{k=1}^{W} \frac{n_k}{N}\,\big(\text{worker } k\text{'s average gradient}\big) \]</span>
+        <span class="eqn-num">(3.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the full-batch gradient is the average of the per-example gradients \(\nabla\ell_i\) over all \(N\) examples. Group the examples by worker: each worker \(k\) computes the average gradient over its \(n_k\) examples, and the overall gradient is those worker-gradients averaged (weighted by shard size \(n_k/N\)). No approximation — it's the same number, just computed in parallel. Every worker then applies this identical averaged gradient, so all copies of the model stay in lockstep.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A diagram: a big batch of data splits into shards sent to four workers, each computing a gradient; green arrows carry the gradients to an 'average gradients → one update' box, with a note that the average of shard gradients equals the full-batch gradient exactly." />
+        <figcaption>Data parallelism: split the batch across workers, each computes a gradient on its shard, and the averaged gradient is exactly the full-batch gradient — same result, computed in parallel.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="pplab">
+        <div class="wtitle">▶ Interactive · add workers, split the batch</div>
+        <div class="whint">Slide the number of <strong>workers</strong>. The batch is split evenly across them, each computes gradients on its shard in parallel, and the gradients are averaged into one update. Watch the time-per-step drop as workers are added — and note the readout confirming the averaged gradient is <em>exactly</em> the single-machine gradient.</div>
+        <canvas id="ppcanvas" width="640" height="300" aria-label="Interactive data parallelism"></canvas>
+        <div class="wrow">
+          <span class="wlab">workers = <b id="ppwlab">1</b></span>
+          <input class="wslider" id="ppw" type="range" min="1" max="8" value="1" />
+        </div>
+        <div class="wreadout" id="ppread">Add workers and watch the step time fall.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the gradients match exactly</h3>
+        <p class="prose">From <code>parallelism.py</code>: one batch, split across 4 workers, versus one machine.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Single machine.</strong> Compute the gradient on the full batch. First component: <strong>−0.229022</strong>.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Four workers.</strong> Split the batch into 4 shards. Each worker computes its shard's gradient (scaled by its share of the data).</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Average.</strong> Sum the size-weighted worker gradients and divide by the total. First component: <strong>−0.229022</strong>.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Identical.</strong> <code>np.allclose</code> confirms the data-parallel gradient equals the single-machine gradient to floating-point precision. Four workers did the work in ~1/4 the time with <em>zero</em> change to the result. That's the guarantee of data parallelism.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: data parallelism</h2>
+      <pre><code>shards = np.array_split(batch, num_workers)          # split the batch across workers
+
+# single machine (for comparison):
+g_single = grad(full_batch)
+
+# data-parallel: each worker's gradient on its shard, size-weighted, then averaged
+g_parallel = sum(grad(shard) * len(shard) for shard in shards) / len(batch)
+
+assert np.allclose(g_single, g_parallel)             # EXACTLY equal — no approximation</code></pre>
+      <p class="prose">
+        The whole method is "compute gradients on shards, average them" — the averaging (an <em>all-reduce</em> in real systems) is the only communication needed. Because the result is exact, data parallelism scales to thousands of workers with no change to what's being computed; the practical limit is the communication cost of averaging gradients across all those machines each step.
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>The zoo of parallelism (how frontier models train).</strong> Real large-scale training stacks several kinds. <em>Data parallelism</em> (this lesson) splits the batch. <em>Tensor parallelism</em> splits individual layers (matrix multiplies) across devices. <em>Pipeline parallelism</em> splits the layers into stages, like an assembly line, with batches flowing through. <em>Fully-sharded data parallelism</em> (FSDP/ZeRO) even splits the optimizer state and weights to save memory. A model like GPT is trained with a carefully tuned combination — "3D parallelism" — because no single strategy handles both huge data and huge models. But data parallelism, the exact one you built, is the foundation they all extend.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking data parallelism changes the result.</strong> It doesn't — the averaged gradient is exactly the full-batch gradient. Only speed changes (up to communication cost).</li>
+          <li><strong>Forgetting communication is the bottleneck.</strong> Averaging gradients across many workers every step costs bandwidth; at large scale, communication — not computation — often limits speedup.</li>
+          <li><strong>Using data parallelism when the model doesn't fit.</strong> Data parallelism needs a full model copy per worker. If one model doesn't fit on one device, you need model/tensor/pipeline parallelism instead.</li>
+          <li><strong>Ignoring the effective batch size.</strong> N workers make the effective batch N× bigger, which can need learning-rate tuning (the "large batch" training regime) to train well.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Data parallelism:</strong> copy the model to every worker, split the batch, average the gradients — <em>exactly</em> equals single-machine training (eq 3.1), just faster.</li>
+          <li><strong>Model parallelism:</strong> split one too-big model across devices (data flows through them) — for when the model doesn't fit.</li>
+          <li><strong>Averaging gradients (all-reduce)</strong> is the only communication data parallelism needs.</li>
+          <li><strong>Communication cost</strong> is the practical limit to scaling, not the math.</li>
+          <li><strong>Frontier training combines</strong> data + tensor + pipeline (+ sharding) parallelism.</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q1.</span> In data parallelism, what does each worker hold and do?</p>
+          <ul class="quiz-options">
+            <li>Part of the model, processing all the data.<div class="quiz-why">That's model parallelism.</div></li>
+            <li>A full copy of the model, processing a shard of the batch.<div class="quiz-why">Correct. Every worker has the whole model and handles part of the data.</div></li>
+            <li>Nothing — the server does everything.<div class="quiz-why">Workers do the gradient computation.</div></li>
+            <li>Only the data, no model.<div class="quiz-why">Each needs the model to compute gradients.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q2.</span> How does the data-parallel result compare to single-machine training?</p>
+          <ul class="quiz-options">
+            <li>An approximation that's slightly worse.<div class="quiz-why">It's exact, not approximate.</div></li>
+            <li>Always better.<div class="quiz-why">Same result, not better.</div></li>
+            <li>Different because of randomness.<div class="quiz-why">The averaged gradient is deterministic and identical.</div></li>
+            <li>Exactly the same (the averaged gradient equals the full-batch gradient), just faster.<div class="quiz-why">Correct. Gradient of a sum = sum of gradients, so averaging is exact.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q3.</span> When do you need model parallelism instead of data parallelism?</p>
+          <ul class="quiz-options">
+            <li>When the model is too big to fit on one device.<div class="quiz-why">Correct. Data parallelism needs a full model per worker; model parallelism splits the model itself.</div></li>
+            <li>When the data is small.<div class="quiz-why">Data size isn't the trigger for model parallelism.</div></li>
+            <li>When you have only one GPU.<div class="quiz-why">Both need multiple devices to parallelize.</div></li>
+            <li>Never.<div class="quiz-why">It's essential for models bigger than one device's memory.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q4.</span> What usually limits how well data parallelism scales?</p>
+          <ul class="quiz-options">
+            <li>The math becomes wrong.<div class="quiz-why">The math stays exact at any scale.</div></li>
+            <li>The number of layers.<div class="quiz-why">Layer count isn't the scaling limit.</div></li>
+            <li>Communication cost of averaging gradients across workers.<div class="quiz-why">Correct. All-reduce bandwidth becomes the bottleneck at large scale.</div></li>
+            <li>The learning rate.<div class="quiz-why">A tuning concern, not the fundamental scaling limit.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, go from 1 to 8 workers. How does step time change, and does the readout say the result changed?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Step time falls roughly in proportion to the number of workers (8 workers ≈ 1/8 the time, in the ideal shown), because the batch's work is shared. Crucially, the readout confirms the averaged gradient is <em>exactly</em> the single-machine gradient at every worker count — the result never changes, only the speed. That combination — more speed, identical answer — is the whole appeal of data parallelism, and it's why it's the default first step for scaling training. In reality the speedup is slightly sub-linear because averaging gradients across workers costs communication time, which the idealized widget omits; that communication overhead is what eventually caps the benefit of adding more workers.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> With 1000 workers, communication (averaging gradients every step) can dominate. Name one way to reduce communication cost.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Several approaches. (1) <em>Gradient accumulation / larger local batches</em>: each worker does more computation between syncs, so you communicate less often per unit of work (fewer, bigger steps). (2) <em>Gradient compression</em>: quantize or sparsify the gradients before sending them, cutting the bytes per all-reduce (at some accuracy risk). (3) <em>Efficient all-reduce algorithms</em> like ring all-reduce, which spread the communication evenly across workers so bandwidth scales well instead of bottlenecking at one server. (4) <em>Overlap communication with computation</em>: start averaging early layers' gradients while later layers are still computing, hiding the communication behind the backward pass. (5) <em>Better interconnects</em> (NVLink, InfiniBand) — hardware co-design. Real large-scale training uses several of these together; managing the communication-vs-computation balance is a core part of making thousand-GPU training efficient, and it's why simply adding more workers eventually stops helping.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> A trillion-parameter model won't fit on one GPU <em>and</em> trains on enormous data. Sketch how you'd combine parallelism types to train it.</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>You'd stack complementary strategies ("3D parallelism"). First, because the model doesn't fit on one device, split it: use <em>tensor parallelism</em> to divide each big layer's matrix multiplies across a small group of GPUs (e.g., 8 GPUs in a server sharing one layer), and <em>pipeline parallelism</em> to split the model's layers into stages across groups of GPUs, with micro-batches flowing through the pipeline like an assembly line to keep every stage busy. That handles the "model too big" problem — one full model copy now spans many GPUs. Then, to handle the huge data, wrap the whole thing in <em>data parallelism</em>: replicate that multi-GPU model across many such groups, each processing a different shard of the batch, and average gradients across the replicas. Optionally add <em>sharding</em> (ZeRO/FSDP) to split optimizer states and reduce memory further. The result is thousands of GPUs organized in a hierarchy — tensor-parallel within a server, pipeline-parallel across a few servers, data-parallel across the whole cluster — each dimension chosen so communication stays on the fastest available links. This is genuinely how frontier models are trained, and the exact data-parallel gradient averaging you built here is the outermost, foundational layer of that hierarchy.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Parallelism is what makes large-scale AI physically possible: every frontier model is trained on hundreds to tens of thousands of accelerators using a carefully engineered mix of data, tensor, and pipeline parallelism, plus memory-sharding techniques like ZeRO and FSDP. The engineering — keeping thousands of GPUs busy, hiding communication behind computation, recovering from hardware failures mid-run — is as much of the achievement as the model design. The frontier pushes toward ever-larger clusters, faster interconnects, and smarter overlap of communication and compute, as well as decentralized and asynchronous training. This closes the efficiency toolkit from the other direction: distillation, pruning, and quantization make a trained model small enough to <em>deploy</em>; parallelism makes training a huge model <em>possible</em> in the first place. Together they span the full lifecycle of practical large-scale machine learning.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"To train on huge data, use data parallelism: put the model on every worker, split the batch, and average the gradients — which is exactly the full-batch gradient (gradient of a sum = sum of gradients), just computed in parallel. To train a model too big for one device, use model parallelism: split the model across devices. Frontier models combine both, and the practical limit is the communication cost of averaging gradients, not the math."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Goyal et&nbsp;al. (2017), "Accurate, Large Minibatch SGD" (large-scale data parallelism). <a href="https://arxiv.org/abs/1706.02677" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Shoeybi et&nbsp;al. (2019), "Megatron-LM: Training Multi-Billion Parameter Models" (tensor parallelism). <a href="https://arxiv.org/abs/1909.08053" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Rajbhandari et&nbsp;al. (2020), "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models." <a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: one more way to train faster and bigger — use lower-precision numbers for the math itself. <a href="04-mixed-precision.html">Mixed precision</a> halves memory and speeds up training, with one clever trick to keep it stable.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('ppcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var cols=['#2563eb','#059669','#d97706','#6d28d9','#dc2626','#0e7490','#b45309','#7c3aed'];
+    function draw(){
+      var w=+document.getElementById('ppw').value; document.getElementById('ppwlab').textContent=w;
+      ctx.clearRect(0,0,W,H);
+      // batch split into w shards
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.fillText('one batch, split across '+w+' worker'+(w>1?'s':'')+':',20,24);
+      var bx=20, by=40, bw=W-40, bh=40;
+      for(var i=0;i<w;i++){ ctx.fillStyle=cols[i%8]; ctx.globalAlpha=0.7; ctx.fillRect(bx+i*(bw/w), by, bw/w-2, bh); ctx.globalAlpha=1; ctx.fillStyle='#fff'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('W'+(i+1), bx+i*(bw/w)+(bw/w)/2, by+bh/2+4); }
+      ctx.textAlign='left';
+      // step time bar (ideal 1/w)
+      var ty=120; ctx.fillStyle='#0f172a'; ctx.font='12px system-ui'; ctx.fillText('time per step (ideal):',20,ty-6);
+      ctx.fillStyle='#e5e7eb'; ctx.fillRect(20,ty,bw,26); ctx.fillStyle='#059669'; ctx.fillRect(20,ty,bw/w,26);
+      ctx.fillStyle='#0f172a'; ctx.font='bold 12px system-ui'; ctx.fillText((100/w).toFixed(0)+'% of single-machine time', 20+bw/w+8, ty+18);
+      // exactness note
+      ctx.fillStyle='#059669'; ctx.font='13px system-ui'; ctx.fillText('averaged gradient = single-machine gradient  (exact, every worker count)', 20, ty+70);
+      ctx.fillStyle='#64748b'; ctx.font='11px system-ui'; ctx.fillText('(real speedup is slightly less — averaging gradients across workers costs communication)', 20, ty+92);
+      document.getElementById('ppread').textContent=w+' worker'+(w>1?'s':'')+': ~'+(100/w).toFixed(0)+'% of the step time, identical result. Gradient of a sum = sum of gradients.';
+    }
+    document.getElementById('ppw').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>

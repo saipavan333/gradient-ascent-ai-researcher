@@ -225,11 +225,11 @@
       n: 19, id: "t23", title: "Efficient & Scalable ML",
       desc: "Making models small and training fast: distillation, pruning, quantization, and parallelism.",
       lessons: [
-        { id: "t23-l00", title: "Knowledge distillation", file: "#", status: "soon" },
-        { id: "t23-l01", title: "Pruning", file: "#", status: "soon" },
-        { id: "t23-l02", title: "Quantization", file: "#", status: "soon" },
-        { id: "t23-l03", title: "Data & model parallelism", file: "#", status: "soon" },
-        { id: "t23-l04", title: "Mixed precision", file: "#", status: "soon" },
+        { id: "t23-l00", title: "Knowledge distillation", file: "lessons/track-23-efficient-ml/00-knowledge-distillation.html", status: "done" },
+        { id: "t23-l01", title: "Pruning", file: "lessons/track-23-efficient-ml/01-pruning.html", status: "done" },
+        { id: "t23-l02", title: "Quantization", file: "lessons/track-23-efficient-ml/02-quantization.html", status: "done" },
+        { id: "t23-l03", title: "Data & model parallelism", file: "lessons/track-23-efficient-ml/03-parallelism.html", status: "done" },
+        { id: "t23-l04", title: "Mixed precision", file: "lessons/track-23-efficient-ml/04-mixed-precision.html", status: "done" },
       ],
     },
     {

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../" data-lesson="t23-l00">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Knowledge distillation · AI/ML Mastery</title>
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson">
+      <h1>Knowledge distillation: teaching a small model to think big</h1>
+      <p class="subtitle">The best models are enormous and expensive to run. Distillation trains a small, cheap "student" to mimic a big "teacher" — not just its answers, but its full confidence over every class — capturing most of the accuracy at a fraction of the cost.</p>
+      <div class="meta-row">
+        <span class="chip b">Track 19 · Lesson 0</span>
+        <span class="chip">Concept + code + interactive</span>
+        <span class="chip">~18 min</span>
+        <span class="chip">Builds on: Track 6</span>
+      </div>
+
+      <p class="lead prose">
+        The best-performing models — huge neural networks, giant language models — are wonderful in the lab but painful in the real world: too big for a phone, too slow for real-time, too costly to serve to millions. This track is about making models efficient without throwing away what makes them good, and the first technique is one of the most elegant: <span class="newterm">knowledge distillation</span>. The idea is to train a small, fast <span class="newterm">student</span> model to imitate a large, accurate <span class="newterm">teacher</span> model. The twist that makes it work is <em>what</em> the student imitates. A normal training label is a single hard answer — "this image is a cat" — one bit of information. But the teacher, when it looks at that cat, outputs a whole distribution: "80% cat, 15% dog, 5% fox." That distribution is far richer — it reveals that this cat looks a bit dog-like and not at all like a car, encoding the teacher's learned sense of how classes relate. Hinton called this the <span class="newterm">dark knowledge</span>. By training the student to match these soft probabilities (not just the hard label), you transfer the teacher's nuanced understanding, and the small student learns far better than it could from the raw labels alone. This lesson builds distillation and shows the student closing the gap to its teacher.
+      </p>
+
+      <!-- INTUITION -->
+      <h2><span class="sec-ico">💡</span> Intuition: learn from the teacher's hesitation</h2>
+      <p class="prose">
+        Imagine two ways to learn from an expert. In the first, they only ever tell you the final answer: "cat." In the second, they think aloud: "definitely an animal, almost certainly a cat, though the ears are a little dog-like, and it's nothing like a vehicle." The second is vastly more instructive — you learn not just <em>what</em> but <em>how the expert sees the space of possibilities</em>, including which mistakes are reasonable and which are absurd. Distillation gives the student the expert's think-aloud. The teacher's soft probabilities say "these two classes are easy to confuse, those two never" — information the one-hot label completely discards. A student trained on this learns a smoother, better-informed decision boundary from the same data.
+      </p>
+      <p class="prose">
+        To make the teacher's hesitation visible, we soften its output with a <span class="newterm">temperature</span> \(T\) in the softmax — higher \(T\) spreads the probability out, revealing the small "dark knowledge" values:
+      </p>
+      <div class="eqn">
+        <span class="eqn-body">\[ p_i = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}, \qquad \mathcal{L}_{\text{student}} = \text{match the teacher's soft } p \ \ (\text{plus, optionally, the true labels}) \]</span>
+        <span class="eqn-num">(0.1)</span>
+      </div>
+      <p class="prose">
+        Read it: the teacher's logits \(z_i\) (raw scores) are divided by a temperature \(T\) before the softmax. At \(T=1\) you get the usual sharp probabilities; at higher \(T\), the exponentials are pulled together, so the runner-up classes get visibly nonzero probability — exposing the relationships the teacher learned. The student is trained to reproduce these softened probabilities. That's the whole method: soften the teacher, and have the student match it.
+      </p>
+
+      <figure class="diagram">
+        <img src="data:image/png;base64,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" alt="A big TEACHER box on the left and a small STUDENT box on the right, connected by an arrow carrying soft targets [0.80, 0.15, 0.05] ('mostly cat, a bit dog') contrasted with the bare hard label [1,0,0]." />
+        <figcaption>Knowledge distillation: a small student is trained to match the big teacher's soft probability targets — which carry class-relationship info the hard label discards — raising the student's accuracy.</figcaption>
+      </figure>
+
+      <!-- WIDGET -->
+      <div class="widget" id="kdlab">
+        <div class="wtitle">▶ Interactive · reveal the dark knowledge</div>
+        <div class="whint">The teacher's raw output for one image barely shows anything beyond the top class. Slide the <strong>temperature T</strong> up and watch the softened probabilities reveal the teacher's hidden knowledge — that this "cat" is a bit dog-like and nothing like a car. That relational information, invisible in the hard label, is what the student learns from.</div>
+        <canvas id="kdcanvas" width="640" height="300" aria-label="Interactive distillation temperature"></canvas>
+        <div class="wrow">
+          <span class="wlab">temperature T = <b id="kdtlab">1.0</b></span>
+          <input class="wslider" id="kdt" type="range" min="10" max="80" value="10" />
+        </div>
+        <div class="wreadout" id="kdread">At T=1 the output is sharp. Raise T to reveal the soft targets.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the student beats hard labels</h3>
+        <p class="prose">From <code>distillation.py</code>: a big teacher, a tiny student, and limited training data.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Teacher.</strong> A big MLP trained on lots of data reaches <strong>0.920</strong> accuracy. Accurate, but bigger than we want to deploy.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Student on hard labels.</strong> A tiny MLP (8 hidden units) trained on a <em>small</em> labelled set reaches only <strong>0.909</strong> — it doesn't have much data to learn from.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Student, distilled.</strong> Same tiny MLP, same small data — but trained to match the <em>teacher's soft probabilities</em> (temperature 3) on those points instead of the hard labels.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Result.</strong> The distilled student reaches <strong>0.920</strong> — matching the teacher, and beating the hard-label student. The soft targets injected the teacher's knowledge, letting the small model learn more from the same few examples.</div></div>
+      </div>
+
+      <!-- CODE -->
+      <h2><span class="sec-ico">🛠️</span> From scratch: distillation</h2>
+      <pre><code>teacher = big_model.fit(lots_of_data)                # the expensive, accurate model
+soft = teacher.prob(X_train, T=3.0)                  # softened probabilities (dark knowledge)
+
+student = tiny_model()
+student.fit(X_train, target=soft, soft=True)         # match the teacher's distribution...
+# ...instead of student.fit(X_train, target=hard_labels)   # ...one-hot labels
+
+# distilled student 0.920  >  hard-label student 0.909   (matches the teacher)</code></pre>
+      <p class="prose">
+        The only change from ordinary training is the <em>target</em>: the teacher's soft probability vector for each input, instead of a one-hot label. The student's loss becomes "make my distribution look like the teacher's," which carries strictly more information than "get the top class right."
+      </p>
+
+      <div class="callout intuition ml-link">
+        <strong>This is how big models get deployed.</strong> Distillation is everywhere in practice. DistilBERT is a distilled version of BERT that keeps ~97% of the accuracy at 40% of the size and 60% faster. Countless production systems train a giant model for accuracy, then distill it into a small one for serving. It's also used to compress ensembles (distill many models into one) and, increasingly, to transfer capabilities from huge language models into smaller, cheaper ones. When you use a fast on-device model that seems surprisingly smart, there's a good chance a much bigger teacher taught it.
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Training the student on hard labels only.</strong> That throws away the dark knowledge — the whole point. Match the teacher's full distribution.</li>
+          <li><strong>Using temperature 1.</strong> At \(T=1\) the teacher's output is often nearly one-hot, hiding the relational info. A higher \(T\) during distillation exposes it (then you deploy the student at \(T=1\)).</li>
+          <li><strong>Expecting the student to exceed the teacher.</strong> Distillation transfers the teacher's knowledge; the student usually approaches but doesn't surpass it (though it can beat a same-size model trained from scratch).</li>
+          <li><strong>Forgetting the student can also use the true labels.</strong> The best recipes combine matching the teacher's soft targets <em>and</em> fitting the real labels — soft for knowledge, hard for ground truth.</li>
+        </ul>
+      </div>
+
+      <!-- KEY RESULTS -->
+      <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
+      <div class="keybox">
+        <ul>
+          <li><strong>Distillation</strong> trains a small student to mimic a big teacher — capturing most of its accuracy cheaply.</li>
+          <li><strong>Match the teacher's soft probabilities</strong> (the "dark knowledge" of class relationships), not just the hard label.</li>
+          <li><strong>Temperature \(T\)</strong> softens the softmax (eq 0.1) to expose the small runner-up probabilities during distillation.</li>
+          <li><strong>The soft targets carry more information</strong> than one-hot labels, so the student learns better from the same data.</li>
+          <li><strong>Widely deployed</strong> (e.g., DistilBERT: ~97% of BERT's accuracy, 40% smaller, 60% faster).</li>
+        </ul>
+      </div>
+
+      <!-- QUIZ -->
+      <h2><span class="sec-ico">🧩</span> Quiz</h2>
+      <div class="quiz">
+        <div class="quiz-title">🧩 Check your understanding</div>
+        <div class="quiz-sub">Answer from memory, then read why.</div>
+
+        <div class="quiz-q" data-correct="2">
+          <p class="quiz-stem"><span class="qn">Q1.</span> What does the student model imitate in distillation?</p>
+          <ul class="quiz-options">
+            <li>The teacher's weights directly.<div class="quiz-why">The models differ in size; you can't copy weights.</div></li>
+            <li>The teacher's architecture.<div class="quiz-why">The student is deliberately smaller/different.</div></li>
+            <li>The teacher's soft output probabilities.<div class="quiz-why">Correct. Matching the full distribution transfers the "dark knowledge."</div></li>
+            <li>The training data only.<div class="quiz-why">It uses the teacher's outputs, not just the raw data.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="0">
+          <p class="quiz-stem"><span class="qn">Q2.</span> Why are soft targets more informative than hard labels?</p>
+          <ul class="quiz-options">
+            <li>They reveal how classes relate (which are confusable), not just the top answer.<div class="quiz-why">Correct. "80% cat, 15% dog" encodes relationships a one-hot label discards.</div></li>
+            <li>They are smaller to store.<div class="quiz-why">Soft targets are larger, not the point.</div></li>
+            <li>They require no teacher.<div class="quiz-why">They come from the teacher.</div></li>
+            <li>They are always correct.<div class="quiz-why">They can be wrong; their value is the relational info.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="3">
+          <p class="quiz-stem"><span class="qn">Q3.</span> What does raising the temperature \(T\) do?</p>
+          <ul class="quiz-options">
+            <li>Makes the model train faster.<div class="quiz-why">Temperature shapes the output distribution, not speed.</div></li>
+            <li>Increases accuracy.<div class="quiz-why">It's used to expose soft info, not boost accuracy.</div></li>
+            <li>Sharpens the probabilities.<div class="quiz-why">Higher \(T\) <em>softens</em>, not sharpens.</div></li>
+            <li>Softens the softmax, revealing the small runner-up probabilities.<div class="quiz-why">Correct. That exposes the dark knowledge for the student to learn from.</div></li>
+          </ul>
+        </div>
+
+        <div class="quiz-q" data-correct="1">
+          <p class="quiz-stem"><span class="qn">Q4.</span> Roughly, what does DistilBERT achieve?</p>
+          <ul class="quiz-options">
+            <li>Higher accuracy than BERT at the same size.<div class="quiz-why">It's smaller and slightly less accurate, not larger-accuracy.</div></li>
+            <li>~97% of BERT's accuracy at ~40% smaller and faster.<div class="quiz-why">Correct. A classic distillation win: most of the quality, a fraction of the cost.</div></li>
+            <li>The same size as BERT.<div class="quiz-why">It's substantially smaller — that's the point.</div></li>
+            <li>No relation to BERT.<div class="quiz-why">It's a distilled version of BERT.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PRACTICE -->
+      <h2><span class="sec-ico">✍️</span> Practice</h2>
+      <div class="practice">
+        <div class="problem">
+          <p class="problem-stem"><strong>1. (warm-up)</strong> In the interactive, raise the temperature and watch the probability bars. What information appears at high T that was invisible at T=1, and why does the student want it?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>At T=1 the output is nearly one-hot — the top class dominates and the others are almost zero, so the display looks like a hard label. As T rises, the runner-up classes grow to visibly nonzero values, revealing the teacher's relative sense of the classes: this "cat" is somewhat dog-like (moderate dog probability) but not at all car-like (near-zero). The student wants exactly this because it encodes the <em>structure</em> of the problem — which classes are neighbours and which are far apart — turning each training example into a rich lesson about the whole class space rather than a single yes/no. Matching those graded targets shapes a smoother, better-informed decision boundary, which is why distilled students beat same-size students trained on hard labels.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>2. (transfer)</strong> Distillation, pruning, and quantization all shrink models but work differently. In one line each, how does distillation differ from the other two?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>Distillation <em>trains a new, smaller model from scratch</em> to imitate a big one — it changes the architecture entirely (a different, smaller network). Pruning (next lesson) <em>removes weights</em> from an existing trained model, making it sparse but keeping the same architecture skeleton. Quantization (Lesson 2) <em>reduces the numerical precision</em> of the existing weights (e.g., 32-bit → 8-bit) without changing the architecture or which weights exist. So: distillation = new small model that learns the teacher's behaviour; pruning = delete unimportant weights; quantization = store each weight in fewer bits. They're complementary and often combined — distill to a small model, then prune it, then quantize it — stacking their savings.</p>
+            </div>
+          </details>
+        </div>
+        <div class="problem">
+          <p class="problem-stem"><strong>3. (stretch)</strong> Modern large language models are often improved by training on outputs generated by an even larger model. How is that a form of distillation, and what's one risk?</p>
+          <details class="solution"><summary>Show solution</summary>
+            <div class="solution-body">
+              <p>It's distillation at the level of behaviour: instead of matching a probability vector over a few classes, the small (student) model is trained on the <em>text</em> a bigger (teacher) model generates — its answers, reasoning traces, or preferences — transferring the teacher's capabilities into a cheaper model. This is how many smaller open models acquire surprisingly strong abilities, and how techniques like reasoning-trace distillation work. The main risk is that the student <em>inherits the teacher's errors and biases</em> — including confidently-stated falsehoods (hallucinations) — because it's trained to imitate the teacher rather than to be correct against ground truth; if the teacher is wrong, the student faithfully learns to be wrong too, and errors can even amplify across generations of distillation ("model collapse" when models train on each other's synthetic output). So teacher quality is paramount, and mixing in real, verified data (ground-truth labels) guards against the student simply cloning the teacher's mistakes. It's the same caveat as the hard-vs-soft-label balance, scaled up to whole behaviours.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Distillation is a workhorse of practical AI deployment: it's how you take a state-of-the-art model and make it small and fast enough to run on a phone, in a browser, or cheaply at scale. DistilBERT, TinyBERT, and a whole family of distilled models power real products; distillation compresses ensembles and transfers skills between models. At the frontier, distilling from very large language models into smaller ones — including reasoning abilities and alignment behaviours — is an active and commercially important area, as is understanding <em>why</em> soft targets help (they act partly as a regularizer and partly as a richer signal). The broader lesson opens this track: the biggest model isn't the one you have to deploy. With distillation and the compression techniques that follow, you can keep most of the intelligence at a fraction of the cost — which is what makes powerful AI practical.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Knowledge distillation trains a small student model to imitate a big teacher — matching not just its answer but its full probability distribution, the 'dark knowledge' of how classes relate. Softening the teacher's output with a temperature reveals those soft targets, and learning from them lets a tiny model punch above its weight. It's how models like DistilBERT keep ~97% of the accuracy at 40% of the size."</p>
+      </div>
+
+      <!-- DEEP DIVE -->
+      <div class="deepdive">
+        <h3>🔬 Deep dive &amp; primary sources</h3>
+        <ul class="refs">
+          <li><span class="src-type">paper</span> Hinton, Vinyals &amp; Dean (2015), "Distilling the Knowledge in a Neural Network." <a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Sanh et&nbsp;al. (2019), "DistilBERT, a distilled version of BERT." <a href="https://arxiv.org/abs/1910.01108" target="_blank" rel="noopener">arxiv.org</a></li>
+          <li><span class="src-type">paper</span> Gou et&nbsp;al. (2021), "Knowledge Distillation: A Survey." <a href="https://arxiv.org/abs/2006.05525" target="_blank" rel="noopener">arxiv.org</a></li>
+        </ul>
+      </div>
+
+      <p class="bridge">Next: another way to shrink a model — delete the parts that don't matter. <a href="01-pruning.html">Pruning</a> shows that most of a trained network's weights can be removed with almost no loss in accuracy.</p>
+    </article>
+  </main>
+
+  <script>
+  (function(){
+    var cv=document.getElementById('kdcanvas'); if(!cv||!cv.getContext) return;
+    var ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    var classes=['cat','dog','fox','car','tree'];
+    var logits=[4.0, 2.0, 1.0, -2.0, -1.0];              // teacher's raw scores for one "cat" image
+    function draw(){
+      var T=+document.getElementById('kdt').value/10; document.getElementById('kdtlab').textContent=T.toFixed(1);
+      var ex=logits.map(function(z){return Math.exp(z/T);}); var Z=ex.reduce(function(a,b){return a+b;},0);
+      var p=ex.map(function(e){return e/Z;});
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#334155'; ctx.font='13px system-ui'; ctx.fillText("Teacher's output for a cat image (softmax at temperature T):",30,28);
+      var bx=120, bw=W-200, by=60, bh=36, gap=8;
+      var cols=['#2563eb','#059669','#d97706','#dc2626','#6d28d9'];
+      for(var i=0;i<5;i++){
+        var y=by+i*(bh+gap);
+        ctx.fillStyle='#0f172a'; ctx.font='13px system-ui'; ctx.textAlign='right'; ctx.fillText(classes[i],bx-10,y+bh/2+4); ctx.textAlign='left';
+        ctx.fillStyle='#e5e7eb'; ctx.fillRect(bx,y,bw,bh);
+        ctx.fillStyle=cols[i]; ctx.fillRect(bx,y,bw*p[i],bh);
+        ctx.fillStyle='#0f172a'; ctx.font='bold 12px system-ui'; ctx.fillText((p[i]*100).toFixed(1)+'%', bx+bw*p[i]+6, y+bh/2+4);
+      }
+      var msg = T<1.5 ? 'Sharp (T≈1): looks like a hard label — the other classes are hidden.' : (T>5?'Very soft: the teacher\'s full "dark knowledge" is exposed — dog > fox ≫ car.':'Softening: runner-up classes (dog, fox) emerge — that\'s the knowledge to distill.');
+      document.getElementById('kdread').textContent=msg;
+    }
+    document.getElementById('kdt').oninput=draw;
+    draw();
+  })();
+  </script>
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script src="../../assets/vendor/katex/auto-render.min.js"></script>
+  <script src="../../assets/js/site.js"></script>
+</body>
+</html>
