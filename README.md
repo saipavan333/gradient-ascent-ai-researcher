@@ -1,6 +1,6 @@
 # Gradient Ascent — AI Researcher Path
 
-A complete, from-scratch path from the geometry of a vector to the frontier of AI — **24 tracks** taking you from first principles to a capable AI researcher, with **every model built by hand in pure NumPy** (no PyTorch/TensorFlow). All 24 tracks are built and live — 124 lessons, every model built by hand.
+A complete, from-scratch path from the geometry of a vector to the frontier of AI — **24 tracks** taking you from first principles to a capable AI researcher, with **every model built by hand in pure NumPy** (no PyTorch/TensorFlow). All 24 tracks are built and live — 123 lessons, every model built by hand.
 
 Every lesson is taught to a **masterclass standard**, in plain English a motivated beginner can follow:
 
