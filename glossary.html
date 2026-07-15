@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glossary · Gradient Ascent</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .oramp{max-width:var(--measure);}
+    .gsearch{width:100%;font:1rem var(--sans);padding:.7rem .9rem;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
+    .gcount{color:var(--text-faint);font-size:.85rem;margin:.5rem 0 0;}
+    .glist{display:grid;gap:.6rem;margin:1rem 0 0;}
+    .gterm{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:var(--radius-sm);padding:.7rem .9rem;box-shadow:var(--shadow);}
+    .gterm h4{margin:0;font-size:1rem;color:var(--text);display:flex;justify-content:space-between;gap:.6rem;align-items:baseline;}
+    .gterm .gk{flex:0 0 auto;font-size:.72rem;font-weight:600;color:var(--primary-ink);background:var(--primary-weak);border-radius:999px;padding:.12rem .55rem;text-decoration:none;}
+    .gterm p{margin:.3rem 0 0;color:var(--text-muted);font-size:.92rem;line-height:1.45;}
+    .gnone{color:var(--text-muted);padding:1rem 0;}
+  </style>
+</head>
+<body data-page="home">
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="home-wrap oramp">
+      <section class="hero">
+        <div class="kicker">Glossary</div>
+        <h1>Every key term, in one sentence.</h1>
+        <p>The whole vocabulary of the course, defined in plain English. Search by word, and click a track tag to jump to where it&rsquo;s taught in full.</p>
+        <input class="gsearch" id="q" type="search" placeholder="Search terms… (e.g. attention, entropy, overfitting)" autocomplete="off" />
+        <div class="gcount" id="count"></div>
+      </section>
+      <div class="glist" id="list"></div>
+      <div class="foot"><p>Gradient Ascent — <a href="math-primer.html">notation primer</a> · <a href="researcher-path.html">full curriculum</a></p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="assets/js/glossary-data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script>
+  (function(){
+    var terms=(window.GA_TERMS||[]).slice().sort(function(a,b){return a.t.localeCompare(b.t);});
+    var T=window.GA_TRACKS||[]; var hrefByN={};
+    T.forEach(function(t){ var f=t.lessons.filter(function(l){return l.status==="done";})[0]; hrefByN[t.n]=f?f.file:"researcher-path.html"; });
+    var list=document.getElementById("list"), count=document.getElementById("count"), q=document.getElementById("q");
+    function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+    function render(f){
+      f=(f||"").toLowerCase().trim();
+      var shown=terms.filter(function(x){ return !f || x.t.toLowerCase().indexOf(f)>=0 || x.d.toLowerCase().indexOf(f)>=0; });
+      count.textContent=shown.length+" of "+terms.length+" terms";
+      if(!shown.length){ list.innerHTML='<div class="gnone">No terms match &ldquo;'+esc(f)+'&rdquo;. Try another word.</div>'; return; }
+      list.innerHTML=shown.map(function(x){
+        return '<div class="gterm"><h4><span>'+esc(x.t)+'</span><a class="gk" href="'+(hrefByN[x.k]||"#")+'">Track '+x.k+'</a></h4><p>'+esc(x.d)+'</p></div>';
+      }).join("");
+    }
+    q.addEventListener("input",function(){ render(q.value); });
+    render("");
+  })();
+  </script>
+</body>
+</html>

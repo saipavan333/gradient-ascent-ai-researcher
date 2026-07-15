@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your Progress · Gradient Ascent</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .oramp{max-width:var(--measure);}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin:1rem 0 0;}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);text-align:center;}
+    .stat .big{font-size:2rem;font-weight:800;color:var(--primary-ink);line-height:1;}
+    .stat .lbl{color:var(--text-muted);font-size:.85rem;margin-top:.35rem;}
+    .bigbar{height:16px;background:var(--bg);border:1px solid var(--border);border-radius:999px;overflow:hidden;margin:.6rem 0;}
+    .bigbar>span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:999px;transition:width .6s;}
+    .tk{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--border);}
+    .tk .tn{flex:0 0 auto;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--primary-weak);color:var(--primary-ink);font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;}
+    .tk .tt{flex:1;min-width:0;color:var(--text);}
+    .tk .tt a{color:inherit;text-decoration:none;}.tk .tt a:hover{color:var(--primary-ink);}
+    .tk .mb{flex:0 0 120px;height:8px;background:var(--bg);border:1px solid var(--border);border-radius:999px;overflow:hidden;}
+    .tk .mb>span{display:block;height:100%;background:var(--green);}
+    .tk .tc{flex:0 0 auto;color:var(--text-faint);font-size:.8rem;width:3.2rem;text-align:right;}
+    .cert{margin-top:1rem;border:3px double var(--primary);border-radius:var(--radius);background:var(--surface);padding:2rem;text-align:center;box-shadow:var(--shadow-lg);}
+    .cert h3{font-family:var(--serif);font-size:1.6rem;margin:.2rem 0;}
+    .cert .seal{font-size:2.4rem;}
+    .muted{color:var(--text-muted);}
+  </style>
+</head>
+<body data-page="home">
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="home-wrap oramp">
+      <section class="hero">
+        <div class="kicker">Your progress</div>
+        <h1>Track how far you&rsquo;ve climbed.</h1>
+        <p>Mark lessons complete as you go (the button at the bottom of each lesson), and this page keeps score — saved privately in your browser. Nothing is uploaded anywhere.</p>
+      </section>
+      <div id="dash"></div>
+      <div class="cta" style="margin-top:1.6rem">
+        <a class="btn ghost" href="researcher-path.html">Full curriculum</a>
+        <button class="btn ghost" id="resetBtn" type="button">Reset my progress</button>
+      </div>
+      <div class="foot"><p>Gradient Ascent — your progress lives only in this browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="assets/js/site.js"></script>
+  <script>
+  (function(){
+    var T = window.GA_TRACKS || [];
+    var ROOT = "";
+    function done(id){ try{ return localStorage.getItem("done:"+id)==="1"; }catch(e){ return false; } }
+    var total=0, td=0, tc=0, next=null, per=[];
+    T.forEach(function(t){
+      var ls=t.lessons.filter(function(l){return l.status==="done";});
+      var d=ls.filter(function(l){return done(l.id);}).length;
+      total+=ls.length; td+=d; if(ls.length>0 && d===ls.length) tc++;
+      if(!next){ var nx=ls.filter(function(l){return !done(l.id);})[0]; if(nx) next={t:t,l:nx}; }
+      per.push({n:t.n,title:t.title,d:d,tot:ls.length,first:(ls[0]||{}).file});
+    });
+    var pct = total? Math.round(td/total*100):0;
+    var days=[]; try{ days=JSON.parse(localStorage.getItem("studydays")||"[]"); }catch(e){}
+    var streak=0; if(days.length){ var set={}; days.forEach(function(d){set[d]=1;}); var cur=new Date();
+      function key(dt){ return dt.toISOString().slice(0,10); }
+      if(!set[key(cur)]) cur.setDate(cur.getDate()-1);
+      while(set[key(cur)]){ streak++; cur.setDate(cur.getDate()-1); } }
+    var dash=document.getElementById("dash");
+    var html="";
+    html+='<div class="callout key"><div class="co-h">📊 Overall</div>'+
+      '<div class="bigbar"><span style="width:'+pct+'%"></span></div>'+
+      '<div class="stat-grid">'+
+      '<div class="stat"><div class="big">'+pct+'%</div><div class="lbl">complete</div></div>'+
+      '<div class="stat"><div class="big">'+td+'</div><div class="lbl">of '+total+' lessons</div></div>'+
+      '<div class="stat"><div class="big">'+tc+'</div><div class="lbl">of 24 tracks done</div></div>'+
+      '<div class="stat"><div class="big">'+streak+'</div><div class="lbl">day streak 🔥</div></div>'+
+      '</div></div>';
+    if(next){
+      html+='<h2 class="section-h">Next up</h2><div class="callout intuition"><div class="co-h">▶ '+next.t.title+'</div>'+
+        '<p style="margin:0"><a href="'+ROOT+next.l.file+'" style="font-weight:600">'+next.l.title+'</a> — pick up right where you left off.</p></div>';
+    } else if(pct===0){
+      html+='<h2 class="section-h">Get started</h2><div class="callout intuition"><div class="co-h">🚀 Begin the journey</div>'+
+        '<p style="margin:0">Head to the <a href="start-here.html" style="font-weight:600">Start Here</a> guide, or jump straight into <a href="'+ROOT+(per[0].first||"researcher-path.html")+'" style="font-weight:600">Track 1</a>.</p></div>';
+    }
+    html+='<h2 class="section-h">By track</h2><div class="tklist">';
+    per.forEach(function(p){ var pp=p.tot?Math.round(p.d/p.tot*100):0;
+      html+='<div class="tk"><span class="tn">'+p.n+'</span><span class="tt"><a href="'+ROOT+(p.first||"#")+'">'+p.title+'</a></span>'+
+        '<span class="mb"><span style="width:'+pp+'%"></span></span><span class="tc">'+p.d+'/'+p.tot+'</span></div>';
+    });
+    html+='</div>';
+    if(pct===100){
+      var nm=""; try{ nm=localStorage.getItem("ga_name")||""; }catch(e){}
+      html+='<div class="cert"><div class="seal">🏔️</div><div class="muted">Certificate of Completion</div>'+
+        '<h3>'+(nm||"AI Researcher")+'</h3>'+
+        '<p class="muted">has completed all 24 tracks of <strong>Gradient Ascent</strong> — from the geometry of a vector to a GPT built by hand.</p>'+
+        '<p style="margin:.6rem 0 0"><input id="nm" placeholder="type your name" value="'+nm.replace(/"/g,"&quot;")+'" style="padding:.4rem .6rem;border:1px solid var(--border-strong);border-radius:8px;background:var(--bg);color:var(--text)"> <button class="btn ghost" id="nmSave" type="button">Save name</button></p>'+
+        '<p class="muted" style="font-size:.8rem;margin-top:.6rem">'+new Date().toDateString()+'</p></div>';
+    }
+    dash.innerHTML=html;
+    var nmSave=document.getElementById("nmSave");
+    if(nmSave) nmSave.addEventListener("click",function(){ try{ localStorage.setItem("ga_name",(document.getElementById("nm").value||"").slice(0,40)); location.reload(); }catch(e){} });
+    document.getElementById("resetBtn").addEventListener("click",function(){
+      if(!confirm("Clear all your lesson-completion progress in this browser? This cannot be undone.")) return;
+      try{ Object.keys(localStorage).forEach(function(k){ if(k.indexOf("done:")===0) localStorage.removeItem(k); }); localStorage.removeItem("studydays"); }catch(e){}
+      location.reload();
+    });
+  })();
+  </script>
+</body>
+</html>

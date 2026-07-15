@@ -294,6 +294,7 @@
   const ROOT = document.documentElement.dataset.root || "";
   const CURRENT = document.documentElement.dataset.lesson || null;
   const PAGE = document.body.dataset.page || "lesson";
+  try { window.GA_TRACKS = TRACKS; } catch (e) {}
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.prototype.slice.call((el || document).querySelectorAll(s));
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -329,10 +330,13 @@
     sb.appendChild(head);
 
     const onramp = el("div");
-    onramp.style.cssText = "display:flex;gap:.4rem;padding:.5rem .9rem .2rem;";
-    onramp.innerHTML =
-      '<a href="' + ROOT + 'start-here.html" style="flex:1;text-align:center;font-size:.8rem;font-weight:600;text-decoration:none;color:var(--primary-ink);background:var(--primary-weak);border-radius:8px;padding:.42rem .3rem">\u{1F680} Start Here</a>' +
-      '<a href="' + ROOT + 'math-primer.html" style="flex:1;text-align:center;font-size:.8rem;font-weight:600;text-decoration:none;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.42rem .3rem">\u2211 Math</a>';
+    onramp.style.cssText = "display:flex;flex-wrap:wrap;gap:.3rem;padding:.5rem .9rem .2rem;";
+    function _oc(href, label, primary) {
+      return '<a href="' + ROOT + href + '" style="flex:1 1 auto;text-align:center;white-space:nowrap;font-size:.75rem;font-weight:600;text-decoration:none;border-radius:8px;padding:.4rem .5rem;' +
+        (primary ? 'color:var(--primary-ink);background:var(--primary-weak)' : 'color:var(--text-muted);background:var(--bg);border:1px solid var(--border)') + '">' + label + '</a>';
+    }
+    onramp.innerHTML = _oc("start-here.html", "\u{1F680} Start", true) + _oc("math-primer.html", "\u2211 Math") +
+      _oc("progress.html", "\u{1F4CA} Progress") + _oc("glossary.html", "\u{1F4D6} Glossary") + _oc("flashcards.html", "\u{1F0CF} Cards");
     sb.appendChild(onramp);
 
     const nav = el("nav", "sb-nav");
@@ -418,6 +422,7 @@
     btn.addEventListener("click", () => {
       const now = !isDone(CURRENT);
       store.set("done:" + CURRENT, now ? "1" : "0");
+      if (now) { try { var _d = new Date().toISOString().slice(0, 10); var _days = JSON.parse(store.get("studydays", "[]")); if (_days.indexOf(_d) < 0) { _days.push(_d); store.set("studydays", JSON.stringify(_days)); } } catch (e) {} }
       btn.classList.toggle("done", now);
       btn.textContent = now ? "✓ Completed — nice work" : "Mark this lesson complete";
       const chk = $('[data-check="' + CURRENT + '"]');
