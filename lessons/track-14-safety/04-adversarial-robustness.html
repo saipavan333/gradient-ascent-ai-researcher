@@ -15,7 +15,7 @@
       <p class="subtitle">A perturbation too small for a human to notice can turn a confident classifier’s answer into nonsense. Adversarial examples reveal that “high accuracy” and “robust understanding” are not the same thing — and you can craft one with the very gradients you used to train.</p>
       <div class="meta-row">
         <span class="chip b">Track 23 · Lesson 4</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Tracks 2, 6, Lessons 0–3</span>
       </div>
@@ -55,6 +55,25 @@ x_adv = x - eps * np.sign(w)          # w is the input gradient of the logit
         <strong>Defense is hard — and the arms race is instructive.</strong> The natural fix, <em>adversarial training</em> (add adversarial examples to the training set), helps but costs accuracy and can be beaten by stronger attacks. Many proposed defenses have fallen to adaptive attacks that target the specific defense. The deeper lesson is that our models learn decision boundaries that are accurate on natural data but have strange, exploitable geometry off the data manifold — a sign that statistical accuracy is not the same as human-like robustness. Closing that gap is an open problem, and a fitting note to end on: you now understand these systems deeply enough to see clearly what they still get wrong.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="avcvbox">
+        <div class="wtitle">▶ Interactive · a tiny, invisible nudge flips the prediction</div>
+        <div class="whint">The diagonal line is a classifier's decision boundary; the dot is an input it gets right. Adversarial examples add a <strong>minuscule</strong> perturbation — aimed straight at the boundary — that a human would never notice, yet it flips the model's answer. Slide the perturbation size and watch the dot cross the line while barely moving. Same-looking input, opposite prediction.</div>
+        <canvas id="avcv" width="640" height="300" aria-label="a tiny, invisible nudge flips the prediction"></canvas>
+        <div class="wrow"><span class="wlab">perturbation ε: <b id="avt">0.00</b></span><input class="wslider" id="avs" type="range" min="0" max="100" value="0" /></div>
+        <div class="wreadout" id="avcvread">At ε = 0 the model classifies the point correctly.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: building an adversarial example</h3>
+        <p class="prose">The attack is simple calculus: move the input in the direction that most increases the loss.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Get the gradient.</strong> Compute \(\nabla_x L\) — how the loss changes with each input pixel. (Same backprop you use to train, but w.r.t. the <em>input</em>, not the weights.)</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Take the sign.</strong> The Fast Gradient Sign Method nudges every pixel by \(\pm\epsilon\): \(x' = x + \epsilon\,\mathrm{sign}(\nabla_x L)\). Tiny per-pixel change, but aligned to do maximum damage.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>The result.</strong> With \(\epsilon\) far below what the eye can see, a "panda" becomes a "gibbon" at 99% confidence. The image looks identical; the prediction flips.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Why it happens.</strong> High-dimensional decision boundaries pass surprisingly close to normal inputs, so a small step in the right direction crosses them. It's a property of the geometry, not a rare bug.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -64,6 +83,17 @@ x_adv = x - eps * np.sign(w)          # w is the input gradient of the logit
           <li><strong>High dimensions amplify it:</strong> many tiny, gradient-aligned nudges sum to a decisive change in the score.</li>
           <li><strong>Attacks transfer</strong> across models and exist for nearly all standard networks — a genuine safety/robustness concern.</li>
           <li><strong>Defense is hard:</strong> adversarial training helps at a cost; accuracy ≠ robustness, and closing the gap is open research.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking high accuracy means robust.</strong> A model can be 99% accurate on clean data and near 0% under attack. Standard accuracy says nothing about worst-case inputs.</li>
+          <li><strong>Trusting "security by obscurity."</strong> Hiding the model doesn't help — attacks <em>transfer</em> between models, so an adversary can craft them on a surrogate and hit yours.</li>
+          <li><strong>Believing a defence too soon.</strong> Many published defences broke under stronger, adaptive attacks. Evaluate against an attacker who knows your defence, not a fixed one.</li>
+          <li><strong>Assuming it's only an image problem.</strong> Text, audio, and malware classifiers all have adversarial examples; jailbreak prompts are the LLM version of the same phenomenon.</li>
         </ul>
       </div>
 
@@ -143,6 +173,18 @@ x_adv = x - eps * np.sign(w)          # w is the input gradient of the logit
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Adversarial examples (Szegedy et&nbsp;al. 2013; Goodfellow's FGSM 2014) exposed a deep fragility: models that match humans on average can fail catastrophically on tiny, targeted perturbations. A decade of attack-defence escalation later, adversarial training (train on adversarial examples) and certified defences give partial robustness, but a fully robust model on hard benchmarks remains open. The stakes are practical — self-driving perception, malware detection, content filters — and the idea generalises to today's frontier as <em>jailbreaks</em>: prompts engineered to bypass an LLM's safety training. Robustness is now a central safety concern, because a system is only as safe as its worst-case input, not its average one.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Adversarial examples add a tiny, human-invisible nudge — aligned with the loss gradient — that flips a model's prediction, because high-dimensional decision boundaries sit surprisingly close to normal inputs. High clean accuracy doesn't mean robust; attacks transfer between models and many defences break under adaptive attack. Adversarial training helps but doesn't fully solve it, and the same idea shows up as LLM jailbreaks. A system is only as safe as its worst-case input."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -155,6 +197,29 @@ x_adv = x - eps * np.sign(w)          # w is the input gradient of the logit
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('avcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    // boundary: x + y = 6 in data coords [0..10]; below => class BLUE, above => RED. gradient dir = (1,1)/sqrt2
+    var P=[2.4,2.9]; var g=[1/Math.SQRT2,1/Math.SQRT2]; var maxeps=1.6;
+    function DX(x){ return 40+x/10*(Wd-80); } function DY(y){ return Ht-30-y/10*(Ht-70); }
+    function draw(){ var t=+document.getElementById('avs').value/100; var eps=t*maxeps; document.getElementById('avt').textContent=eps.toFixed(2);
+      ctx.clearRect(0,0,Wd,Ht);
+      // regions
+      ctx.fillStyle='rgba(37,99,235,0.07)'; ctx.beginPath(); ctx.moveTo(DX(0),DY(6)); ctx.lineTo(DX(6),DY(0)); ctx.lineTo(DX(0),DY(0)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(220,38,38,0.07)'; ctx.beginPath(); ctx.moveTo(DX(0),DY(6)); ctx.lineTo(DX(6),DY(0)); ctx.lineTo(DX(10),DY(10)); ctx.lineTo(DX(0),DY(10)); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#334155'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(DX(0),DY(6)); ctx.lineTo(DX(6),DY(0)); ctx.stroke();
+      ctx.fillStyle='#2563eb'; ctx.font='12px system-ui'; ctx.fillText('class BLUE',DX(0.4),DY(0.6)); ctx.fillStyle='#dc2626'; ctx.fillText('class RED',DX(7),DY(9));
+      var Q=[P[0]+eps*g[0], P[1]+eps*g[1]]; var side=(Q[0]+Q[1])>6;
+      // original (ghost) and perturbed
+      ctx.fillStyle='#94a3b8'; ctx.beginPath(); ctx.arc(DX(P[0]),DY(P[1]),5,0,6.29); ctx.fill();
+      ctx.strokeStyle='#dc2626'; ctx.setLineDash([3,2]); ctx.beginPath(); ctx.moveTo(DX(P[0]),DY(P[1])); ctx.lineTo(DX(Q[0]),DY(Q[1])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle= side ? '#dc2626' : '#2563eb'; ctx.beginPath(); ctx.arc(DX(Q[0]),DY(Q[1]),8,0,6.29); ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.font='bold 12px system-ui'; ctx.fillText(side?'now: RED ✗':'now: BLUE ✓',DX(Q[0])+12,DY(Q[1]));
+      document.getElementById('avcvread').textContent='ε = '+eps.toFixed(2)+': the point moved a hair along the gradient and is now classified '+(side?'RED — flipped! An imperceptible change fooled the model.':'BLUE (still correct). Nudge ε higher to cross the boundary.'); }
+    document.getElementById('avs').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

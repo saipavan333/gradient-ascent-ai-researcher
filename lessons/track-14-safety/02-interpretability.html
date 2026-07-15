@@ -15,7 +15,7 @@
       <p class="subtitle">A trained network is a black box of millions of numbers. Interpretability is the science of prying it open — and the simplest tool, a linear probe, already reveals something profound: you can read a concept straight out of a hidden layer.</p>
       <div class="meta-row">
         <span class="chip b">Track 23 · Lesson 2</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Track 6, Lesson 0</span>
       </div>
@@ -53,6 +53,25 @@ linear_probe(h, random_label)# -> 0.51   ... but not noise (chance)
         <strong>Why interpretability is a safety tool.</strong> If you can read what a model represents, you can catch failures that behaviour alone hides: a model that gives right answers for wrong reasons, a hidden “deception” or “I’m being tested” feature, or a spurious shortcut (predicting “wolf” from snow in the background). Probes and their descendants let you audit a model’s <em>internals</em>, not just its outputs — complementing the black-box evaluation of the next lesson. Understanding the machine is part of trusting it.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="incvbox">
+        <div class="wtitle">▶ Interactive · look inside — each attention head does a different job</div>
+        <div class="whint">Interpretability means opening the black box and reading what the parts compute. Transformer <strong>attention heads</strong> are a great example: each head learns a distinct pattern of which words look at which. Flip between heads and watch the heatmap change — a bright cell at row&nbsp;<em>i</em>, column&nbsp;<em>j</em> means token&nbsp;<em>i</em> is attending to token&nbsp;<em>j</em>. Some heads just look one word back; others hunt for the subject of a verb.</div>
+        <canvas id="incv" width="640" height="300" aria-label="look inside — each attention head does a different job"></canvas>
+        <div class="wrow"><span class="wlab">attention head: <b id="inh">0</b></span><input class="wslider" id="ins" type="range" min="0" max="3" value="0" /></div>
+        <div class="wreadout" id="incvread">Head 0: a previous-token head.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: from neurons to circuits</h3>
+        <p class="prose">Mechanistic interpretability reverse-engineers the algorithm a network learned, one component at a time.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Probe a component.</strong> Feed many inputs and record when a neuron or attention head activates. A head that fires on "the word before" is a <em>previous-token head</em>.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Find circuits.</strong> Components compose. "Induction heads" pair a previous-token head with a copy head to continue repeated patterns (…A B … A → B) — a concrete mechanism behind in-context learning.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Test by intervention.</strong> Don't just correlate — <em>ablate</em> the component (zero it out) or patch in a different activation and see if the behaviour breaks. Causal tests separate "involved" from "merely present."</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The polysemantic snag.</strong> Real neurons often fire for several unrelated things ("superposition"), so clean one-neuron-one-concept stories are rare — which is why sparse autoencoders are used to pull apart overlapping features.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -62,6 +81,17 @@ linear_probe(h, random_label)# -> 0.51   ... but not noise (chance)
           <li><strong>High probe accuracy = the layer represents that concept; chance = it doesn’t.</strong></li>
           <li><strong>Frontier ideas:</strong> feature detectors, circuits (neuron-groups implementing algorithms), and superposition (many features, few neurons).</li>
           <li><strong>A safety tool:</strong> auditing internals catches right-answer-wrong-reason failures and hidden features that behaviour alone conceals.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Trusting attention as explanation.</strong> Where a model attends isn't the same as why it decided — attention weights are suggestive, not a full account. Confirm with interventions.</li>
+          <li><strong>Assuming one neuron = one concept.</strong> Superposition means neurons are usually polysemantic. Reading a single neuron's "meaning" off a few examples is a classic trap.</li>
+          <li><strong>Correlation without causation.</strong> A component lighting up during a behaviour doesn't prove it causes it. Ablation and activation patching are what turn a story into evidence.</li>
+          <li><strong>Cherry-picking inputs.</strong> A neat pattern on ten hand-picked examples can vanish on the full distribution. Test broadly before believing an explanation.</li>
         </ul>
       </div>
 
@@ -141,6 +171,18 @@ linear_probe(h, random_label)# -> 0.51   ... but not noise (chance)
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Interpretability is the effort to make models auditable rather than trusted on faith — and it's advancing fast. Mechanistic interpretability has reverse-engineered real circuits (induction heads, indirect-object identification) and, with sparse autoencoders, extracted millions of human-interpretable features from frontier models, even steering behaviour by turning features up or down. Why it matters for safety: outputs alone can't tell you whether a model is being honest or just <em>sounds</em> honest — you have to look inside. The open frontier is scaling these methods to the largest models, handling superposition, and turning feature dictionaries into reliable safety audits.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Interpretability opens the black box to read what the parts compute. Attention heads specialise — previous-token heads, induction heads — and neurons can be probed, but you confirm a story by <em>intervening</em> (ablating or patching), not just correlating. The big complication is superposition: neurons are polysemantic, so sparse autoencoders help pull overlapping features apart. It matters because you can't tell an honest model from a plausible-sounding one by outputs alone."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -153,6 +195,31 @@ linear_probe(h, random_label)# -> 0.51   ... but not noise (chance)
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('incv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var toks=['The','cat','sat','on','the','mat']; var n=toks.length;
+    var desc=['previous-token head: each word attends to the one just before it',
+              'first-token head: everything attends back to the start (a common resting pattern)',
+              'self / current-token head: each word mostly attends to itself',
+              'verb-to-subject head: sat looks back to cat (who did it?)'];
+    function pattern(h){ var M=[]; for(var i=0;i<n;i++){ var row=[]; for(var j=0;j<n;j++) row.push(0);
+        if(h===0){ row[Math.max(0,i-1)]=1; }
+        else if(h===1){ row[0]=1; }
+        else if(h===2){ row[i]=1; }
+        else { if(i===2){row[1]=1;} else {row[Math.max(0,i-1)]=0.6;} }
+        var s=0; for(var j2=0;j2<n;j2++) s+=row[j2]; for(var j3=0;j3<n;j3++) row[j3]=s?row[j3]/s:0; M.push(row);} return M; }
+    function draw(){ var h=+document.getElementById('ins').value; document.getElementById('inh').textContent=h;
+      var M=pattern(h); ctx.clearRect(0,0,Wd,Ht); var ox=120,oy=50,c=32;
+      for(var i=0;i<n;i++)for(var j=0;j<n;j++){ var v=M[i][j]; ctx.fillStyle='rgba(37,99,235,'+(0.08+v*0.92)+')'; ctx.fillRect(ox+j*c,oy+i*c,c-2,c-2); }
+      ctx.fillStyle='#334155'; ctx.font='11px system-ui';
+      for(var i2=0;i2<n;i2++){ ctx.textAlign='right'; ctx.fillText(toks[i2],ox-6,oy+i2*c+20);
+        ctx.textAlign='center'; ctx.save(); ctx.translate(ox+i2*c+c/2,oy-8); ctx.fillText(toks[i2],0,0); ctx.restore(); }
+      ctx.textAlign='left'; ctx.fillStyle='#64748b'; ctx.fillText('rows = query word (doing the looking)',ox,oy+n*c+22); ctx.fillText('columns = key word (being looked at)',ox,oy+n*c+38);
+      document.getElementById('incvread').textContent='Head '+h+' — '+desc[h]; }
+    document.getElementById('ins').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

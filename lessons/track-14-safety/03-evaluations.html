@@ -15,7 +15,7 @@
       <p class="subtitle">A single accuracy number is a comforting lie. A model can score 90% overall and fail completely for a group of people who matter. Safety evaluation means refusing the average — disaggregating, stress-testing, and actively hunting for the failures a benchmark hides.</p>
       <div class="meta-row">
         <span class="chip b">Track 23 · Lesson 3</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Track 22, Lessons 0–2</span>
       </div>
@@ -50,6 +50,25 @@ for g in groups:                                  # disaggregate by subgroup
         <strong>Evals are becoming the science of AI safety.</strong> For modern models, the hardest safety questions are empirical: can it be jailbroken? Does it deceive? Can it assist with dangerous capabilities? Is it robust across languages and demographics? Progress here is measured by <em>evaluations</em> — carefully constructed test suites and red-team exercises, increasingly by independent third parties. It’s the same rigor from Track&nbsp;9 (multiple seeds, honest reporting, no test-set gaming), now aimed at harms rather than accuracy — and it’s one of the most in-demand skills in the field.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="evcvbox">
+        <div class="wtitle">▶ Interactive · an eval measures what you elicited, not the ceiling</div>
+        <div class="whint">A benchmark score isn't a fixed property of the model — it depends on how hard you tried to get the capability out. Slide the <strong>elicitation effort</strong> (better prompts, chain-of-thought, tools, more tries) and watch the measured score climb toward the model's true ceiling. Weak elicitation makes a capable model look safe; that's why a low score is only a <em>lower bound</em>.</div>
+        <canvas id="evcv" width="640" height="300" aria-label="an eval measures what you elicited, not the ceiling"></canvas>
+        <div class="wrow"><span class="wlab">elicitation effort: <b id="evt">0.0</b></span><input class="wslider" id="evs" type="range" min="0" max="100" value="15" /></div>
+        <div class="wreadout" id="evcvread">Low effort → the measured score understates the model.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: reading an eval honestly</h3>
+        <p class="prose">A single accuracy number hides a lot. Good evaluation is about what the number does and doesn't tell you.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Elicitation is a lower bound.</strong> A model scores 40% with a plain prompt, 70% with chain-of-thought, 85% with tools and retries. The capability was there all along — you just measured how hard you tried. Safety evals must elicit <em>hard</em>, or they undercount risk.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Watch for contamination.</strong> If the test questions leaked into training data, a high score measures memorisation, not ability. Held-out and freshly written tests guard against this.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Averages hide failures.</strong> 92% overall can still mean 60% on the safety-critical slice. Break scores down by category, and report the worst case, not just the mean.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Match the metric to the stakes.</strong> For a dangerous capability, the question isn't "average accuracy" but "can it <em>ever</em> do this when pushed?" — a single success matters.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -59,6 +78,17 @@ for g in groups:                                  # disaggregate by subgroup
           <li><strong>Red-teaming</strong> = actively constructing inputs to make the model fail (edge cases, jailbreaks, shifts), not just measuring averages.</li>
           <li><strong>Evaluate the worst case, not the mean</strong> — especially in safety-critical settings.</li>
           <li><strong>Safety evals</strong> extend Track&nbsp;9’s honest-evaluation rigor to harms, robustness, and misuse — increasingly by independent parties.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Treating a score as the ceiling.</strong> Weak elicitation understates capability. A "safe" low score may just mean nobody prompted it well — dangerous for safety evals.</li>
+          <li><strong>Ignoring contamination.</strong> Benchmarks leak into training corpora over time, inflating scores. A model acing an old benchmark may be reciting, not reasoning.</li>
+          <li><strong>Optimising to the benchmark.</strong> Once a benchmark is a target, people train on its distribution and it stops measuring general ability (Goodhart again).</li>
+          <li><strong>Reporting only the average.</strong> Aggregate numbers hide the tail. Safety lives in the worst 1%, not the mean.</li>
         </ul>
       </div>
 
@@ -138,6 +168,18 @@ for g in groups:                                  # disaggregate by subgroup
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Evaluation has become a core safety discipline, because you can't govern what you can't measure. "Dangerous capability evaluations" probe whether a model can meaningfully help with cyber-offense, bio, or autonomous replication — and feed directly into labs' responsible-scaling policies and deployment decisions. The frontier problems are hard: eliciting capabilities fully (so you don't under-count risk), detecting sandbagging (a model that hides its ability on tests), avoiding contamination, and evaluating open-ended agentic behaviour where there's no clean answer key. Third-party evaluators and red-teams increasingly audit frontier models before release, making rigorous evals part of the safety infrastructure of the whole field.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"An eval score measures what you elicited, not the model's ceiling — better prompts, tools, and retries raise it, so a low score is only a lower bound (crucial for safety evals). Watch for contamination (leaked test data), don't optimise to the benchmark, and never trust the average alone — safety lives in the worst-case slice. That's why dangerous-capability evals and independent red-teams now gate real deployment decisions."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -150,6 +192,25 @@ for g in groups:                                  # disaggregate by subgroup
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('evcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    var ceil=0.9;
+    function meas(e){ return ceil*(1-Math.exp(-3.2*e)); }
+    function X(e){ return 55+e*(Wd-90); } function Y(v){ return Ht-40-v*(Ht-80); }
+    function draw(){ var t=+document.getElementById('evs').value/100; document.getElementById('evt').textContent=t.toFixed(2);
+      ctx.clearRect(0,0,Wd,Ht);
+      ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); ctx.moveTo(55,Ht-40); ctx.lineTo(Wd-30,Ht-40); ctx.stroke();
+      ctx.strokeStyle='#94a3b8'; ctx.setLineDash([5,3]); ctx.beginPath(); ctx.moveTo(55,Y(ceil)); ctx.lineTo(Wd-30,Y(ceil)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#64748b'; ctx.font='12px system-ui'; ctx.textAlign='left'; ctx.fillText('true capability ceiling ≈ '+(ceil*100).toFixed(0)+'%',60,Y(ceil)-6);
+      ctx.strokeStyle='#2563eb'; ctx.lineWidth=2.5; ctx.beginPath(); for(var e=0;e<=1;e+=0.01){ var px=X(e),py=Y(meas(e)); if(e===0)ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke();
+      var m=meas(t); ctx.fillStyle='#dc2626'; ctx.beginPath(); ctx.arc(X(t),Y(m),6,0,6.29); ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.fillText('measured '+(m*100).toFixed(0)+'%',X(t),Y(m)-12);
+      ctx.textAlign='left'; ctx.fillStyle='#64748b'; ctx.font='10px system-ui'; ctx.fillText('effort: prompt → +chain-of-thought → +tools → +many tries',60,Ht-20);
+      document.getElementById('evcvread').textContent='Effort '+t.toFixed(2)+': you measured '+(m*100).toFixed(0)+'%, but the true ceiling is ~'+(ceil*100).toFixed(0)+'%. The same model scores differently depending on elicitation — so treat any score as a floor, not the truth.'; }
+    document.getElementById('evs').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>
