@@ -578,6 +578,82 @@
   /* --------------------------------------------------------------------------
      boot
      -------------------------------------------------------------------------- */
+  /* --------------------------------------------------------------------------
+     in-browser Python playground: ▶ Run on every code block (lazy Pyodide)
+     -------------------------------------------------------------------------- */
+  var __pyReady = null;
+  function __loadPy() {
+    if (__pyReady) return __pyReady;
+    __pyReady = new Promise(function (res, rej) {
+      var sc = document.createElement("script");
+      sc.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+      sc.onload = function () {
+        try {
+          window.loadPyodide().then(function (py) {
+            return py.loadPackage("numpy").then(function () { res(py); });
+          }).catch(rej);
+        } catch (e) { rej(e); }
+      };
+      sc.onerror = function () { rej(new Error("Could not load Python (Pyodide). Check your connection and try again.")); };
+      document.head.appendChild(sc);
+    });
+    return __pyReady;
+  }
+  function enhanceCode() {
+    var main = document.querySelector("main"); if (!main) return;
+    var blocks = main.querySelectorAll("pre > code"); if (!blocks.length) return;
+    if (!document.getElementById("code-play-css")) {
+      var st = document.createElement("style"); st.id = "code-play-css";
+      st.textContent =
+        ".code-tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.6rem 0 .1rem}" +
+        ".code-run,.code-edit{font:600 .8rem var(--sans);cursor:pointer;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);border-radius:7px;padding:.28rem .75rem}" +
+        ".code-run{background:var(--primary-weak);color:var(--primary-ink);border-color:transparent}" +
+        ".code-run:hover{filter:brightness(.97)}.code-run:disabled{opacity:.6;cursor:default}" +
+        ".code-note{color:var(--text-faint);font-size:.78rem}" +
+        ".code-out{display:none;white-space:pre-wrap;background:var(--code-bg);color:var(--code-text);border-radius:9px;padding:.7rem .85rem;margin:.45rem 0 0;font:.82rem/1.55 var(--mono);max-height:340px;overflow:auto}";
+      document.head.appendChild(st);
+    }
+    var reIsPy = /(^|\n)\s*(import |from |def |class |print\(|np\.|for |while |if |return |#|[A-Za-z_]\w*\s*=)/;
+    blocks.forEach(function (code) {
+      var pre = code.parentElement;
+      var txt = code.innerText || "";
+      if (txt.trim().length < 3 || !reIsPy.test(txt)) return;
+      if (pre.getAttribute("data-play") === "1") return;
+      pre.setAttribute("data-play", "1");
+      var tools = document.createElement("div"); tools.className = "code-tools";
+      var runBtn = document.createElement("button"); runBtn.className = "code-run"; runBtn.type = "button"; runBtn.textContent = "▶ Run";
+      var editBtn = document.createElement("button"); editBtn.className = "code-edit"; editBtn.type = "button"; editBtn.textContent = "✎ Edit";
+      var note = document.createElement("span"); note.className = "code-note"; note.textContent = "runs in your browser · numpy included";
+      tools.appendChild(runBtn); tools.appendChild(editBtn); tools.appendChild(note);
+      var out = document.createElement("pre"); out.className = "code-out";
+      pre.parentNode.insertBefore(tools, pre);
+      pre.parentNode.insertBefore(out, pre.nextSibling);
+      editBtn.addEventListener("click", function () {
+        var on = code.contentEditable !== "true";
+        code.contentEditable = on ? "true" : "false";
+        code.style.outline = on ? "2px solid var(--primary)" : "none";
+        code.style.borderRadius = "6px";
+        if (on) code.focus();
+      });
+      runBtn.addEventListener("click", function () { runCode(code.innerText, out, runBtn); });
+    });
+    function runCode(src, out, btn) {
+      out.style.display = "block";
+      out.textContent = "Loading Python… the first run downloads ~10 MB, then it is instant.";
+      btn.disabled = true; var label = btn.textContent; btn.textContent = "… running";
+      __loadPy().then(function (py) {
+        var buf = "";
+        py.setStdout({ batched: function (s) { buf += s + "\n"; } });
+        py.setStderr({ batched: function (s) { buf += s + "\n"; } });
+        return py.runPythonAsync(src).then(function () {
+          out.textContent = buf.trim() === "" ? "✓ ran — no printed output. Add print(...) to see values." : buf;
+        }).catch(function (e) { out.textContent = (buf ? buf + "\n" : "") + String((e && e.message) || e); });
+      }).catch(function (e) {
+        out.textContent = "⚠ " + String((e && e.message) || e);
+      }).then(function () { btn.disabled = false; btn.textContent = label; });
+    }
+  }
+
   function boot() {
     // theme: stored or system preference
     const saved = store.get("theme", null);
@@ -589,6 +665,7 @@
     initQuizzes();
     highlight();
     renderMath();
+    enhanceCode();
     progressBar();
     mobileMenu();
     buildHome();
