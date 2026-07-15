@@ -15,7 +15,7 @@
       <p class="subtitle">Everything you built, deployed. Take the character-level Transformer from Track 5, train it to invent names, wrap it in a real web service, and put it online — a complete, professional, real-time app you can push to GitHub today.</p>
       <div class="meta-row">
         <span class="chip b">Track 24 · Capstone A</span>
-        <span class="chip">Project + deployment</span>
+        <span class="chip">Project + deployment + interactive</span>
         <span class="chip">~40 min</span>
         <span class="chip">Builds on: Tracks 6, 9</span>
       </div>
@@ -85,6 +85,25 @@ def generate():
         <strong>Why this capstone matters.</strong> Implementing a transformer proves you understand it; <em>deploying</em> one proves you can deliver. This project is the bridge from “I did the course” to “here is a live link and a clean repo” — exactly what a research engineer or a hiring manager wants to see. And because every layer is yours, you can explain any line under questioning.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="ngcvbox">
+        <div class="wtitle">▶ Interactive · generate names in your browser, right now</div>
+        <div class="whint">This is a tiny character-level model — the same idea as your MiniGPT, learning which letters tend to follow which. Press <strong>Generate</strong> to invent fresh names one letter at a time. The <strong>temperature</strong> slider controls creativity: low temperature copies the training style closely; high temperature takes wild risks. Names marked <em>new</em> don't appear in the training list at all.</div>
+        <canvas id="ngcv" width="640" height="300" aria-label="generate names in your browser, right now"></canvas>
+        <div class="wrow"><span class="wlab">temperature: <b id="ngtl">0.70</b></span><input class="wslider" id="ngt" type="range" min="0" max="100" value="40" /><button class="wbtn" id="nggen">Generate ▶</button></div>
+        <div class="wreadout" id="ngcvread">Press Generate to sample new names.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: from notebook to public URL</h3>
+        <p class="prose">A capstone is judged on the whole pipeline, not just the model. Here's the path this project takes.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Train &amp; save.</strong> Train the character-level Transformer on a name corpus, then serialise the weights and the character vocabulary to disk so the server can load them without retraining.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Wrap in an API.</strong> A small Flask/FastAPI endpoint loads the weights once at startup and exposes <code>GET /generate?temperature=0.8</code> that samples a name and returns JSON.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Add a front end.</strong> A single HTML page calls the endpoint and shows the result — exactly like the widget above, but talking to your real model.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Deploy.</strong> Containerise, push to a free host (Render, Railway, Hugging Face Spaces), and you have a public link. The portfolio artifact is the <em>live app</em>, not the notebook.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key takeaways</h2>
       <div class="keybox">
@@ -94,6 +113,17 @@ def generate():
           <li><strong>Professional packaging</strong> — tests, CI, Dockerfile, pinned requirements — is what makes a project deployable and trustworthy.</li>
           <li><strong>One pipeline</strong> (local → GitHub+CI → build → host) takes any of these apps to a public URL.</li>
           <li><strong>A capstone is portfolio-grade evidence:</strong> a live link plus a repo you can defend line by line.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Loading the model per request.</strong> Load weights <em>once</em> at startup, not inside the handler — otherwise every call pays the load cost and the app crawls.</li>
+          <li><strong>Shipping the training loop.</strong> The server only needs inference. Bundling training code and data bloats the image and slows cold starts.</li>
+          <li><strong>No input limits.</strong> An unbounded <code>length</code> or <code>temperature</code> parameter is a denial-of-service waiting to happen. Validate and clamp every input.</li>
+          <li><strong>Forgetting reproducibility.</strong> Pin dependencies and the model version. "Works on my laptop" isn't a deployment — the container must rebuild identically.</li>
         </ul>
       </div>
 
@@ -173,6 +203,18 @@ def generate():
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">This capstone is a miniature of how real ML products ship. The same shape — train, serialise, serve behind an API, put a UI in front, containerise, deploy — scales from a toy name generator to a production LLM endpoint. Doing it once by hand teaches the concerns that dominate industry ML: model versioning, cold-start latency, batching requests for throughput, autoscaling, monitoring, and cost per call. A candidate who can point to a live URL and explain every layer from the sampling loop to the Dockerfile stands out far more than one who only has a notebook of loss curves.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"I turned the transformer I built by hand into a live web app that invents names character by character. It trains, saves its weights, serves them behind an API with a temperature knob, and runs on a public URL. The lesson wasn't the model — it was the whole pipeline: load once, validate inputs, containerise, deploy. That's what turns knowledge into a portfolio."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -185,6 +227,29 @@ def generate():
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('ngcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d');
+    var names=["james","mary","john","patricia","robert","jennifer","michael","linda","william","elizabeth","david","barbara","richard","susan","joseph","jessica","thomas","sarah","charles","karen","daniel","nancy","matthew","lisa","anthony","betty","mark","sandra","steven","kimberly","paul","emily","andrew","donna","joshua","michelle","kenneth","carol","kevin","amanda","brian","melissa","george","deborah","edward","stephanie","laura","rebecca","oliver","sophia","harper","mason","ethan","chloe"];
+    var trainSet={}; names.forEach(function(n){trainSet[n]=1;});
+    var model={}; names.forEach(function(nm){ var s="^^"+nm+"$"; for(var i=2;i<s.length;i++){ var key=s.substr(i-2,2); if(!model[key])model[key]={}; var ch=s[i]; model[key][ch]=(model[key][ch]||0)+1; } });
+    function sample(T){ var out="",key="^^"; for(var k=0;k<12;k++){ var dist=model[key]; if(!dist)break; var chars=Object.keys(dist);
+        var ws=chars.map(function(c){return Math.pow(dist[c],1/T);}); var Z=0; ws.forEach(function(x){Z+=x;});
+        var r=Math.random()*Z,acc=0,pick=chars[chars.length-1]; for(var i=0;i<chars.length;i++){ acc+=ws[i]; if(r<=acc){pick=chars[i];break;} }
+        if(pick==="$")break; out+=pick; key=(key+pick).slice(-2); } return out; }
+    function gen(){ var T=+document.getElementById('ngt').value/100*1.3+0.25; document.getElementById('ngtl').textContent=T.toFixed(2);
+      var list=[],tries=0; while(list.length<5 && tries<120){ var nm=sample(T); tries++; if(nm.length>=2 && list.indexOf(nm)<0) list.push(nm); }
+      ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.fillStyle='#0f172a'; ctx.font='bold 15px system-ui'; ctx.textAlign='left'; ctx.fillText('MiniGPT invented:',30,34);
+      ctx.font='22px Georgia, serif';
+      list.forEach(function(nm,i){ var cap=nm.charAt(0).toUpperCase()+nm.slice(1); var y=76+i*40;
+        ctx.fillStyle='#2563eb'; ctx.fillText(cap,50,y);
+        if(!trainSet[nm]){ ctx.fillStyle='#059669'; ctx.font='12px system-ui'; ctx.fillText('new',50+ctx.measureText(cap).width+14,y-4); ctx.font='22px Georgia, serif'; } });
+      var nnew=list.filter(function(n){return !trainSet[n];}).length;
+      document.getElementById('ngcvread').textContent='T='+T.toFixed(2)+': '+nnew+' of '+list.length+' are brand-new names. Lower T → safer, name-like; higher T → more novel but riskier spellings.'; }
+    document.getElementById('nggen').onclick=gen; document.getElementById('ngt').oninput=gen; gen();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

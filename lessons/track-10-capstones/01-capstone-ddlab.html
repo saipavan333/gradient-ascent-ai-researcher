@@ -15,7 +15,7 @@
       <p class="subtitle">Turn a published result into an interactive web app. The double-descent reproduction from Track 8 becomes a live lab where anyone can drag sliders and watch the interpolation spike appear and vanish — a deployable scientific artifact.</p>
       <div class="meta-row">
         <span class="chip b">Track 24 · Capstone B</span>
-        <span class="chip">Project + deployment</span>
+        <span class="chip">Project + deployment + interactive</span>
         <span class="chip">~35 min</span>
         <span class="chip">Builds on: Tracks 4, 21, 22</span>
       </div>
@@ -81,6 +81,25 @@ def test_large_ridge_suppresses_peak():
         The same five-step pipeline from Capstone&nbsp;A applies: test locally, push to GitHub (CI runs the science tests), then deploy. Because this app renders plots server-side with matplotlib, the only difference is that <code>matplotlib</code> is in <code>requirements.txt</code>. On Render set build <code>pip install -r requirements.txt</code> and start <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>; on Hugging Face Spaces push the included Docker image. Full steps are in the project <code>README.md</code>.
       </p>
 
+      <!-- WIDGET -->
+      <div class="widget" id="ddcvbox">
+        <div class="wtitle">▶ Interactive · drag the noise — watch the double-descent spike appear and vanish</div>
+        <div class="whint">This is the lab your app deploys. The blue curve is <strong>test error</strong> as the model grows; the green is <strong>train error</strong>. At the interpolation threshold (capacity = 1, where the model has exactly enough parameters to fit the data) test error <em>spikes</em> — then falls again as the model gets even bigger. Slide the label noise: with clean data the spike is gone; add noise and the classic double-descent peak grows back.</div>
+        <canvas id="ddcv" width="640" height="300" aria-label="drag the noise — watch the double-descent spike appear and vanish"></canvas>
+        <div class="wrow"><span class="wlab">label noise: <b id="ddn">0.30</b></span><input class="wslider" id="dds" type="range" min="0" max="50" value="30" /></div>
+        <div class="wreadout" id="ddcvread">The spike lives at the interpolation threshold.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: turning a result into a live lab</h3>
+        <p class="prose">The science is the same double descent you reproduced in Track&nbsp;8; the capstone is packaging it so anyone can poke at it.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The tested module.</strong> Wrap the fit in one function <code>run(capacity, noise) → (train_err, test_err)</code>, with a unit test asserting the spike appears near capacity&nbsp;1 when noise&nbsp;&gt;&nbsp;0. Now the science is re-verified on every commit.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>The API.</strong> A tiny endpoint <code>GET /curve?noise=0.3</code> returns the arrays the front end plots — exactly what the widget above does, but backed by the real least-squares fit.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>The interaction.</strong> Sliders let a visitor discover the phenomenon themselves: clean data → no spike; noisy data → the peak returns. Understanding you can <em>drag</em> sticks far better than a static figure.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Deploy.</strong> Containerise and push to a free host. The artifact is a live scientific instrument, not a screenshot.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key takeaways</h2>
       <div class="keybox">
@@ -90,6 +109,17 @@ def test_large_ridge_suppresses_peak():
           <li><strong>Tests can encode claims:</strong> assert the peak is at \(P/n\approx1\) and that regularization removes it — a controlled ablation in CI.</li>
           <li><strong>Server-side rendering</strong> keeps the client trivial: the browser just displays the returned plot image.</li>
           <li><strong>Reproducible + interactive + tested</strong> is a far stronger artifact than a one-off figure in a notebook.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Recomputing the whole sweep per request.</strong> Cache results or compute a single point; don't refit dozens of models on every slider drag.</li>
+          <li><strong>Untested science.</strong> If the reproduction isn't a tested function, a refactor can silently break the result. A CI test that asserts the spike protects the claim.</li>
+          <li><strong>Hiding the regime labels.</strong> Without "under-parameterized / interpolation / over-parameterized" markers, viewers miss the whole point. Label the axes and regions.</li>
+          <li><strong>Claiming double descent with no noise.</strong> The dramatic peak needs label noise (or misspecification). Clean, well-specified data often just descends — show both so the lesson is honest.</li>
         </ul>
       </div>
 
@@ -169,6 +199,18 @@ def test_large_ridge_suppresses_peak():
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Interactive, reproducible science is becoming a norm: papers ship with Colab notebooks, live demos on Hugging Face Spaces, and dashboards that let readers re-run the experiment. Double descent itself (Belkin et&nbsp;al. 2019; Nakkiran et&nbsp;al. 2019) overturned the textbook bias–variance story and helped explain why massively over-parameterized deep nets generalize — so being able to <em>show</em> it interactively is genuinely valuable. The skill you practice here — wrap a result as a tested module, expose it through an API, put a UI on it — is exactly how research gets communicated and trusted today.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"I turned my double-descent reproduction into a live web lab: a tested function computes train and test error versus model capacity, an API serves it, and sliders let anyone watch the interpolation spike appear with noise and vanish without it. The deep point is bias–variance isn't the whole story — bigger can be better past the interpolation threshold — and packaging it as an instrument others can drag is what makes the science land."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -181,6 +223,27 @@ def test_large_ridge_suppresses_peak():
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('ddcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),Wd=cv.width,Ht=cv.height;
+    function test(c,ns){ return 0.12+0.5*Math.exp(-1.9*c)+ns*0.9*Math.exp(-Math.pow((c-1)/0.13,2)); }
+    function train(c){ return c<1?0.5*Math.pow(1-c,1.5):0.0; }
+    function X(c){ return 55+c/2.5*(Wd-90); } function Y(v){ return Ht-42-v/1.15*(Ht-80); }
+    function draw(){ var ns=+document.getElementById('dds').value/100; document.getElementById('ddn').textContent=ns.toFixed(2);
+      ctx.clearRect(0,0,Wd,Ht);
+      ctx.fillStyle='rgba(220,38,38,0.06)'; ctx.fillRect(X(0.86),18,X(1.14)-X(0.86),Ht-60);
+      ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); ctx.moveTo(55,Ht-42); ctx.lineTo(Wd-30,Ht-42); ctx.stroke();
+      ctx.strokeStyle='#94a3b8'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(1),18); ctx.lineTo(X(1),Ht-42); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#64748b'; ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText('interpolation threshold',X(1),14);
+      function curve(f,c){ ctx.strokeStyle=c; ctx.lineWidth=2.6; ctx.beginPath(); for(var x=0;x<=2.5;x+=0.02){ var px=X(x),py=Y(f(x)); if(x===0)ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke(); }
+      curve(function(c){return train(c);},'#059669'); curve(function(c){return test(c,ns);},'#2563eb');
+      ctx.textAlign='left'; ctx.font='12px system-ui'; ctx.fillStyle='#2563eb'; ctx.fillText('test error',Wd-120,40); ctx.fillStyle='#059669'; ctx.fillText('train error',Wd-120,58);
+      ctx.fillStyle='#334155'; ctx.textAlign='center'; ctx.fillText('model capacity  (parameters / data)',Wd/2,Ht-8);
+      var peak=test(1,ns);
+      document.getElementById('ddcvread').textContent='noise '+ns.toFixed(2)+': peak test error at threshold = '+peak.toFixed(2)+(ns<0.05?' — clean data, no spike (error just falls).':' — the double-descent spike is back. More noise → taller spike.'); }
+    document.getElementById('dds').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

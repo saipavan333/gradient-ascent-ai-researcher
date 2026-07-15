@@ -15,7 +15,7 @@
       <p class="subtitle">Make learning visible. Deploy the Q-learning agent from Track 7 as a web app where visitors click “Train” and watch the value heatmap and policy arrows sharpen in real time — the most dynamic capstone, and a perfect teaching tool.</p>
       <div class="meta-row">
         <span class="chip b">Track 24 · Capstone C</span>
-        <span class="chip">Project + deployment</span>
+        <span class="chip">Project + deployment + interactive</span>
         <span class="chip">~35 min</span>
         <span class="chip">Builds on: Track 12</span>
       </div>
@@ -68,6 +68,25 @@ def state(self):                                     # what the browser draws
         The test suite asserts the agent <em>actually learns</em> — not just that the code runs. <code>test_learning_improves_return</code> trains for 1500 episodes and checks the greedy return rose substantially; <code>test_learned_policy_reaches_goal</code> checks it reaches near-optimal from the start. If a refactor ever broke the learning rule, CI would catch it. Deployment uses the same pipeline as the other capstones, with one caveat baked into the start command: run a <strong>single</strong> Gunicorn worker, because the agent is in-memory. Push to GitHub, then deploy on Render (start: <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>) or as a Docker Space.
       </p>
 
+      <!-- WIDGET -->
+      <div class="widget" id="gwcvbox">
+        <div class="wtitle">▶ Interactive · press Train — watch values spread from the goal and arrows sharpen</div>
+        <div class="whint">This is your deployed app in miniature. Each press of <strong>Train step</strong> runs one sweep of value iteration: every cell looks one move ahead and takes the best. Watch the value (the number, and the green shading) flow outward from the goal, and the <strong>policy arrows</strong> snap to point along the best path — around the pit, not into it. This is learning made visible.</div>
+        <canvas id="gwcv" width="560" height="360" aria-label="press Train — watch values spread from the goal and arrows sharpen"></canvas>
+        <div class="wrow"><button class="wbtn" id="gwstep">Train step ▶</button><button class="wbtn" id="gwrun">Run ⏩</button><button class="wbtn" id="gwreset">Reset ↺</button></div>
+        <div class="wreadout" id="gwcvread">Press Train step to run one sweep of value iteration.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: making learning watchable</h3>
+        <p class="prose">The first two capstones show a model's <em>output</em>; this one shows a model <em>learning</em>, live.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>The agent on the server.</strong> A Q-learning (or value-iteration) agent from Track&nbsp;7 keeps its value table in memory. Each "train" call runs a batch of updates and returns the current values and greedy policy.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>The browser drives it.</strong> Clicking <em>Train</em> calls the endpoint; the page redraws the value heatmap and policy arrows. The visitor literally watches the agent figure out the path — exactly like the widget above.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Tests that prove it learns.</strong> A CI test asserts the greedy policy reaches the goal and avoids the pit after enough updates, and that values converge. If a change breaks learning, the build fails.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Deploy.</strong> Containerise and host for free. The result is a teaching tool anyone can open and interact with — the most dynamic artifact in your portfolio.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key takeaways</h2>
       <div class="keybox">
@@ -77,6 +96,17 @@ def state(self):                                     # what the browser draws
           <li><strong>Stateful vs stateless services:</strong> this app holds the Q-table in memory, so it needs a single worker (or a shared store to scale).</li>
           <li><strong>Tests assert learning</strong> (return improves, policy reaches the goal), so CI guards the algorithm, not just the code.</li>
           <li><strong>Same deploy pipeline</strong> — the only change is the single-worker constraint from statefulness.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Losing agent state between requests.</strong> If each call restarts training from scratch, the visitor never sees progress. Keep the agent in server memory (or persist and reload it).</li>
+          <li><strong>Sending too much, too often.</strong> Streaming every single step floods the connection. Batch updates per click and send a compact snapshot.</li>
+          <li><strong>No convergence check.</strong> Value iteration should stop when values barely change. Without it, you either stop too early (wrong policy) or spin forever.</li>
+          <li><strong>Forgetting concurrency.</strong> If two visitors share one global agent, their training collides. Give each session its own agent, or make training stateless per request.</li>
         </ul>
       </div>
 
@@ -156,6 +186,18 @@ def state(self):                                     # what the browser draws
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Live, interactive ML demos are some of the most effective teaching and communication tools in the field — from OpenAI/DeepMind blog posts with in-browser agents to Distill.pub's runnable explanations. The pattern generalizes far past a gridworld: a model that keeps state on the server, a browser that drives it and renders the result, and tests that guarantee the behaviour. That's the same architecture behind interactive dashboards, human-in-the-loop labeling tools, and RLHF preference collectors. Shipping one end to end proves you can turn a research idea into something a person can actually use.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"I deployed my Q-learning agent as a live web app: the server holds the agent's value table, the browser presses Train and watches the value heatmap spread from the goal and the policy arrows snap into place around the pit. Tests assert it actually reaches the goal and converges. It shows a model <em>learning</em>, in real time — the same server-holds-state, browser-drives-it pattern behind real interactive ML tools."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -168,6 +210,38 @@ def state(self):                                     # what the browser draws
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('gwcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d');
+    var R=4,C=4, gamma=0.9, step=-0.04;
+    var GOAL=[0,3], PIT=[1,3], WALL=[2,1];
+    function isT(r,c){ return (r===GOAL[0]&&c===GOAL[1])||(r===PIT[0]&&c===PIT[1]); }
+    function isW(r,c){ return r===WALL[0]&&c===WALL[1]; }
+    var V, sweeps;
+    function reset(){ V=[]; for(var r=0;r<R;r++){V.push([]);for(var c=0;c<C;c++){ V[r].push((r===GOAL[0]&&c===GOAL[1])?1:((r===PIT[0]&&c===PIT[1])?-1:0)); }} sweeps=0; draw(); }
+    function nxt(r,c,a){ var dr=[-1,1,0,0][a],dc=[0,0,-1,1][a]; var nr=r+dr,nc=c+dc; if(nr<0||nr>=R||nc<0||nc>=C||isW(nr,nc)) return [r,c]; return [nr,nc]; }
+    function sweep(){ var nV=[]; for(var r=0;r<R;r++){nV.push(V[r].slice());}
+      for(var r=0;r<R;r++)for(var c=0;c<C;c++){ if(isT(r,c)||isW(r,c)) continue; var best=-1e9;
+        for(var a=0;a<4;a++){ var n=nxt(r,c,a); var q=step+gamma*V[n[0]][n[1]]; if(q>best)best=q; } nV[r][c]=best; }
+      V=nV; sweeps++; draw(); }
+    function bestA(r,c){ var best=-1e9,ba=0; for(var a=0;a<4;a++){ var n=nxt(r,c,a); var q=step+gamma*V[n[0]][n[1]]; if(q>best){best=q;ba=a;} } return ba; }
+    function col(v){ if(v>=0){ var t=Math.min(1,v); return 'rgb('+Math.round(220-160*t)+','+Math.round(230-10*t)+','+Math.round(220-140*t)+')'; } var t=Math.min(1,-v); return 'rgb('+Math.round(254)+','+Math.round(226-180*t)+','+Math.round(226-180*t)+')'; }
+    function draw(){ var s=78, ox=60, oy=30; ctx.clearRect(0,0,cv.width,cv.height);
+      for(var r=0;r<R;r++)for(var c=0;c<C;c++){ var x=ox+c*s,y=oy+r*s;
+        if(isW(r,c)){ ctx.fillStyle='#334155'; ctx.fillRect(x,y,s-3,s-3); ctx.fillStyle='#e2e8f0'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('WALL',x+s/2,y+s/2); continue; }
+        ctx.fillStyle=col(V[r][c]); ctx.fillRect(x,y,s-3,s-3); ctx.strokeStyle='#cbd5e1'; ctx.strokeRect(x,y,s-3,s-3);
+        if(r===GOAL[0]&&c===GOAL[1]){ ctx.fillStyle='#065f46'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillText('GOAL +1',x+s/2,y+s/2+4); continue; }
+        if(r===PIT[0]&&c===PIT[1]){ ctx.fillStyle='#991b1b'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillText('PIT −1',x+s/2,y+s/2+4); continue; }
+        ctx.fillStyle='#0f172a'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText(V[r][c].toFixed(2),x+s/2,y+16);
+        if(sweeps>0){ var a=bestA(r,c); var ar=['↑','↓','←','→'][a]; ctx.fillStyle='#2563eb'; ctx.font='bold 20px system-ui'; ctx.fillText(ar,x+s/2,y+s/2+12); } }
+      ctx.fillStyle='#334155'; ctx.font='12px system-ui'; ctx.textAlign='left'; ctx.fillText('sweeps: '+sweeps,ox,oy+R*s+22);
+      document.getElementById('gwcvread').textContent = sweeps===0 ? 'All values start at 0. Press Train step to look one move ahead.' : 'After '+sweeps+' sweep'+(sweeps>1?'s':'')+': values have spread from the goal; arrows show the greedy policy — it routes around the pit. A few more sweeps and it stops changing (converged).'; }
+    document.getElementById('gwstep').onclick=sweep;
+    document.getElementById('gwreset').onclick=reset;
+    document.getElementById('gwrun').onclick=function(){ for(var i=0;i<8;i++) sweep(); };
+    reset();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>
