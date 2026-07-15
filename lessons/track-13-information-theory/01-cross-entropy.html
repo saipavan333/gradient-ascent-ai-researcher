@@ -15,7 +15,7 @@
       <p class="subtitle">Every classifier and language model you’ve trained minimized “cross-entropy loss.” Now you’ll see exactly what it measures — the cost of using the wrong distribution — and why minimizing it is the same as maximum likelihood.</p>
       <div class="meta-row">
         <span class="chip b">Track 3 · Lesson 1</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Lesson 0, Track 1</span>
       </div>
@@ -57,6 +57,25 @@
         <strong>The softmax + cross-entropy pairing.</strong> This is why classifiers end in a softmax (turning scores into a distribution \(q\)) followed by cross-entropy loss: softmax produces the predicted probabilities, cross-entropy scores them against the true class by negative log-probability, and the gradient — beautifully — is just \(q - p\) (predicted minus true), which you derived by hand in Track&nbsp;5’s GPT. Information theory explains <em>why</em> that clean gradient exists.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="cecvbox">
+        <div class="wtitle">▶ Interactive · watch the loss bottom out when the guess matches the truth</div>
+        <div class="whint">The outlined bars are the <strong>true</strong> distribution \(p\); the filled bars are the model's <strong>prediction</strong> \(q\). Slide \(q\) from a clueless uniform guess toward the truth and watch the cross-entropy \(H(p,q)=-\sum p\log_2 q\) fall — bottoming out at the entropy \(H(p)\) when \(q=p\). The gap above that floor is the KL divergence.</div>
+        <canvas id="cecv" width="640" height="300" aria-label="watch the loss bottom out when the guess matches the truth"></canvas>
+        <div class="wrow"><span class="wlab">bad guess ← q → matches p: <b id="cet">0.0</b></span><input class="wslider" id="ces" type="range" min="0" max="100" value="0" /></div>
+        <div class="wreadout" id="cecvread">A uniform guess gives a high cross-entropy loss.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the loss for one prediction</h3>
+        <p class="prose">Cross-entropy is exactly the loss your classifiers minimise. Take a 3-class example whose true label is class 1 (so \(p=[1,0,0]\), a one-hot).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Confident and right.</strong> Model says \(q=[0.9,0.05,0.05]\). Loss \(=-\log_2 0.9 = 0.15\) bits. Small — good prediction, small penalty.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Unsure.</strong> \(q=[0.34,0.33,0.33]\). Loss \(=-\log_2 0.34 = 1.56\) bits. Bigger — hedging is penalised.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Confident and wrong.</strong> \(q=[0.02,0.49,0.49]\). Loss \(=-\log_2 0.02 = 5.6\) bits. Huge — the loss explodes as the true class's probability approaches zero.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Why one-hot simplifies it.</strong> With a one-hot label, \(H(p,q)=-\log q_{\text{true}}\) — only the probability the model gave to the correct class matters. That single term is the cross-entropy loss (in nats when using \(\ln\)), summed over your batch.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -66,6 +85,17 @@
           <li><strong>\(H(p,q) \ge H(p)\)</strong>, with equality iff \(q=p\): using the wrong distribution always costs extra.</li>
           <li><strong>Minimizing cross-entropy = maximum likelihood</strong> (negative log-likelihood) = pushing \(q\) toward \(p\).</li>
           <li><strong>Softmax + cross-entropy</strong> gives the clean gradient \(q-p\) — the workhorse of classification.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking cross-entropy is symmetric.</strong> \(H(p,q)\ne H(q,p)\). The true distribution \(p\) weights the terms; the prediction \(q\) sits inside the log. Order matters.</li>
+          <li><strong>Forgetting the floor.</strong> Cross-entropy can't go below the true entropy \(H(p)\). Minimising it drives \(q\to p\); the leftover gap above \(H(p)\) is the KL divergence.</li>
+          <li><strong>Feeding un-normalised \(q\).</strong> \(q\) must be a probability distribution (softmax output). Raw logits aren't probabilities — always softmax first.</li>
+          <li><strong>Confusing bits and nats.</strong> Frameworks compute cross-entropy with \(\ln\) (nats). Same objective, scaled by \(\ln 2\); the gradients point the same way.</li>
         </ul>
       </div>
 
@@ -145,6 +175,18 @@
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Cross-entropy is the default loss for classification and language modelling — every time a network predicts a distribution over classes or over the next token, it's trained by minimising cross-entropy against the true labels. Its information-theoretic reading — "how many extra bits does your imperfect model cost versus the truth?" — is exactly why it's the right objective: minimising it is minimising the coding cost of your predictions. It also connects straight to <em>maximum likelihood</em> (minimising cross-entropy = maximising the likelihood of the data), tying the loss you use every day to a deep statistical principle.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Cross-entropy \(H(p,q)=-\sum p\log q\) is the average bits to encode data from the true distribution \(p\) using a model \(q\). It's the loss behind every classifier and language model: minimising it pushes the prediction \(q\) toward the truth \(p\), and it bottoms out at the true entropy \(H(p)\). Confident-and-wrong predictions get punished hardest, because the loss blows up as the true class's probability goes to zero."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -157,6 +199,26 @@
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('cecv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    var p=[0.6,0.25,0.15];
+    function draw(){ var t=+document.getElementById('ces').value/100; document.getElementById('cet').textContent=t.toFixed(1);
+      var u=1/3, q=p.map(function(v){return (1-t)*u+t*v;});
+      var Hpq=0,Hp=0; for(var i=0;i<3;i++){ Hpq-=p[i]*Math.log2(q[i]); Hp-=p[i]*Math.log2(p[i]); }
+      ctx.clearRect(0,0,W,H); var ox=70,oy=H-46,gh=H-90,bw=100,gap=70; var cols=['#2563eb','#059669','#d97706'];
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(ox-10,oy); ctx.lineTo(W-20,oy); ctx.stroke();
+      for(var i=0;i<3;i++){ var x=ox+i*(bw+gap);
+        ctx.strokeStyle=cols[i]; ctx.lineWidth=2; ctx.strokeRect(x,oy-p[i]*gh,bw,p[i]*gh);
+        ctx.fillStyle=cols[i]; ctx.globalAlpha=0.55; ctx.fillRect(x+14,oy-q[i]*gh,bw-28,q[i]*gh); ctx.globalAlpha=1;
+        ctx.fillStyle='#334155'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('class '+(i+1),x+bw/2,oy+18); }
+      ctx.textAlign='left'; ctx.fillStyle='#0f172a'; ctx.font='bold 14px system-ui';
+      ctx.fillText('cross-entropy H(p,q) = '+Hpq.toFixed(2)+' bits',ox,24);
+      ctx.fillStyle='#64748b'; ctx.font='12px system-ui'; ctx.fillText('floor = entropy H(p) = '+Hp.toFixed(2)+' bits (best possible)',ox,44);
+      document.getElementById('cecvread').textContent='H(p,q)='+Hpq.toFixed(2)+' bits; the gap above H(p)='+Hp.toFixed(2)+' is KL(p‖q)='+(Hpq-Hp).toFixed(2)+(t>0.98?' → q matches p, loss minimised ✓':''); }
+    document.getElementById('ces').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

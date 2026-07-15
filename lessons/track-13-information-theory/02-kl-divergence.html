@@ -15,7 +15,7 @@
       <p class="subtitle">You met KL divergence twice already — as the VAE’s regularizer and RLHF’s penalty — without deriving it. Here it is: the number of extra bits you pay for believing the wrong distribution, and the true target behind cross-entropy training.</p>
       <div class="meta-row">
         <span class="chip b">Track 3 · Lesson 2</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Lessons 0–1</span>
       </div>
@@ -47,7 +47,26 @@
         Because \(\mathrm{KL}(p\|q)\neq\mathrm{KL}(q\|p)\), the two directions encourage different behaviours — a subtlety that shapes real algorithms. <span class="newterm">Forward KL</span> \(\mathrm{KL}(p\|q)\) is “mode-covering”: it heavily penalizes \(q\) being small where \(p\) is large, so \(q\) spreads to cover all of \(p\)’s mass (this is what maximum-likelihood / cross-entropy training minimizes). <span class="newterm">Reverse KL</span> \(\mathrm{KL}(q\|p)\) is “mode-seeking”: it lets \(q\) concentrate on one mode of \(p\) and ignore the rest (this is what variational inference and some RL objectives minimize). Choosing a direction is a real modelling decision.
       </p>
       <div class="callout intuition ml-link">
-        <strong>You’ve already optimized KL — twice.</strong> The <em>VAE</em> (Track&nbsp;6) added \(\mathrm{KL}(q_\phi(z\mid x)\,\|\,\mathcal{N}(0,I))\) to pull the latent code toward the prior. <em>RLHF</em> (Track&nbsp;7) subtracted \(\beta\,\mathrm{KL}(\pi\,\|\,\pi_{\text{ref}})\) to keep the tuned policy near the reference. And since \(H(p,q)=H(p)+\mathrm{KL}(p\|q)\) and \(H(p)\) is a constant, every <em>cross-entropy</em> loss you’ve minimized was, underneath, minimizing \(\mathrm{KL}\) from your model to the data. KL is the quiet objective behind an astonishing amount of machine learning.
+        <strong>You’ll optimize KL in two big settings ahead.</strong> The <em>VAE</em> (Track&nbsp;11) will add \(\mathrm{KL}(q_\phi(z\mid x)\,\|\,\mathcal{N}(0,I))\) to pull the latent code toward the prior. <em>RLHF</em> (Track&nbsp;12) will subtract \(\beta\,\mathrm{KL}(\pi\,\|\,\pi_{\text{ref}})\) to keep the tuned policy near the reference. And since \(H(p,q)=H(p)+\mathrm{KL}(p\|q)\) and \(H(p)\) is a constant, every <em>cross-entropy</em> loss you’ve minimized was, underneath, minimizing \(\mathrm{KL}\) from your model to the data. KL is the quiet objective behind an astonishing amount of machine learning.
+      </div>
+
+      <!-- WIDGET -->
+      <div class="widget" id="klcvbox">
+        <div class="wtitle">▶ Interactive · KL is not symmetric</div>
+        <div class="whint">p is fixed (outlined). Slide q away from p and watch <strong>both</strong> directions of the KL divergence: KL(p‖q) and KL(q‖p). They're never negative, they're zero only when q=p, and they're <em>different from each other</em> — the asymmetry that makes 'which distribution goes first' a real modelling choice.</div>
+        <canvas id="klcv" width="640" height="300" aria-label="KL is not symmetric"></canvas>
+        <div class="wrow"><span class="wlab">q = p ← → q ≠ p: <b id="klt">0.0</b></span><input class="wslider" id="kls" type="range" min="0" max="100" value="0" /></div>
+        <div class="wreadout" id="klcvread">At q=p both KLs are zero.</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: the extra bits of a wrong code</h3>
+        <p class="prose">KL(p‖q) is the number of <em>extra</em> bits you waste by encoding data from \(p\) with a code designed for \(q\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Setup.</strong> True \(p=[0.5,0.5]\); your model thinks \(q=[0.9,0.1]\).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Compute.</strong> \(\mathrm{KL}(p\|q)=0.5\log_2\tfrac{0.5}{0.9}+0.5\log_2\tfrac{0.5}{0.1}=0.5(-0.85)+0.5(2.32)=0.74\) bits wasted per symbol.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>The other direction.</strong> \(\mathrm{KL}(q\|p)=0.9\log_2\tfrac{0.9}{0.5}+0.1\log_2\tfrac{0.1}{0.5}=0.9(0.85)+0.1(-2.32)=0.53\) bits — a <em>different</em> number. KL is asymmetric.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Connection.</strong> \(\mathrm{KL}(p\|q)=H(p,q)-H(p)\): it's exactly the gap between cross-entropy and the true entropy from the last lesson. Minimising cross-entropy <em>is</em> minimising this KL, since \(H(p)\) is fixed.</div></div>
       </div>
 
       <!-- KEY RESULTS -->
@@ -59,6 +78,17 @@
           <li><strong>\(\mathrm{KL}\ge 0\), zero iff \(p=q\)</strong> (Gibbs). It’s a divergence, not a symmetric distance.</li>
           <li><strong>Asymmetric:</strong> forward KL is mode-covering (spreads \(q\)); reverse KL is mode-seeking (concentrates \(q\)).</li>
           <li><strong>It’s everywhere:</strong> the VAE regularizer, the RLHF penalty, and the true target of cross-entropy training.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Assuming KL is a distance.</strong> It isn't symmetric (\(\mathrm{KL}(p\|q)\ne\mathrm{KL}(q\|p)\)) and violates the triangle inequality. It's a <em>divergence</em>, not a metric.</li>
+          <li><strong>Ignoring which direction you're minimising.</strong> \(\mathrm{KL}(p\|q)\) is "mean-seeking" (q spreads to cover p); \(\mathrm{KL}(q\|p)\) is "mode-seeking" (q hugs one peak). This choice shapes what your model does (recall VI in Track&nbsp;15).</li>
+          <li><strong>Dividing by zero.</strong> If \(q(x)=0\) where \(p(x)>0\), KL is infinite. Models add a small \(\epsilon\) or use full-support \(q\) to avoid this.</li>
+          <li><strong>Thinking KL can be negative.</strong> It's always \(\ge 0\) (Gibbs' inequality), and \(=0\) only when the distributions are identical.</li>
         </ul>
       </div>
 
@@ -138,6 +168,18 @@
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">KL divergence is one of the most-used quantities in ML. Variational inference and VAEs (Track&nbsp;15, Track&nbsp;11) minimise a KL to fit an approximate posterior. RLHF (Track&nbsp;12) adds a KL penalty to keep a fine-tuned language model from drifting too far from the original. It measures distribution shift for monitoring deployed models, and it's the information-geometry notion of "how far apart" two beliefs are. Its asymmetry isn't a bug — it's a feature you choose deliberately depending on whether you'd rather your approximation cover all the truth or commit to its most likely part.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"KL divergence \(\mathrm{KL}(p\|q)=\sum p\log\tfrac{p}{q}\) is the extra bits you waste encoding data from \(p\) with a code built for \(q\). It's always \(\ge 0\), zero only when \(q=p\), and — crucially — asymmetric, so the order matters. It equals cross-entropy minus entropy, so minimising cross-entropy is minimising KL. It's the workhorse of VAEs, variational inference, and RLHF."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -150,6 +192,24 @@
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('klcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    var p=[0.6,0.25,0.15];
+    function draw(){ var t=+document.getElementById('kls').value/100; document.getElementById('klt').textContent=t.toFixed(1);
+      var u=1/3, q=p.map(function(v){return (1-t)*v+t*u;});
+      var kpq=0,kqp=0; for(var i=0;i<3;i++){ kpq+=p[i]*Math.log2(p[i]/q[i]); kqp+=q[i]*Math.log2(q[i]/p[i]); }
+      ctx.clearRect(0,0,W,H); var ox=70,oy=H-46,gh=H-96,bw=100,gap=70; var cols=['#2563eb','#059669','#d97706'];
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(ox-10,oy); ctx.lineTo(W-20,oy); ctx.stroke();
+      for(var i=0;i<3;i++){ var x=ox+i*(bw+gap); ctx.strokeStyle=cols[i]; ctx.lineWidth=2; ctx.strokeRect(x,oy-p[i]*gh,bw,p[i]*gh);
+        ctx.fillStyle=cols[i]; ctx.globalAlpha=0.55; ctx.fillRect(x+14,oy-q[i]*gh,bw-28,q[i]*gh); ctx.globalAlpha=1;
+        ctx.fillStyle='#334155'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('class '+(i+1),x+bw/2,oy+18); }
+      ctx.textAlign='left'; ctx.fillStyle='#2563eb'; ctx.font='bold 14px system-ui'; ctx.fillText('KL(p‖q) = '+kpq.toFixed(3)+' bits',ox,24);
+      ctx.fillStyle='#dc2626'; ctx.fillText('KL(q‖p) = '+kqp.toFixed(3)+' bits',ox+240,24);
+      document.getElementById('klcvread').textContent='KL(p‖q)='+kpq.toFixed(3)+', KL(q‖p)='+kqp.toFixed(3)+' — both ≥ 0, both 0 only at q=p, and '+(Math.abs(kpq-kqp)<1e-6?'equal here':'NOT equal (asymmetric)'); }
+    document.getElementById('kls').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

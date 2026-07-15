@@ -12,10 +12,10 @@
   <main>
     <article class="lesson">
       <h1>Entropy: the measure of uncertainty</h1>
-      <p class="subtitle">You’ve minimized “cross-entropy loss” since Track 4 and used “KL divergence” in VAEs and RLHF. This track finally builds the theory those names come from — and it all starts with one quantity: entropy, the amount of surprise in a distribution.</p>
+      <p class="subtitle">“Cross-entropy loss” and “KL divergence” turn up all over machine learning — in every classifier, in VAEs, in RLHF. This track builds the theory behind those names, and it all starts with one quantity: entropy, the amount of surprise in a distribution.</p>
       <div class="meta-row">
         <span class="chip b">Track 3 · Lesson 0</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Track 1</span>
       </div>
@@ -45,6 +45,15 @@
         <figcaption><span class="fig-num">Figure 0.1.</span> Real output from <code>entropy.py</code>. <strong>Left —</strong> a coin’s entropy is maximal (1 bit) when it’s fair and zero when the outcome is certain: uncertainty is highest when all options are equally likely. <strong>Right —</strong> surprise \(-\log_2 p\) explodes for rare events — observing something improbable is highly informative.</figcaption>
       </figure>
 
+      <!-- WIDGET -->
+      <div class="widget" id="encvbox">
+        <div class="wtitle">▶ Interactive · watch uncertainty become bits</div>
+        <div class="whint">Slide from a <strong>uniform</strong> distribution (every outcome equally likely — maximum surprise) toward a <strong>certain</strong> one (all mass on a single outcome — no surprise). The bars are the four probabilities; the number is the entropy \(H=-\sum p\log_2 p\) in bits. Uniform over 4 outcomes = 2 bits; certainty = 0 bits.</div>
+        <canvas id="encv" width="640" height="300" aria-label="watch uncertainty become bits"></canvas>
+        <div class="wrow"><span class="wlab">uniform ← concentration → certain: <b id="enk">0.0</b></span><input class="wslider" id="ens" type="range" min="0" max="100" value="0" /></div>
+        <div class="wreadout" id="encvread">Uniform: every outcome equally likely — maximum entropy.</div>
+      </div>
+
       <!-- CODE -->
       <h2><span class="sec-ico">🛠️</span> From scratch: entropy in one line</h2>
       <pre><code>def entropy(p):
@@ -58,6 +67,16 @@
         <strong>Entropy is everywhere in ML.</strong> A model’s <em>uncertainty</em> is the entropy of its output distribution — a confident classifier has low output entropy. Decision trees (Track&nbsp;12) split to reduce entropy. “Perplexity,” the standard language-model metric, is just \(2^{H}\) — the effective number of choices the model is deciding between. And the loss you actually minimize, cross-entropy (next lesson), is entropy’s close cousin. Get entropy, and a dozen scattered ML ideas snap into one framework.
       </div>
 
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: entropy of coins and dice</h3>
+        <p class="prose">Entropy is just the average surprise, so let's compute a few by hand.</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Fair coin.</strong> Two outcomes at \(p=0.5\). \(H=-(0.5\log_2 0.5 + 0.5\log_2 0.5) = -(0.5\cdot(-1)+0.5\cdot(-1)) = 1\) bit. One yes/no question's worth of uncertainty.</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Biased coin (\(p=0.9\)).</strong> \(H=-(0.9\log_2 0.9 + 0.1\log_2 0.1) \approx -(0.9\cdot(-0.152)+0.1\cdot(-3.32)) = 0.47\) bits. Less uncertain — you can usually guess "heads".</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>Fair 4-sided die.</strong> Four outcomes at \(0.25\). \(H=-4\cdot(0.25\log_2 0.25)=4\cdot 0.25\cdot 2 = 2\) bits — the maximum for 4 outcomes (two yes/no questions).</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>The pattern.</strong> Entropy is largest when outcomes are equally likely (\(\log_2 N\) bits for \(N\) equal outcomes) and zero when one outcome is certain. It's literally the average number of yes/no questions needed to pin down the outcome.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -67,6 +86,17 @@
           <li><strong>Maximal for uniform</strong> (\(\log_2 n\) for \(n\) equally-likely outcomes), <strong>zero for a certainty</strong>.</li>
           <li><strong>Structure lowers entropy</strong> — and lower entropy means more compressible (Lesson&nbsp;4).</li>
           <li><strong>Base 2 → bits</strong> = average yes/no questions to identify the outcome; <strong>perplexity</strong> \(=2^H\).</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Confusing surprise with probability.</strong> Surprise is \(-\log p\), not \(p\). A rare event (small \(p\)) has <em>large</em> surprise; entropy averages that surprise, weighted by \(p\).</li>
+          <li><strong>Forgetting the units.</strong> \(\log_2\) gives <em>bits</em>; the natural log \(\ln\) gives <em>nats</em>. ML code usually uses nats (natural log); the idea is identical, only the scale differs.</li>
+          <li><strong>Thinking entropy measures a single outcome.</strong> The surprise of one outcome is \(-\log p(x)\); <em>entropy</em> is the average over the whole distribution — a property of the distribution, not any one event.</li>
+          <li><strong>Assuming more outcomes always means more entropy.</strong> A 1000-outcome distribution with all mass on one value has entropy 0. It's the <em>spread</em>, not the count, that matters.</li>
         </ul>
       </div>
 
@@ -146,6 +176,18 @@
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Entropy is everywhere in ML. A language model's quality is reported as <em>perplexity</em>, which is just \(2^{H}\) (or \(e^{H}\)) of its predictions — lower entropy over the next word means a more confident, better model. Decision trees split on the feature that reduces entropy the most (information gain). Maximum-entropy modelling picks the least-committal distribution consistent with your constraints. And the cross-entropy loss you've minimized since your first classifier (next lesson) is entropy's most famous descendant. Shannon's 1948 measure of "surprise" turned out to be the right currency for almost everything about learning from data.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Entropy is the average surprise in a distribution, measured in bits: \(H=-\sum p\log_2 p\). It's the number of yes/no questions you'd need to pin down the outcome. Uniform distributions have the most entropy (maximum uncertainty); a certain outcome has zero. It's the foundation of cross-entropy loss, KL divergence, and perplexity — the whole information-theoretic backbone of ML."</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -158,6 +200,22 @@
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('encv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    function draw(){ var t=+document.getElementById('ens').value/100; document.getElementById('enk').textContent=t.toFixed(1);
+      var p0=0.25+0.75*t, r=(1-p0)/3, p=[p0,r,r,r];
+      var Hn=0; p.forEach(function(v){ if(v>1e-9) Hn-=v*Math.log2(v); });
+      ctx.clearRect(0,0,W,H); var ox=60,oy=H-46,gh=H-80,bw=90,gap=40;
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(ox-10,oy); ctx.lineTo(W-20,oy); ctx.stroke();
+      var cols=['#2563eb','#059669','#d97706','#6d28d9'];
+      for(var i=0;i<4;i++){ var x=ox+i*(bw+gap); ctx.fillStyle=cols[i]; ctx.fillRect(x,oy-p[i]*gh,bw,p[i]*gh);
+        ctx.fillStyle='#0f172a'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText(p[i].toFixed(2),x+bw/2,oy-p[i]*gh-6); ctx.fillText('outcome '+(i+1),x+bw/2,oy+18); }
+      ctx.textAlign='left'; ctx.fillStyle='#0f172a'; ctx.font='bold 15px system-ui'; ctx.fillText('entropy H = '+Hn.toFixed(2)+' bits',ox,26);
+      document.getElementById('encvread').textContent='H = '+Hn.toFixed(2)+' bits '+(Hn>1.9?'— uniform, maximum surprise':(Hn<0.1?'— nearly certain, almost no surprise':'— partly predictable')); }
+    document.getElementById('ens').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>

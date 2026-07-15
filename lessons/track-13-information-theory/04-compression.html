@@ -15,7 +15,7 @@
       <p class="subtitle">Entropy isn’t just a number — it’s a hard limit on how small data can be squeezed. Building an optimal code from scratch reveals a profound idea: a model that predicts well is exactly a model that compresses well. That equivalence is the deep reason learning works.</p>
       <div class="meta-row">
         <span class="chip b">Track 3 · Lesson 4</span>
-        <span class="chip">Concept + code</span>
+        <span class="chip">Concept + code + interactive</span>
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Lessons 0–3</span>
       </div>
@@ -54,6 +54,25 @@
         <strong>The whole track, in one sentence.</strong> Entropy is the cost of the data; cross-entropy is the cost your model pays; KL is the excess you pay for being wrong; mutual information is the cost you save by using a related variable; and compression is what all of it buys you. Every loss you’ve minimized in this curriculum was, underneath, a number of bits — and learning was the act of finding the shortest description of the data.
       </div>
 
+      <!-- WIDGET -->
+      <div class="widget" id="cpcvbox">
+        <div class="wtitle">▶ Interactive · beat fixed-length codes with the entropy limit</div>
+        <div class="whint">Four symbols with adjustable frequencies. A <strong>fixed-length</strong> code spends 2 bits on every symbol. An <strong>optimal</strong> code gives frequent symbols short codes (length ≈ \(-\log_2 p\)), reaching the entropy \(H\) bits/symbol — Shannon's hard limit. Slide the skew and watch the optimal code pull ahead: the more predictable the data, the more it compresses.</div>
+        <canvas id="cpcv" width="640" height="300" aria-label="beat fixed-length codes with the entropy limit"></canvas>
+        <div class="wrow"><span class="wlab">uniform ← skew → predictable: <b id="cpt">0.0</b></span><input class="wslider" id="cps" type="range" min="0" max="100" value="0" /></div>
+        <div class="wreadout" id="cpcvread">Uniform frequencies: no compression possible (H = 2 bits).</div>
+      </div>
+
+      <!-- WORKED EXAMPLE -->
+      <div class="worked">
+        <h3>✍️ Worked example: coding four symbols</h3>
+        <p class="prose">Give frequent symbols short codes. Take \(A:\tfrac12,\ B:\tfrac14,\ C:\tfrac18,\ D:\tfrac18\).</p>
+        <div class="wstep"><span class="n">1</span><div><strong>Optimal lengths.</strong> \(-\log_2 p\): A→1 bit, B→2, C→3, D→3. Assign codes A=0, B=10, C=110, D=111 (a prefix code — no code is a prefix of another).</div></div>
+        <div class="wstep"><span class="n">2</span><div><strong>Average length.</strong> \(\tfrac12(1)+\tfrac14(2)+\tfrac18(3)+\tfrac18(3)=1.75\) bits/symbol.</div></div>
+        <div class="wstep"><span class="n">3</span><div><strong>The entropy.</strong> \(H=-\sum p\log_2 p = 1.75\) bits — the optimal code exactly hits the entropy. That's no coincidence: Shannon's theorem says the best possible average code length <em>is</em> the entropy.</div></div>
+        <div class="wstep"><span class="n">4</span><div><strong>Versus fixed-length.</strong> A naive 2-bits-per-symbol code wastes \(2-1.75=0.25\) bits per symbol — a 12.5% saving from matching code length to frequency, and it grows as the data gets more skewed.</div></div>
+      </div>
+
       <!-- KEY RESULTS -->
       <h2><span class="sec-ico">🔑</span> Key results to remember</h2>
       <div class="keybox">
@@ -63,6 +82,17 @@
           <li><strong>Optimal code length</strong> for a symbol of probability \(p\) is its surprise \(-\log_2 p\).</li>
           <li><strong>Compression = prediction:</strong> bits to encode data \(= \sum -\log_2 q(x_i) =\) cross-entropy × length.</li>
           <li><strong>A better predictor is a better compressor</strong> — LLM quality (bits/char, perplexity) is literally a compression rate.</li>
+        </ul>
+      </div>
+
+      <!-- COMMON MISTAKES -->
+      <div class="mistake">
+        <h3>⚠️ Mistakes everyone makes here</h3>
+        <ul>
+          <li><strong>Thinking you can beat entropy.</strong> No lossless code can average fewer than \(H\) bits/symbol. Entropy is a hard floor, not a target you can undercut.</li>
+          <li><strong>Ignoring the model.</strong> Compression is only as good as your probability model. A better model (lower cross-entropy on the data) compresses better — which is why "a language model is a compressor."</li>
+          <li><strong>Forgetting the prefix property.</strong> Variable-length codes must be uniquely decodable; prefix-free codes (like Huffman) guarantee it. Random short codes can be ambiguous.</li>
+          <li><strong>Confusing lossless with lossy.</strong> Entropy bounds <em>lossless</em> coding. Lossy schemes (JPEG, MP3) throw away information you won't miss to go further — a different game.</li>
         </ul>
       </div>
 
@@ -142,6 +172,18 @@
         </div>
       </div>
 
+      <!-- FRONTIER -->
+      <div class="frontier">
+        <h3>🚀 In the real world &amp; at the frontier</h3>
+        <p class="prose">Compression and prediction are two sides of one coin: to compress data you need a model of it, and a better model gives better compression — the average code length is exactly the cross-entropy of your model on the data. This is why "compression = intelligence" is a serious idea: a model that compresses text extremely well must have learned its structure. Large language models are, quite literally, powerful compressors of their training data (their loss is measured in bits/token), and some researchers use compression benchmarks to measure model quality. Shannon's 1948 coding theorem — that entropy is the ultimate limit — turned out to describe the objective at the heart of modern AI.</p>
+      </div>
+
+      <!-- RECAP -->
+      <div class="recap">
+        <div class="rk">Recap — say it to a friend</div>
+        <p>"Give frequent symbols short codes and rare ones long codes, and the best you can do is an average of \(H\) bits per symbol — the entropy — which Shannon proved is a hard floor. Optimal code length is \(-\log_2 p\). Compression needs a probability model, and a better model compresses better, because average code length equals the cross-entropy of your model. That's why 'a good language model is a good compressor.'"</p>
+      </div>
+
       <!-- DEEP DIVE -->
       <div class="deepdive">
         <h3>🔬 Deep dive &amp; primary sources</h3>
@@ -154,6 +196,26 @@
     </article>
   </main>
 
+  <script>
+  (function(){
+    var cv=document.getElementById('cpcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    function draw(){ var t=+document.getElementById('cps').value/100; document.getElementById('cpt').textContent=t.toFixed(1);
+      var base=[0.25,0.25,0.25,0.25], skew=[0.7,0.2,0.07,0.03];
+      var p=base.map(function(v,i){return (1-t)*v+t*skew[i];}); var Z=p.reduce(function(a,b){return a+b;},0); p=p.map(function(v){return v/Z;});
+      var Hn=0; p.forEach(function(v){ if(v>1e-9) Hn-=v*Math.log2(v); });
+      ctx.clearRect(0,0,W,H); var ox=50,oy=H-56,gh=H-110,bw=70,gap=40; var cols=['#2563eb','#059669','#d97706','#6d28d9'];
+      ctx.strokeStyle='#cbd5e1'; ctx.beginPath(); ctx.moveTo(ox-10,oy); ctx.lineTo(W-260,oy); ctx.stroke();
+      for(var i=0;i<4;i++){ var x=ox+i*(bw+gap); ctx.fillStyle=cols[i]; ctx.fillRect(x,oy-p[i]*gh,bw,p[i]*gh);
+        ctx.fillStyle='#334155'; ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText(p[i].toFixed(2),x+bw/2,oy-p[i]*gh-5);
+        ctx.fillText('~'+(-Math.log2(p[i])).toFixed(1)+' bits',x+bw/2,oy+16); }
+      ctx.textAlign='left';
+      var fx=W-230; ctx.fillStyle='#94a3b8'; ctx.fillRect(fx,120,160,26); ctx.fillStyle='#0f172a'; ctx.font='12px system-ui'; ctx.fillText('fixed code: 2.00 bits/symbol',fx,114);
+      ctx.fillStyle='#059669'; ctx.fillRect(fx,170,160*Hn/2,26); ctx.fillStyle='#0f172a'; ctx.fillText('optimal code: '+Hn.toFixed(2)+' bits/symbol',fx,164);
+      ctx.fillStyle='#059669'; ctx.font='bold 13px system-ui'; ctx.fillText('compression: '+((1-Hn/2)*100).toFixed(0)+'% smaller',fx,214);
+      document.getElementById('cpcvread').textContent='entropy H = '+Hn.toFixed(2)+' bits/symbol → optimal code is '+((1-Hn/2)*100).toFixed(0)+'% smaller than fixed-length. Entropy is the hard floor: you can\'t beat it.'; }
+    document.getElementById('cps').oninput=draw; draw();
+  })();
+  </script>
   <script src="../../assets/vendor/katex/katex.min.js"></script>
   <script src="../../assets/vendor/katex/auto-render.min.js"></script>
   <script src="../../assets/js/site.js"></script>
