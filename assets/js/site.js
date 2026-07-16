@@ -699,24 +699,56 @@
     var synth = window.speechSynthesis;
     var st = document.createElement("style");
     st.textContent =
-      ".rd-bar{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;gap:.35rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:.32rem .4rem;box-shadow:var(--shadow-lg)}" +
+      ".rd-bar{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;gap:.35rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:.32rem .4rem;box-shadow:var(--shadow-lg);max-width:min(94vw,420px);flex-wrap:wrap;justify-content:flex-end}" +
       ".rd-bar button{font:600 .82rem var(--sans);cursor:pointer;border:none;background:transparent;color:var(--text);border-radius:999px;padding:.36rem .7rem}" +
       ".rd-bar .rd-toggle{background:var(--primary);color:#fff}" +
       ".rd-bar .rd-stop,.rd-bar .rd-speed{background:var(--bg);border:1px solid var(--border)}" +
+      ".rd-bar select{font:600 .78rem var(--sans);border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:999px;padding:.34rem .5rem;max-width:150px}" +
       ".rd-bar button:hover{filter:brightness(1.06)}" +
       ".rd-on{background:var(--primary-weak);box-shadow:0 0 0 4px var(--primary-weak);border-radius:6px}" +
       "@media print{.rd-bar{display:none}}";
     document.head.appendChild(st);
     var bar = document.createElement("div"); bar.className = "rd-bar";
     bar.innerHTML = '<button class="rd-toggle" type="button" title="Read this lesson aloud">🔊 Listen</button>' +
-      '<button class="rd-stop" type="button" title="Stop" hidden>■</button>' +
-      '<button class="rd-speed" type="button" title="Speed" hidden>1×</button>';
+      '<select class="rd-voice" title="Voice — quality depends on your device; Microsoft Edge has the most natural (Aria, Jenny, Emma)" hidden></select>' +
+      '<button class="rd-speed" type="button" title="Speed" hidden>1×</button>' +
+      '<button class="rd-stop" type="button" title="Stop" hidden>■</button>';
     document.body.appendChild(bar);
-    var toggle = bar.querySelector(".rd-toggle"), stopB = bar.querySelector(".rd-stop"), speedB = bar.querySelector(".rd-speed");
+    var toggle = bar.querySelector(".rd-toggle"), stopB = bar.querySelector(".rd-stop"), speedB = bar.querySelector(".rd-speed"), voiceSel = bar.querySelector(".rd-voice");
     var queue = [], idx = 0, curEl = null, playing = false, paused = false;
-    var speeds = [1, 1.25, 1.5, 0.85], si = 0, rate = 1, voice = null;
-    function pickVoice() { var vs = synth.getVoices(); voice = vs.filter(function (v) { return /en[-_]/i.test(v.lang); })[0] || vs[0] || null; }
-    pickVoice(); synth.onvoiceschanged = pickVoice;
+    var speeds = [1, 1.25, 1.5, 0.85], si = 0, rate = 1, voice = null, allVoices = [];
+    var saved = null; try { saved = localStorage.getItem("rd_voice"); } catch (e) {}
+    // prefer natural, female-sounding English voices; avoid the robotic defaults
+    var GOOD = ["aria","jenny","emma","michelle","ava","samantha","sonia","libby","clara","natasha","zira","hazel","susan","catherine","serena","karen","moira","tessa","fiona","nora","amelie","google us english","google uk english female","female","natural","neural"];
+    var MALE = ["david","mark","guy","george","james","ryan","eric","christopher","brian","paul","daniel","thomas","william","richard","fred","albert","alex","oliver","arthur","male"];
+    function score(v) {
+      var n = (v.name || "").toLowerCase(), lang = (v.lang || "").toLowerCase(), sc = 0;
+      if (/^en/.test(lang)) sc += 10;
+      if (/^en[-_]us/.test(lang)) sc += 3;
+      if (/natural|neural|online/i.test(v.name)) sc += 9;
+      if (v.localService === false) sc += 2;
+      for (var i = 0; i < GOOD.length; i++) { if (n.indexOf(GOOD[i]) >= 0) { sc += 14 - i * 0.25; break; } }
+      for (var m = 0; m < MALE.length; m++) { if (n.indexOf(MALE[m]) >= 0) { sc -= 16; break; } }
+      return sc;
+    }
+    function loadVoices() {
+      var vs = synth.getVoices();
+      var en = vs.filter(function (v) { return /^en/i.test(v.lang); });
+      allVoices = (en.length ? en : vs).slice().sort(function (a, b) { return score(b) - score(a); });
+      var pick = (saved ? allVoices.filter(function (v) { return v.name === saved; })[0] : null) || allVoices[0] || null;
+      voice = pick;
+      voiceSel.innerHTML = allVoices.map(function (v) {
+        var nm = v.name.replace(/</g, "").replace(/"/g, "");
+        return '<option value="' + nm + '"' + (voice && v.name === voice.name ? " selected" : "") + '>' + nm.replace("Microsoft ", "").replace("Google ", "") + '</option>';
+      }).join("");
+    }
+    loadVoices();
+    if (typeof synth.addEventListener === "function") synth.addEventListener("voiceschanged", loadVoices); else synth.onvoiceschanged = loadVoices;
+    voiceSel.addEventListener("change", function () {
+      voice = allVoices.filter(function (v) { return v.name === voiceSel.value; })[0] || voice;
+      try { localStorage.setItem("rd_voice", voice.name); } catch (e) {}
+      if (playing && !paused) { synth.cancel(); speakNext(); }
+    });
     function sentences(t) { return t.match(/[^.!?;:]+[.!?;:]+|[^.!?;:]+$/g) || [t]; }
     function clean(el) {
       var c = el.cloneNode(true);
@@ -744,14 +776,15 @@
       if (!playing) return;
       if (idx >= queue.length) { finish(); return; }
       var item = queue[idx]; hl(item.el);
-      var u = new SpeechSynthesisUtterance(item.text); u.rate = rate; u.lang = "en-US";
+      var u = new SpeechSynthesisUtterance(item.text);
+      u.rate = rate; u.pitch = 1.05; u.lang = (voice && voice.lang) || "en-US";
       if (voice) u.voice = voice;
       u.onend = function () { if (!playing) return; idx++; speakNext(); };
       u.onerror = function () { if (!playing) return; idx++; speakNext(); };
       synth.speak(u);
     }
-    function start() { build(); if (!queue.length) return; idx = 0; playing = true; paused = false; synth.cancel(); toggle.textContent = "⏸ Pause"; stopB.hidden = false; speedB.hidden = false; speakNext(); }
-    function finish() { playing = false; paused = false; synth.cancel(); hl(null); toggle.textContent = "🔊 Listen"; stopB.hidden = true; speedB.hidden = true; }
+    function start() { build(); if (!queue.length) return; idx = 0; playing = true; paused = false; synth.cancel(); toggle.textContent = "⏸ Pause"; stopB.hidden = false; speedB.hidden = false; voiceSel.hidden = false; speakNext(); }
+    function finish() { playing = false; paused = false; synth.cancel(); hl(null); toggle.textContent = "🔊 Listen"; stopB.hidden = true; speedB.hidden = true; voiceSel.hidden = true; }
     toggle.addEventListener("click", function () {
       if (!playing) { start(); }
       else if (paused) { synth.resume(); paused = false; toggle.textContent = "⏸ Pause"; }
