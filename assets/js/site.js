@@ -688,6 +688,81 @@
     }
   }
 
+  /* --------------------------------------------------------------------------
+     read-aloud walkthrough: browser TTS narrates the lesson, scrolling +
+     highlighting each part as it goes (lessons only; no server, no API key)
+     -------------------------------------------------------------------------- */
+  function readAloud() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (!document.documentElement.dataset.lesson) return;
+    var main = document.querySelector("main"); if (!main) return;
+    var synth = window.speechSynthesis;
+    var st = document.createElement("style");
+    st.textContent =
+      ".rd-bar{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;gap:.35rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:.32rem .4rem;box-shadow:var(--shadow-lg)}" +
+      ".rd-bar button{font:600 .82rem var(--sans);cursor:pointer;border:none;background:transparent;color:var(--text);border-radius:999px;padding:.36rem .7rem}" +
+      ".rd-bar .rd-toggle{background:var(--primary);color:#fff}" +
+      ".rd-bar .rd-stop,.rd-bar .rd-speed{background:var(--bg);border:1px solid var(--border)}" +
+      ".rd-bar button:hover{filter:brightness(1.06)}" +
+      ".rd-on{background:var(--primary-weak);box-shadow:0 0 0 4px var(--primary-weak);border-radius:6px}" +
+      "@media print{.rd-bar{display:none}}";
+    document.head.appendChild(st);
+    var bar = document.createElement("div"); bar.className = "rd-bar";
+    bar.innerHTML = '<button class="rd-toggle" type="button" title="Read this lesson aloud">🔊 Listen</button>' +
+      '<button class="rd-stop" type="button" title="Stop" hidden>■</button>' +
+      '<button class="rd-speed" type="button" title="Speed" hidden>1×</button>';
+    document.body.appendChild(bar);
+    var toggle = bar.querySelector(".rd-toggle"), stopB = bar.querySelector(".rd-stop"), speedB = bar.querySelector(".rd-speed");
+    var queue = [], idx = 0, curEl = null, playing = false, paused = false;
+    var speeds = [1, 1.25, 1.5, 0.85], si = 0, rate = 1, voice = null;
+    function pickVoice() { var vs = synth.getVoices(); voice = vs.filter(function (v) { return /en[-_]/i.test(v.lang); })[0] || vs[0] || null; }
+    pickVoice(); synth.onvoiceschanged = pickVoice;
+    function sentences(t) { return t.match(/[^.!?;:]+[.!?;:]+|[^.!?;:]+$/g) || [t]; }
+    function clean(el) {
+      var c = el.cloneNode(true);
+      c.querySelectorAll(".katex, .katex-display, .katex-mathml").forEach(function (k) { k.replaceWith(document.createTextNode(" ")); });
+      c.querySelectorAll("pre, code, script, style").forEach(function (k) { k.remove(); });
+      return (c.textContent || "").replace(/\s+/g, " ").trim();
+    }
+    function build() {
+      queue = [];
+      var wrap = main.querySelector("article") || main;
+      var nodes = [].slice.call(wrap.querySelectorAll("h1, h2, h3, p, li, figcaption, .co-h, .rk"));
+      nodes.forEach(function (el) {
+        if (el.closest(".widget, .quiz, pre, script, style, .rd-bar, .deepdive")) return;
+        var t = clean(el); if (t.length < 2) return;
+        sentences(t).forEach(function (se) { se = se.trim(); if (se.length) queue.push({ el: el, text: se }); });
+      });
+    }
+    function hl(el) {
+      if (curEl === el) return;
+      if (curEl) curEl.classList.remove("rd-on");
+      curEl = el;
+      if (el) { el.classList.add("rd-on"); try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }
+    }
+    function speakNext() {
+      if (!playing) return;
+      if (idx >= queue.length) { finish(); return; }
+      var item = queue[idx]; hl(item.el);
+      var u = new SpeechSynthesisUtterance(item.text); u.rate = rate; u.lang = "en-US";
+      if (voice) u.voice = voice;
+      u.onend = function () { if (!playing) return; idx++; speakNext(); };
+      u.onerror = function () { if (!playing) return; idx++; speakNext(); };
+      synth.speak(u);
+    }
+    function start() { build(); if (!queue.length) return; idx = 0; playing = true; paused = false; synth.cancel(); toggle.textContent = "⏸ Pause"; stopB.hidden = false; speedB.hidden = false; speakNext(); }
+    function finish() { playing = false; paused = false; synth.cancel(); hl(null); toggle.textContent = "🔊 Listen"; stopB.hidden = true; speedB.hidden = true; }
+    toggle.addEventListener("click", function () {
+      if (!playing) { start(); }
+      else if (paused) { synth.resume(); paused = false; toggle.textContent = "⏸ Pause"; }
+      else { synth.pause(); paused = true; toggle.textContent = "▶ Resume"; }
+    });
+    stopB.addEventListener("click", finish);
+    speedB.addEventListener("click", function () { si = (si + 1) % speeds.length; rate = speeds[si]; speedB.textContent = rate + "×"; if (playing && !paused) { synth.cancel(); speakNext(); } });
+    setInterval(function () { if (playing && !paused && synth.speaking) synth.resume(); }, 9000);
+    window.addEventListener("beforeunload", function () { synth.cancel(); });
+  }
+
   function boot() {
     // theme: stored or system preference
     const saved = store.get("theme", null);
@@ -703,6 +778,7 @@
     progressBar();
     mobileMenu();
     buildHome();
+    readAloud();
   }
 
   if (document.readyState === "loading") {
