@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Matrix Transformer · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Matrix Transformer</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Matrix Transformer</h1>
+        <p>A matrix is a machine that moves space. Steer its four numbers and watch the whole grid — and a little house — stretch, rotate, shear, or flip. The glowing arrows are the <b>eigenvectors</b>: the rare directions the matrix only stretches, never turns.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag the four matrix sliders, or hit a <b>preset</b> (rotate, shear, flip…). Watch the determinant.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Space warps with the grid; the house transforms; the <b style="color:#ffd24d">gold arrows</b> (eigenvectors) only grow or shrink. When the determinant hits 0, space collapses to a line.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>a <span class="v" id="mxAl">1.0</span></label><input id="mxA" class="wslider" type="range" min="-200" max="200" value="100"></div>
+        <div class="lab-ctl"><label>b <span class="v" id="mxBl">0.0</span></label><input id="mxB" class="wslider" type="range" min="-200" max="200" value="0"></div>
+        <div class="lab-ctl"><label>c <span class="v" id="mxCl">0.0</span></label><input id="mxC" class="wslider" type="range" min="-200" max="200" value="0"></div>
+        <div class="lab-ctl"><label>d <span class="v" id="mxDl">1.0</span></label><input id="mxD" class="wslider" type="range" min="-200" max="200" value="100"></div>
+      </div>
+      <div class="lab-controls" style="margin-top:0">
+        <button class="lab-btn ghost" data-p="rot">Rotate 45°</button><button class="lab-btn ghost" data-p="shear">Shear</button>
+        <button class="lab-btn ghost" data-p="scale">Scale</button><button class="lab-btn ghost" data-p="flip">Flip</button>
+        <button class="lab-btn ghost" data-p="squash">Squash (det 0)</button><button class="lab-btn ghost" data-p="id">Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="mxDet">1.00</b><span>determinant (area ×)</span></div><div class="s"><b id="mxEig" style="color:#ffd24d">—</b><span>eigenvalues</span></div></div>
+      <div class="lab-stage"><span class="badge">grey = original · blue = transformed</span><canvas id="mxcv" width="820" height="470" aria-label="matrix transformation of space"></canvas></div>
+      <div class="lab-readout" id="mxread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> every point <b>(x,y)</b> becomes <b>(a·x+b·y, c·x+d·y)</b>. Straight lines stay straight and the origin stays put — that's what makes it <i>linear</i>. The <b>determinant</b> is how much area is scaled (negative = space flipped inside-out). The <b>eigenvectors</b> are the axes the transformation acts along. This is <a href="../lessons/track-1-linear-algebra-probability/05-matrices-as-maps.html">Matrices as linear maps</a> and <a href="../lessons/track-1-linear-algebra-probability/08-eigenvectors.html">Eigenvectors</a>, live.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('mxcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=52, ox=Wd/2, oy=Ht/2, M=[1,0,0,1];
+    function PX(x,y){return ox+x*S;} function PY(x,y){return oy-y*S;}
+    function ap(x,y){return [M[0]*x+M[1]*y, M[2]*x+M[3]*y];}
+    var house=[[-.7,-.7],[.7,-.7],[.7,.4],[0,1],[-.7,.4],[-.7,-.7]];
+    function drawGrid(mat,col,w,al){ ctx.strokeStyle=col; ctx.globalAlpha=al; ctx.lineWidth=w;
+      for(var g=-6;g<=6;g++){ ctx.beginPath(); var p1=[mat[0]*g+mat[1]*-6,mat[2]*g+mat[3]*-6], p2=[mat[0]*g+mat[1]*6,mat[2]*g+mat[3]*6]; ctx.moveTo(ox+p1[0]*S,oy-p1[1]*S); ctx.lineTo(ox+p2[0]*S,oy-p2[1]*S); ctx.stroke();
+        ctx.beginPath(); var q1=[mat[0]*-6+mat[1]*g,mat[2]*-6+mat[3]*g], q2=[mat[0]*6+mat[1]*g,mat[2]*6+mat[3]*g]; ctx.moveTo(ox+q1[0]*S,oy-q1[1]*S); ctx.lineTo(ox+q2[0]*S,oy-q2[1]*S); ctx.stroke(); }
+      ctx.globalAlpha=1; }
+    function poly(pp,mat,fill,stroke){ ctx.beginPath(); for(var i=0;i<pp.length;i++){ var p=[mat[0]*pp[i][0]+mat[1]*pp[i][1],mat[2]*pp[i][0]+mat[3]*pp[i][1]]; (i?ctx.lineTo:ctx.moveTo).call(ctx,ox+p[0]*S,oy-p[1]*S); } if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2.5;ctx.stroke();} }
+    function eig(){ var a=M[0],b=M[1],c=M[2],d=M[3]; var tr=a+d, det=a*d-b*c, disc=tr*tr-4*det; if(disc<0) return null;
+      var s=Math.sqrt(disc), l1=(tr+s)/2, l2=(tr-s)/2; function vec(l){ if(Math.abs(b)>1e-6)return norm([l-d,c].length?[b,l-a]:[b,l-a]); return Math.abs(c)>1e-6?norm([l-d,c]):(Math.abs(a-l)<1e-6?[1,0]:[0,1]); }
+      function norm(v){var n=Math.hypot(v[0],v[1])||1;return [v[0]/n,v[1]/n];}
+      return {l1:l1,l2:l2,v1:vec(l1),v2:vec(l2)}; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      drawGrid([1,0,0,1],'rgba(255,255,255,.10)',1,1);
+      drawGrid(M,'rgba(91,155,255,.5)',1.3,1);
+      poly(house,[1,0,0,1],'rgba(255,255,255,.05)','rgba(255,255,255,.25)');
+      poly(house,M,'rgba(91,155,255,.18)','#5b9bff');
+      // eigenvectors
+      var e=eig(); var el=document.getElementById('mxEig');
+      if(e){ [[e.v1,e.l1],[e.v2,e.l2]].forEach(function(ev){ var v=ev[0],l=ev[1]; ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.6; ctx.shadowBlur=12; ctx.shadowColor='#ffd24d';
+        ctx.beginPath(); ctx.moveTo(ox-v[0]*S*6,oy+v[1]*S*6); ctx.lineTo(ox+v[0]*S*6,oy-v[1]*S*6); ctx.stroke(); ctx.shadowBlur=0; });
+        el.textContent=e.l1.toFixed(2)+', '+e.l2.toFixed(2); }
+      else el.textContent='complex (pure rotation)';
+      var det=M[0]*M[3]-M[1]*M[2]; document.getElementById('mxDet').textContent=det.toFixed(2);
+      document.getElementById('mxread').textContent = Math.abs(det)<0.02 ? 'Determinant ≈ 0 — the matrix squashes all of space onto a single line. It cannot be undone.' : (det<0 ? 'Determinant '+det.toFixed(2)+' is negative — space has been flipped inside-out (mirrored).' : 'Determinant '+det.toFixed(2)+' — area is scaled by '+Math.abs(det).toFixed(2)+'×. Gold arrows are eigen-directions.'); }
+    function setM(){ M=[+document.getElementById('mxA').value/100,+document.getElementById('mxB').value/100,+document.getElementById('mxC').value/100,+document.getElementById('mxD').value/100]; ['A','B','C','D'].forEach(function(k){document.getElementById('mx'+k+'l').textContent=(+document.getElementById('mx'+k).value/100).toFixed(2);}); draw(); }
+    ['A','B','C','D'].forEach(function(k){ document.getElementById('mx'+k).addEventListener('input',setM); });
+    function preset(a,b,c,d){ document.getElementById('mxA').value=a*100;document.getElementById('mxB').value=b*100;document.getElementById('mxC').value=c*100;document.getElementById('mxD').value=d*100;setM(); }
+    var PS={rot:[.71,-.71,.71,.71],shear:[1,.8,0,1],scale:[1.6,0,0,.7],flip:[-1,0,0,1],squash:[1,.5,.5,.25],id:[1,0,0,1]};
+    document.querySelectorAll('[data-p]').forEach(function(btn){ btn.addEventListener('click',function(){ var p=PS[btn.getAttribute('data-p')]; preset(p[0],p[1],p[2],p[3]); }); });
+    draw();
+  })();
+  </script>
+</body>
+</html>
