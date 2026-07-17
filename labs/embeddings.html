@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Word Embeddings · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Word Embeddings</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Word Embeddings &amp; Analogies</h1>
+        <p>Words become points in space, arranged so that <b>directions carry meaning</b>. The step from "man" to "woman" is the same arrow as "king" to "queen" — which means you can do analogies with plain arithmetic on vectors.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Build an analogy: pick <b>A − B + C</b> (e.g. king − man + woman).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The arrows are parallel, and the result lands on the answer (queen). The same direction encodes "gender", "royalty", or "plural".</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>A</label><select id="emA"></select></div>
+        <div class="lab-ctl"><label>− B</label><select id="emB"></select></div>
+        <div class="lab-ctl"><label>+ C</label><select id="emC"></select></div>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="emRes" style="color:#5be0c0">—</b><span>A − B + C ≈</span></div></div>
+      <div class="lab-stage"><span class="badge">directions = meaning · gold = the analogy result</span><canvas id="emcv" width="820" height="460" aria-label="word embedding space"></canvas></div>
+      <div class="lab-readout" id="emread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> a model like word2vec learns a vector for every word by predicting its neighbours in text. Words used in similar contexts end up close together, and consistent relationships (gender, tense, capital-of) become consistent <b>directions</b>. So "king − man + woman" literally travels the gender arrow from king and lands near queen. This is the intuition behind <a href="../lessons/track-5-transformers/00-sequences-attention.html">token embeddings</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('emcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var W={man:[0.6,0.4],woman:[2.4,0.4],king:[0.6,2.3],queen:[2.4,2.3],prince:[0.95,1.45],princess:[2.05,1.45],
+      france:[4.6,0.5],paris:[4.6,2.1],japan:[6.4,0.5],tokyo:[6.4,2.1],
+      cat:[1.0,-1.6],cats:[1.9,-1.6],dog:[3.1,-1.6],dogs:[4.0,-1.6]};
+    var names=Object.keys(W);
+    function DX(x){return 60+x/7*(Wd-120);} function DY(y){return Ht-70-(y+2)/5*(Ht-120);}
+    function near(v,excl){ var b=null,bd=1e9; for(var i=0;i<names.length;i++){ var n=names[i]; if(excl.indexOf(n)>=0)continue; var d=(W[n][0]-v[0])*(W[n][0]-v[0])+(W[n][1]-v[1])*(W[n][1]-v[1]); if(d<bd){bd=d;b=n;} } return b; }
+    var A='king',B='man',C='woman';
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.06)'; for(var g=0;g<=7;g++){ctx.beginPath();ctx.moveTo(DX(g),0);ctx.lineTo(DX(g),Ht);ctx.stroke();}
+      var res=[W[A][0]-W[B][0]+W[C][0], W[A][1]-W[B][1]+W[C][1]]; var ans=near(res,[A,B,C]);
+      // arrows: B->A and C->res (parallel)
+      function arr(p,q,col){ ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.shadowBlur=8; ctx.shadowColor=col; ctx.beginPath(); ctx.moveTo(DX(p[0]),DY(p[1])); ctx.lineTo(DX(q[0]),DY(q[1])); ctx.stroke(); ctx.shadowBlur=0; var a=Math.atan2(DY(q[1])-DY(p[1]),DX(q[0])-DX(p[0])); ctx.beginPath(); ctx.moveTo(DX(q[0]),DY(q[1])); ctx.lineTo(DX(q[0])-11*Math.cos(a-.4),DY(q[1])-11*Math.sin(a-.4)); ctx.lineTo(DX(q[0])-11*Math.cos(a+.4),DY(q[1])-11*Math.sin(a+.4)); ctx.closePath(); ctx.fillStyle=col; ctx.fill(); }
+      arr(W[B],W[A],'#8ab4ff'); arr(W[C],res,'#ffd24d');
+      for(var i=0;i<names.length;i++){ var n=names[i],p=W[n]; var hot=(n===A||n===C||n===ans); ctx.fillStyle=hot?'#5be0c0':'#5b9bff'; ctx.shadowBlur=hot?12:5; ctx.shadowColor=ctx.fillStyle; ctx.beginPath(); ctx.arc(DX(p[0]),DY(p[1]),hot?6:4,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle=hot?'#dffcf5':'#aeb9d4'; ctx.font=(hot?'bold ':'')+'13px system-ui'; ctx.textAlign='center'; ctx.fillText(n,DX(p[0]),DY(p[1])-11); }
+      ctx.fillStyle='#ffd24d'; ctx.strokeStyle='#0a0f1f'; ctx.lineWidth=2; ctx.shadowBlur=16; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(DX(res[0]),DY(res[1]),7,0,6.2832); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      document.getElementById('emRes').textContent=ans;
+      document.getElementById('emread').textContent=A+' − '+B+' + '+C+' ≈ '+ans+'.  The blue and gold arrows point the same way — that shared direction is the analogy.'; }
+    function fill(sel,def){ var s=document.getElementById(sel); s.innerHTML=names.map(function(n){return '<option'+(n===def?' selected':'')+'>'+n+'</option>';}).join(''); }
+    fill('emA','king'); fill('emB','man'); fill('emC','woman');
+    document.getElementById('emA').addEventListener('change',function(e){A=e.target.value;draw();});
+    document.getElementById('emB').addEventListener('change',function(e){B=e.target.value;draw();});
+    document.getElementById('emC').addEventListener('change',function(e){C=e.target.value;draw();});
+    draw();
+  })();
+  </script></body></html>

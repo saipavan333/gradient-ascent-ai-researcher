@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tokenization (BPE) · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Tokenization (BPE)</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Tokenization: Byte-Pair Encoding</h1>
+        <p>Before a language model sees text, the text is chopped into <b>tokens</b>. Byte-pair encoding learns these pieces by repeatedly merging the most common adjacent pair — so frequent chunks become single tokens and rare words still split into known parts.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Type a word, then slide <b>merges applied</b> from 0 upward.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Start as loose characters; each merge fuses a common pair (like <code>e</code>+<code>r</code> → <code>er</code>) into one token — until common words are a single piece.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Word</label><input id="tkIn" type="text" value="lowered" style="font:inherit;padding:.4rem .6rem;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);width:180px"></div>
+        <div class="lab-ctl"><label>Merges applied <span class="v" id="tkMl">0</span></label><input id="tkM" class="wslider" type="range" min="0" max="60" value="0" style="min-width:280px"></div>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="tkNum" style="color:#5be0c0">—</b><span>tokens</span></div></div>
+      <div class="lab-stage"><span class="badge">each pill = one token</span><canvas id="tkcv" width="820" height="300" aria-label="byte pair encoding"></canvas></div>
+      <div class="lab-readout" id="tkread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> BPE is trained on a corpus by counting every adjacent symbol pair, merging the most frequent into a new symbol, and repeating thousands of times. The ordered list of merges is the vocabulary. Applying it to new text greedily fuses the same pairs — so "the" is one token while a rare word breaks into subwords, and there is never an unknown word. This is <a href="../lessons/track-11-llms/00-tokenization-bpe.html">Tokenization &amp; BPE</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('tkcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var corpus=("the of and to in is it for lower lowest slower newer newest player played playing lowering following runner running walker walking teacher faster stronger higher builder reader lower lower newer newer lowest teacher runner running the the the and and lowering slower").split(/\s+/);
+    var merges=[];
+    (function train(){ var words=corpus.map(function(w){return w.split('');});
+      for(var it=0;it<60;it++){ var cnt={}; for(var i=0;i<words.length;i++){ var w=words[i]; for(var j=0;j+1<w.length;j++){ var k=w[j]+''+w[j+1]; cnt[k]=(cnt[k]||0)+1; } }
+        var bk=null,bv=1; for(var k in cnt)if(cnt[k]>bv){bv=cnt[k];bk=k;} if(!bk)break; var pr=bk.split(''); merges.push([pr[0],pr[1]]);
+        for(var i=0;i<words.length;i++){ var w=words[i],nw=[]; for(var j=0;j<w.length;j++){ if(j+1<w.length&&w[j]===pr[0]&&w[j+1]===pr[1]){ nw.push(pr[0]+pr[1]); j++; } else nw.push(w[j]); } words[i]=nw; } } })();
+    function tokenize(word,M){ var w=word.split(''); for(var m=0;m<M&&m<merges.length;m++){ var a=merges[m][0],b=merges[m][1],nw=[]; for(var j=0;j<w.length;j++){ if(j+1<w.length&&w[j]===a&&w[j+1]===b){ nw.push(a+b); j++; } else nw.push(w[j]); } w=nw; } return w; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var word=(document.getElementById('tkIn').value||'lowered').toLowerCase().replace(/[^a-z]/g,'')||'lowered';
+      var M=+document.getElementById('tkM').value; var toks=tokenize(word,M);
+      ctx.font='bold 22px system-ui'; ctx.textBaseline='middle'; var x=40, y=Ht/2, gap=12;
+      for(var i=0;i<toks.length;i++){ var tw=ctx.measureText(toks[i]).width+30; var c=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c','#ffd24d'][i%6];
+        ctx.fillStyle='rgba('+hex(c)+',.18)'; ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.shadowBlur=10; ctx.shadowColor=c; rr(x,y-26,tw,52,12); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+        ctx.fillStyle='#e6ecfb'; ctx.textAlign='center'; ctx.fillText(toks[i],x+tw/2,y); x+=tw+gap; if(x>Wd-90){x=40;y+=64;} }
+      ctx.textBaseline='alphabetic';
+      document.getElementById('tkMl').textContent=M; document.getElementById('tkNum').textContent=toks.length;
+      document.getElementById('tkread').textContent = M===0?('"'+word+'" as raw characters — '+toks.length+' tokens. Slide merges up to fuse common pairs.'):('After '+M+' merges: '+toks.length+' token'+(toks.length>1?'s':'')+'. Frequent chunks like "er", "ing", "low" have become single tokens.'); }
+    function hex(c){ c=c.replace('#',''); return parseInt(c.substr(0,2),16)+','+parseInt(c.substr(2,2),16)+','+parseInt(c.substr(4,2),16); }
+    function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    document.getElementById('tkIn').addEventListener('input',draw); document.getElementById('tkM').addEventListener('input',draw);
+    draw();
+  })();
+  </script></body></html>
