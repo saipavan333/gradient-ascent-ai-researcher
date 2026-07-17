@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VAE Latent Space · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; VAE Latent Space</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>VAE: Walking the Latent Space</h1>
+        <p>A variational autoencoder squeezes data down to a few numbers — a <b>latent code</b> — then decodes them back. The magic is that the code space is <b>smooth</b>: glide the point around and the decoded output morphs continuously, letting you generate brand-new samples.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Drag the white dot</b> around the latent map on the left.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The big decoded face on the right morphs smoothly — nearby codes give similar faces, and every point in between is a valid new sample.</div></div>
+      </div>
+      <div class="lab-stage"><span class="badge">left: 2-D latent space (drag) · right: decoded output</span><canvas id="vacv" width="820" height="420" aria-label="vae latent space"></canvas></div>
+      <div class="lab-readout" id="varead">Drag around the latent grid — watch the face morph from sad to happy, wide to narrow eyes.</div>
+      <div class="lab-explain"><b>What's happening:</b> the encoder maps each input to a point in this 2-D space and the decoder maps points back to outputs. Training with a smoothness pressure (a KL term pulling codes toward a simple Gaussian) makes the space <b>continuous and gap-free</b> — so you can sample any point and decode a plausible new sample, and interpolate between two inputs by walking the straight line between their codes. This is <a href="../lessons/track-6-generative/02-vae.html">Variational Autoencoders</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('vacv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var z=[0.2,0.3], LS=Ht-40, lx=20, ly=20; // latent panel square on left
+    function face(cx,cy,r,z1,z2){ // z1 mouth(happy+..sad-), z2 eye size / squint
+      ctx.fillStyle='#ffd98a'; ctx.shadowBlur=r*0.4; ctx.shadowColor='#ffcf6a'; ctx.beginPath(); ctx.arc(cx,cy,r,0,6.2832); ctx.fill(); ctx.shadowBlur=0;
+      ctx.strokeStyle='#7a5a12'; ctx.lineWidth=Math.max(1,r*0.03);
+      var ey=r*(0.28+0.18*z2), ex=r*0.4; ctx.fillStyle='#3a2a08';
+      for(var s=-1;s<=1;s+=2){ ctx.beginPath(); ctx.ellipse(cx+s*ex,cy-r*0.2,r*0.11,ey,0,0,6.2832); ctx.fill(); }
+      ctx.strokeStyle='#5a3f0d'; ctx.lineWidth=Math.max(1.5,r*0.05); ctx.beginPath(); var mo=z1*r*0.5; ctx.moveTo(cx-r*0.4,cy+r*0.35-mo*0.0); ctx.quadraticCurveTo(cx,cy+r*0.35+mo,cx+r*0.4,cy+r*0.35-mo*0.0); ctx.stroke(); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // latent panel
+      ctx.fillStyle='#0d1424'; ctx.fillRect(lx,ly,LS,LS); ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.strokeRect(lx,ly,LS,LS);
+      for(var i=0;i<5;i++)for(var j=0;j<5;j++){ var z1=(i/4*2-1)*2, z2=(j/4*2-1)*2; var cx=lx+ (i+0.5)/5*LS, cy=ly+(j+0.5)/5*LS; ctx.globalAlpha=.5; face(cx,cy,LS/13,-z1*0.5,z2*0.5); ctx.globalAlpha=1; }
+      // current z dot
+      var dxp=lx+(z[0]/2*0.5+0.5)*LS, dyp=ly+(z[1]/2*0.5+0.5)*LS;
+      ctx.fillStyle='#fff'; ctx.shadowBlur=14; ctx.shadowColor='#fff'; ctx.beginPath(); ctx.arc(dxp,dyp,8,0,6.2832); ctx.fill(); ctx.shadowBlur=0;
+      // decoded big face on right
+      var rx=lx+LS+ (Wd-(lx+LS))/2, ry=Ht/2, R=Math.min((Wd-lx-LS)/2-30,Ht/2-30);
+      ctx.fillStyle='#8892b0'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('decoded sample',rx,ry+R+28);
+      face(rx,ry,R,-z[0]*0.6,z[1]*0.6);
+      document.getElementById('varead').textContent='Latent code ('+z[0].toFixed(1)+', '+z[1].toFixed(1)+'). Left/right morphs the mouth, up/down the eyes. Every point decodes to a valid face — that is a smooth latent space.'; }
+    function setZ(e){ var r=cv.getBoundingClientRect(); var mx=(e.clientX-r.left)/r.width*Wd, my=(e.clientY-r.top)/r.height*Ht; if(mx<lx||mx>lx+LS)return; z[0]=((mx-lx)/LS*2-1)*2; z[1]=((my-ly)/LS*2-1)*2; draw(); }
+    cv.addEventListener('mousedown',setZ); cv.addEventListener('mousemove',function(e){ if(e.buttons)setZ(e); });
+    draw();
+  })();
+  </script></body></html>

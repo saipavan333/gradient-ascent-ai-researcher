@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simpson's Paradox · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Simpson's Paradox</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Simpson's Paradox &amp; Confounding</h1>
+        <p>The most dangerous trap in data: a treatment can look <b>harmful</b> across everyone, yet <b>help</b> every single subgroup. The culprit is a hidden variable pulling the strings. Reveal it and the whole story flips.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Reveal the hidden groups</b> to colour the patients by severity.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The <b style="color:#ff6e6e">overall</b> trend slopes down — treatment looks bad. But <b style="color:#4fd6b5">within each group</b> it slopes up: treatment helps everyone. That reversal is the paradox.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="spReveal">👁 Reveal the hidden groups</button>
+        <button class="lab-btn ghost" id="spNew">⚄ New data</button>
+      </div>
+      <div class="lab-stage"><span class="badge">x = treatment · y = recovery</span><canvas id="spcv" width="820" height="460" aria-label="simpsons paradox"></canvas></div>
+      <div class="lab-readout" id="spread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> sicker patients were given more treatment <i>and</i> had worse baselines. That hidden "severity" is a <b>confounder</b> — it drives both how much treatment someone got and how well they recovered, faking a negative link. The fix is to compare like with like (adjust for the confounder), which is exactly what the <b>do-operator</b> and backdoor adjustment formalise. This is <a href="../lessons/track-22-causal-inference/01-confounding.html">Confounding</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('spcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var pts=[], reveal=false;
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function gen(){ pts=[]; // group 0 mild: low treatment, high recovery ; group 1 severe: high treatment, low recovery ; within-group slope positive
+      for(var i=0;i<60;i++){ var tx=0.15+Math.random()*0.35; var y=0.55+0.5*tx+gauss()*0.06; pts.push({t:tx,y:y,g:0}); }
+      for(var i=0;i<60;i++){ var tx=0.55+Math.random()*0.35; var y=0.05+0.5*tx+gauss()*0.06; pts.push({t:tx,y:y,g:1}); } }
+    function DX(t){return 60+t*(Wd-110);} function DY(y){return Ht-50-y*(Ht-100);}
+    function line(sub,col,w){ var n=sub.length,sx=0,sy=0,sxx=0,sxy=0; for(var i=0;i<n;i++){sx+=sub[i].t;sy+=sub[i].y;sxx+=sub[i].t*sub[i].t;sxy+=sub[i].t*sub[i].y;} var m=(n*sxy-sx*sy)/(n*sxx-sx*sx), b=(sy-m*sx)/n;
+      ctx.strokeStyle=col; ctx.lineWidth=w; ctx.shadowBlur=10; ctx.shadowColor=col; ctx.beginPath(); ctx.moveTo(DX(0.1),DY(m*0.1+b)); ctx.lineTo(DX(0.95),DY(m*0.95+b)); ctx.stroke(); ctx.shadowBlur=0; return m; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.strokeRect(60,50,Wd-110,Ht-100);
+      ctx.fillStyle='#8892b0'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('more treatment →',Wd/2,Ht-24); ctx.save(); ctx.translate(24,Ht/2); ctx.rotate(-Math.PI/2); ctx.fillText('better recovery →',0,0); ctx.restore();
+      for(var i=0;i<pts.length;i++){ var c=reveal?(pts[i].g?'#ffa24d':'#4fd6b5'):'#7f8db0'; ctx.fillStyle=c; ctx.shadowBlur=6; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(DX(pts[i].t),DY(pts[i].y),4.2,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      var mo=line(pts,'#ff6e6e',3);
+      if(reveal){ line(pts.filter(function(p){return p.g===0;}),'#4fd6b5',2.4); line(pts.filter(function(p){return p.g===1;}),'#ffa24d',2.4); }
+      document.getElementById('spread').textContent = reveal ? 'Revealed: within each severity group, more treatment → better recovery (the green/orange lines rise). The red overall line lied because sicker patients got more treatment.' : 'Overall, the red line slopes DOWN — treatment looks harmful. But is something hidden? Press Reveal.'; }
+    document.getElementById('spReveal').addEventListener('click',function(){ reveal=!reveal; document.getElementById('spReveal').textContent=reveal?'🙈 Hide the groups':'👁 Reveal the hidden groups'; draw(); });
+    document.getElementById('spNew').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
