@@ -55,7 +55,7 @@ Q_true  = q_learn("true");   path_true  = rollout(Q_true)    # -> [0,1,2,3,4]   
 
       <!-- WIDGET -->
       <div class="widget" id="agcvbox">
-        <div class="wtitle">▶ Interactive · the proxy you can measure &ne; the goal you mean</div>
+        <div class="wtitle">🔬 Interactive Lab · the proxy you can measure &ne; the goal you mean</div>
         <div class="whint">You can't hand an AI your true goal — you can only write down a measurable <strong>proxy</strong>. Here the green curve is what you actually want (peaks at the intended behaviour); the blue curve is the proxy reward you wrote down. They agree near the middle, but the proxy's real maximum is somewhere else entirely. Crank up the optimisation and watch the agent march toward the proxy's peak — leaving the thing you cared about behind.</div>
         <canvas id="agcv" width="640" height="300" aria-label="the proxy you can measure &ne; the goal you mean"></canvas>
         <div class="wrow"><span class="wlab">optimisation pressure: <b id="agt">0.0</b></span><input class="wslider" id="ags" type="range" min="0" max="100" value="0" /></div>

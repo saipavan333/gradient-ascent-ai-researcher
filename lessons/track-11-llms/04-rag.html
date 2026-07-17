@@ -62,7 +62,7 @@ def retrieve(query):
 
       <!-- WIDGET -->
       <div class="widget" id="rgcvbox">
-        <div class="wtitle">▶ Interactive · retrieve the nearest documents, then answer</div>
+        <div class="wtitle">🔬 Interactive Lab · retrieve the nearest documents, then answer</div>
         <div class="whint">RAG (Retrieval-Augmented Generation) turns every document into a vector, then answers a question by pulling the <strong>k nearest</strong> documents and feeding them to the model as context. Here the blue dot is your query and the grey dots are documents in embedding space. Slide k and watch which documents get retrieved — the closer a document sits to the query, the more relevant it is.</div>
         <canvas id="rgcv" width="640" height="300" aria-label="retrieve the nearest documents, then answer"></canvas>
         <div class="wrow"><span class="wlab">retrieve top-k: <b id="rgk">3</b></span><input class="wslider" id="rgs" type="range" min="1" max="8" value="3" /></div>

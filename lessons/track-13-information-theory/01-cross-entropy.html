@@ -59,7 +59,7 @@
 
       <!-- WIDGET -->
       <div class="widget" id="cecvbox">
-        <div class="wtitle">▶ Interactive · watch the loss bottom out when the guess matches the truth</div>
+        <div class="wtitle">🔬 Interactive Lab · watch the loss bottom out when the guess matches the truth</div>
         <div class="whint">The outlined bars are the <strong>true</strong> distribution \(p\); the filled bars are the model's <strong>prediction</strong> \(q\). Slide \(q\) from a clueless uniform guess toward the truth and watch the cross-entropy \(H(p,q)=-\sum p\log_2 q\) fall — bottoming out at the entropy \(H(p)\) when \(q=p\). The gap above that floor is the KL divergence.</div>
         <canvas id="cecv" width="640" height="300" aria-label="watch the loss bottom out when the guess matches the truth"></canvas>
         <div class="wrow"><span class="wlab">bad guess ← q → matches p: <b id="cet">0.0</b></span><input class="wslider" id="ces" type="range" min="0" max="100" value="0" /></div>

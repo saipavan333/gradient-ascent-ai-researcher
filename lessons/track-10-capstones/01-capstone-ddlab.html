@@ -83,7 +83,7 @@ def test_large_ridge_suppresses_peak():
 
       <!-- WIDGET -->
       <div class="widget" id="ddcvbox">
-        <div class="wtitle">▶ Interactive · drag the noise — watch the double-descent spike appear and vanish</div>
+        <div class="wtitle">🔬 Interactive Lab · drag the noise — watch the double-descent spike appear and vanish</div>
         <div class="whint">This is the lab your app deploys. The blue curve is <strong>test error</strong> as the model grows; the green is <strong>train error</strong>. At the interpolation threshold (capacity = 1, where the model has exactly enough parameters to fit the data) test error <em>spikes</em> — then falls again as the model gets even bigger. Slide the label noise: with clean data the spike is gone; add noise and the classic double-descent peak grows back.</div>
         <canvas id="ddcv" width="640" height="300" aria-label="drag the noise — watch the double-descent spike appear and vanish"></canvas>
         <div class="wrow"><span class="wlab">label noise: <b id="ddn">0.30</b></span><input class="wslider" id="dds" type="range" min="0" max="50" value="30" /></div>

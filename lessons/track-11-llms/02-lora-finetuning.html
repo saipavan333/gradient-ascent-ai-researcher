@@ -68,7 +68,7 @@ for step in range(steps):
 
       <!-- WIDGET -->
       <div class="widget" id="locvbox">
-        <div class="wtitle">▶ Interactive · train 1% of the weights, keep almost all the quality</div>
+        <div class="wtitle">🔬 Interactive Lab · train 1% of the weights, keep almost all the quality</div>
         <div class="whint">A weight matrix \(W\) is \(d\times d\) — a million numbers at \(d=1000\). LoRA freezes \(W\) and learns a low-rank update \(BA\) instead: a \(d\times r\) matrix times an \(r\times d\) matrix, with \(r\) tiny. Slide the rank and watch the trainable parameter count collapse while the update still covers the directions that matter.</div>
         <canvas id="locv" width="640" height="300" aria-label="train 1% of the weights, keep almost all the quality"></canvas>
         <div class="wrow"><span class="wlab">rank r: <b id="lor">8</b></span><input class="wslider" id="los" type="range" min="1" max="64" value="8" /></div>

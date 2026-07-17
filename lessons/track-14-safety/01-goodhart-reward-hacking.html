@@ -53,7 +53,7 @@ def true_reward(x):   return proxy_reward(x) - 6*x**2   # true value: an over-op
 
       <!-- WIDGET -->
       <div class="widget" id="ghcvbox">
-        <div class="wtitle">▶ Interactive · push a metric too hard and the real outcome turns down</div>
+        <div class="wtitle">🔬 Interactive Lab · push a metric too hard and the real outcome turns down</div>
         <div class="whint">&ldquo;When a measure becomes a target, it stops being a good measure.&rdquo; The blue line is the proxy you're optimising; the green line is the true outcome you care about. At first they rise together — that's why the proxy looked fine. Keep cranking and the true outcome <strong>peaks and then falls</strong> even as the proxy keeps climbing. That downturn is Goodhart's law, and finding its peak is the whole game.</div>
         <canvas id="ghcv" width="640" height="300" aria-label="push a metric too hard and the real outcome turns down"></canvas>
         <div class="wrow"><span class="wlab">optimisation pressure: <b id="ght">0.0</b></span><input class="wslider" id="ghs" type="range" min="0" max="100" value="0" /></div>

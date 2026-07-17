@@ -82,7 +82,7 @@
         <figcaption><span class="fig-num">Figure 2.2.</span> Regularization paths. <b>Ridge (left):</b> smooth shrinkage, nothing reaches zero. <b>Lasso (right):</b> coefficients drop to <em>exactly</em> zero at different \(\lambda\) values — the model literally drops features as you regularize harder.</figcaption>
       </figure>
       <div class="widget" id="reglab">
-        <div class="wtitle">▶ Interactive · shrink the weights, watch L1 delete features</div>
+        <div class="wtitle">🔬 Interactive Lab · shrink the weights, watch L1 delete features</div>
         <div class="whint">Six weights start at their unregularized values. Drag the regularization strength \(\lambda\). <strong>L2 (left)</strong> shrinks every bar toward zero by the same factor — none ever reaches zero. <strong>L1 (right)</strong> subtracts \(\lambda\) from each and clips at zero — small weights snap to <em>exactly</em> zero (greyed out) and their feature is dropped. That’s automatic feature selection.</div>
         <canvas id="regcanvas" width="640" height="300" aria-label="Interactive L1 vs L2 weight shrinkage as regularization strength increases"></canvas>
         <div class="wrow">

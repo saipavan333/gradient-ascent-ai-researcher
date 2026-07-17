@@ -53,7 +53,7 @@
 
       <!-- INTERACTIVE -->
       <div class="widget" id="agLab">
-        <div class="wtitle">▶ Interactive · the engine, on one expression</div>
+        <div class="wtitle">🔬 Interactive Lab · the engine, on one expression</div>
         <div class="whint">Each box is a <code>Value</code> with a <code>data</code> field (forward) and a <code>grad</code> field (backward). Set \(a,b,c\), press <strong>Run .backward()</strong>, and the grads appear. Then flip to <strong>reuse a</strong> — now \(a\) feeds two places, and watch its grad <em>accumulate</em> from both paths (the <code>+=</code>). That accumulation is the one detail people get wrong when they build this themselves.</div>
         <canvas id="agCanvas" width="640" height="252" aria-label="Interactive autograd Value graph showing data and grad fields"></canvas>
         <div class="wrow">

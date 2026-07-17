@@ -77,7 +77,7 @@
 
       <!-- INTERACTIVE -->
       <div class="widget" id="pglab">
-        <div class="wtitle">▶ Interactive · reinforce the best arm</div>
+        <div class="wtitle">🔬 Interactive Lab · reinforce the best arm</div>
         <div class="whint">Four slot machines ("arms") pay different average rewards (red dashed lines mark the true means — hidden from the agent). The bars are the policy \(\pi(a)\), a softmax over learned preferences. Press <strong>train</strong>: the agent samples an arm from \(\pi\), sees a noisy reward, and REINFORCE shifts the preferences by \((r-b)\nabla\log\pi\). Watch probability flow toward the tallest red line — the best arm — without the agent ever being told which one it is.</div>
         <canvas id="pgcanvas" width="480" height="290" aria-label="Interactive multi-armed bandit policy gradient"></canvas>
         <div class="wrow">

@@ -72,7 +72,7 @@
 
       <!-- INTERACTIVE -->
       <div class="widget" id="rvlab">
-        <div class="wtitle">▶ Interactive · sampling rebuilds the distribution</div>
+        <div class="wtitle">🔬 Interactive Lab · sampling rebuilds the distribution</div>
         <div class="whint">Pick a distribution, then draw samples in batches. Each sample drops into a histogram bin (blue). The <span style="color:#dc2626">red curve</span> is the true density. With a handful of samples the histogram is lumpy noise; by a few thousand it hugs the red curve. That convergence — random samples piling up into the exact shape they came from — is the <strong>law of large numbers</strong>, and it is why we can learn distributions from data at all.</div>
         <canvas id="rvcanvas" width="680" height="320" aria-label="Interactive sampling histogram explorer"></canvas>
         <div class="wrow">
@@ -89,6 +89,7 @@
           <button type="button" class="wbtn" id="rvreset">Reset</button>
         </div>
         <div class="wreadout" id="rvread"></div>
+        <div class="lab-challenge"><b>🎯 Challenge:</b> Take just a handful of samples — how rough is the estimate? Crank the count up and watch it converge to the true shape.</div>
       </div>
 
       <!-- WORKED EXAMPLE -->

@@ -47,7 +47,7 @@
 
       <!-- WIDGET -->
       <div class="widget" id="pplab">
-        <div class="wtitle">▶ Interactive · add workers, split the batch</div>
+        <div class="wtitle">🔬 Interactive Lab · add workers, split the batch</div>
         <div class="whint">Slide the number of <strong>workers</strong>. The batch is split evenly across them, each computes gradients on its shard in parallel, and the gradients are averaged into one update. Watch the time-per-step drop as workers are added — and note the readout confirming the averaged gradient is <em>exactly</em> the single-machine gradient.</div>
         <canvas id="ppcanvas" width="640" height="300" aria-label="Interactive data parallelism"></canvas>
         <div class="wrow">
