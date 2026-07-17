@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Decision Tree Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Decision Tree Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Decision Tree: Carving the Plane</h1>
+        <p>A decision tree classifies by asking a cascade of yes/no questions, each one a straight cut. Grow it deeper and watch it slice the space into ever-finer boxes — until it's memorised every last point.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>depth</b> from 1 to 8. Generate <b>new data</b> to see it adapt.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Each level adds axis-aligned cuts, carving rectangles coloured by their majority class. Shallow = simple; deep = jagged boxes hugging every point (overfitting).</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Tree depth <span class="v" id="dtDl">3</span></label><input id="dtD" class="wslider" type="range" min="1" max="8" value="3" style="min-width:260px"></div>
+        <button class="lab-btn ghost" id="dtNew">⚄ New data</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="dtLeaf">—</b><span>leaf boxes</span></div><div class="s"><b id="dtAcc">—</b><span>training accuracy</span></div></div>
+      <div class="lab-stage"><span class="badge">boxes = the tree's regions · dots = data</span><canvas id="dtcv" width="820" height="470" aria-label="decision tree regions"></canvas></div>
+      <div class="lab-readout" id="dtread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> at each node the tree picks the single vertical or horizontal cut that best separates the two classes (lowest <b>Gini impurity</b>), then repeats inside each half. Because every cut is axis-aligned, the regions are always rectangles. A deep tree reaches 100% training accuracy by boxing in every point — which is exactly why a single tree overfits, and why <b>random forests</b> average many. This is <a href="../lessons/track-12-classical-ml/02-decision-trees.html">Decision Trees</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('dtcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var pts=[], depth=3, tree=null, leaves=0;
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function gen(){ pts=[]; for(var i=0;i<120;i++){ var x=Math.random()*Wd, y=Math.random()*Ht; var q=((x<Wd/2)?0:1)^((y<Ht/2)?0:1); var c=q; if(Math.random()<0.12)c=1-c; pts.push({x:x,y:y,c:c}); } build(); }
+    function gini(sub){ if(!sub.length)return 0; var n1=0; for(var i=0;i<sub.length;i++)n1+=sub[i].c; var p=n1/sub.length; return 1-p*p-(1-p)*(1-p); }
+    function grow(sub,d){ leaves++; var n1=0; for(var i=0;i<sub.length;i++)n1+=sub[i].c; var maj=n1*2>=sub.length?1:0;
+      if(d>=depth||sub.length<4||n1===0||n1===sub.length) return {leaf:maj};
+      var best=null,bg=1e9; for(var ax=0;ax<2;ax++){ for(var t=0;t<10;t++){ var thr=(t+1)/11*(ax?Ht:Wd); var Ls=[],Rs=[]; for(var i=0;i<sub.length;i++){ ((ax?sub[i].y:sub[i].x)<thr?Ls:Rs).push(sub[i]); } if(!Ls.length||!Rs.length)continue; var g=(Ls.length*gini(Ls)+Rs.length*gini(Rs))/sub.length; if(g<bg){bg=g;best={ax:ax,thr:thr,L:Ls,R:Rs};} } }
+      if(!best) return {leaf:maj}; leaves--; return {ax:best.ax,thr:best.thr,l:grow(best.L,d+1),r:grow(best.R,d+1)}; }
+    function build(){ leaves=0; tree=grow(pts,0); }
+    function classify(node,x,y){ while(node.leaf===undefined){ node=((node.ax?y:x)<node.thr)?node.l:node.r; } return node.leaf; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var RES=90, cw=Wd/RES, ch=Ht/RES;
+      for(var i=0;i<RES;i++)for(var j=0;j<RES;j++){ var c=classify(tree,(i+.5)*cw,(j+.5)*ch); ctx.fillStyle=c?'rgba(255,162,77,.20)':'rgba(91,155,255,.20)'; ctx.fillRect(i*cw,j*ch,cw+1,ch+1); }
+      // split lines: redraw tree boundaries by sampling transitions
+      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1; drawSplits(tree,0,0,Wd,Ht);
+      var corr=0; for(var p=0;p<pts.length;p++){ var pr=classify(tree,pts[p].x,pts[p].y); if(pr===pts[p].c)corr++; ctx.fillStyle=pts[p].c?'#ffa24d':'#5b9bff'; ctx.shadowBlur=7; ctx.shadowColor=pts[p].c?'#ffa24d':'#5b9bff'; ctx.beginPath(); ctx.arc(pts[p].x,pts[p].y,4.2,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=1; ctx.stroke(); }
+      document.getElementById('dtLeaf').textContent=leaves; document.getElementById('dtAcc').textContent=(corr/pts.length*100).toFixed(0)+'%';
+      document.getElementById('dtread').textContent = depth<=2?'Shallow tree — just a couple of cuts, a coarse but simple rule.':(depth>=7?'Deep tree — '+leaves+' boxes, ~'+(corr/pts.length*100).toFixed(0)+'% training accuracy by memorising the noise.':'Depth '+depth+': '+leaves+' regions. Deeper carves finer boxes — watch accuracy climb toward 100%.'); }
+    function drawSplits(node,x0,y0,x1,y1){ if(node.leaf!==undefined)return; ctx.beginPath(); if(node.ax){ ctx.moveTo(x0,node.thr); ctx.lineTo(x1,node.thr); } else { ctx.moveTo(node.thr,y0); ctx.lineTo(node.thr,y1); } ctx.stroke();
+      if(node.ax){ drawSplits(node.l,x0,y0,x1,node.thr); drawSplits(node.r,x0,node.thr,x1,y1); } else { drawSplits(node.l,x0,y0,node.thr,y1); drawSplits(node.r,node.thr,y0,x1,y1); } }
+    document.getElementById('dtD').addEventListener('input',function(e){ depth=+e.target.value; document.getElementById('dtDl').textContent=depth; build(); draw(); });
+    document.getElementById('dtNew').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script>
+</body>
+</html>

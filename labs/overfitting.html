@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overfitting Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Overfitting Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Underfit, Fit, Overfit</h1>
+        <p>The central tension in all of machine learning. Fit a curve that's too simple and it misses the pattern; too complex and it memorises the noise. Slide the model's flexibility and watch the sweet spot appear — and vanish.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>flexibility</b> (polynomial degree) from 1 up to 12. Add <b>new data</b> to re-test.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Low degree → the curve is too stiff (both errors high). High degree → it wiggles through every dot (train error ~0) but the <b style="color:#ff8f6e">test error</b> shoots up. Best is the middle.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Model flexibility (degree) <span class="v" id="ofDl">3</span></label><input id="ofD" class="wslider" type="range" min="1" max="12" value="3" style="min-width:260px"></div>
+        <button class="lab-btn ghost" id="ofNew">⚄ New data</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="ofTr" style="color:#5b9bff">—</b><span>training error</span></div><div class="s"><b id="ofTe" style="color:#ff8f6e">—</b><span>test error (unseen)</span></div></div>
+      <div class="lab-stage"><span class="badge">dots = training data · dashed = true pattern · line = model</span><canvas id="ofcv" width="820" height="430" aria-label="polynomial overfitting"></canvas></div>
+      <div class="lab-readout" id="ofread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> a degree-d polynomial is fit by least squares. Raising d lets it bend more, so it always fits the <i>training</i> dots better — but past a point it starts chasing the random noise, and its error on <b>unseen</b> data climbs. That U-shaped test curve is the <b>bias–variance trade-off</b>, and taming it is what regularisation and validation are for. This is <a href="../lessons/track-3-ml-theory/00-generalization.html">Generalization</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('ofcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var XR=3.2, YR=2.1, deg=3, train=[], test=[];
+    function DX(x){return (x/XR+1)/2*Wd;} function DY(y){return (1-(y/YR+1)/2)*Ht;}
+    function truef(x){ return Math.sin(x*1.15)*1.1; }
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function gen(){ train=[]; test=[]; for(var i=0;i<15;i++){ var x=-3+i/14*6; train.push({x:x,y:truef(x)+gauss()*0.42}); } for(var i=0;i<120;i++){ var x=-3.1+i/119*6.2; test.push({x:x,y:truef(x)+gauss()*0.42}); } fit(); }
+    var W=[];
+    function solve(A,b){ var n=b.length; for(var i=0;i<n;i++){ var mp=i; for(var r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[mp][i]))mp=r; var t=A[i];A[i]=A[mp];A[mp]=t; var tb=b[i];b[i]=b[mp];b[mp]=tb;
+      var piv=A[i][i]||1e-9; for(var r=0;r<n;r++){ if(r===i)continue; var f=A[r][i]/piv; for(var c2=i;c2<n;c2++)A[r][c2]-=f*A[i][c2]; b[r]-=f*b[i]; } }
+      var x=[]; for(var i2=0;i2<n;i2++)x.push(b[i2]/(A[i2][i2]||1e-9)); return x; }
+    function fit(){ var d=deg, m=d+1; var A=[],bb=[]; for(var i=0;i<m;i++){A.push([]);for(var j=0;j<m;j++)A[i].push(0);bb.push(0);}
+      for(var p=0;p<train.length;p++){ var pw=[]; var xv=train[p].x/3; for(var k=0;k<m;k++)pw.push(Math.pow(xv,k));
+        for(var i=0;i<m;i++){ for(var j=0;j<m;j++)A[i][j]+=pw[i]*pw[j]; bb[i]+=pw[i]*train[p].y; } }
+      for(var i=0;i<m;i++)A[i][i]+=1e-6; W=solve(A,bb); }
+    function pred(x){ var xv=x/3, s=0; for(var k=0;k<W.length;k++)s+=W[k]*Math.pow(xv,k); return s; }
+    function mse(set){ var s=0; for(var i=0;i<set.length;i++){ var e=pred(set[i].x)-set[i].y; s+=e*e; } return s/set.length; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.beginPath(); ctx.moveTo(0,DY(0)); ctx.lineTo(Wd,DY(0)); ctx.stroke();
+      ctx.setLineDash([6,5]); ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.6; ctx.beginPath(); for(var i=0;i<=200;i++){ var x=-XR+i/200*2*XR,y=truef(x); (i?ctx.lineTo:ctx.moveTo).call(ctx,DX(x),DY(y)); } ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle='#5be0c0'; ctx.lineWidth=3; ctx.shadowBlur=12; ctx.shadowColor='#5be0c0'; ctx.beginPath(); for(var i=0;i<=300;i++){ var x=-XR+i/300*2*XR,y=Math.max(-YR*1.4,Math.min(YR*1.4,pred(x))); (i?ctx.lineTo:ctx.moveTo).call(ctx,DX(x),DY(y)); } ctx.stroke(); ctx.shadowBlur=0;
+      for(var p=0;p<train.length;p++){ ctx.fillStyle='#5b9bff'; ctx.shadowBlur=8; ctx.shadowColor='#5b9bff'; ctx.beginPath(); ctx.arc(DX(train[p].x),DY(train[p].y),4.6,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.2; ctx.stroke(); }
+      var tr=mse(train), te=mse(test); document.getElementById('ofTr').textContent=tr.toFixed(3); document.getElementById('ofTe').textContent=te.toFixed(3);
+      document.getElementById('ofread').textContent = deg<=2?'Underfitting — too stiff to follow the wave. Both errors are high.':(te>tr*2.2&&deg>=7?'Overfitting — the curve chases the noise. Training error is tiny but test error has blown up.':'Good fit — the curve tracks the true pattern and generalises. Push the degree higher to see it overfit.'); }
+    document.getElementById('ofD').addEventListener('input',function(e){ deg=+e.target.value; document.getElementById('ofDl').textContent=deg; fit(); draw(); });
+    document.getElementById('ofNew').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script>
+</body>
+</html>
