@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bayes Explorer · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Bayes Explorer</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Bayes Explorer</h1>
+        <p>Is this coin fair? Start with a <b style="color:#8aa0c8">belief</b>, flip the coin, and watch your belief update. This is Bayes' rule in one picture: <b>posterior ∝ prior × likelihood</b> — where you end up is a tug-of-war between what you assumed and what you saw.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Set your <b>prior</b> (how biased you think the coin is, and how sure). Then add <b>heads</b> and <b>tails</b> you've observed.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The bright <b>posterior</b> curve slides from your prior toward the data — and gets sharper (more certain) the more flips you add.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Prior: heads-lean <span class="v" id="baAl">2</span></label><input id="baA" class="wslider" type="range" min="1" max="20" value="2"></div>
+        <div class="lab-ctl"><label>Prior: tails-lean <span class="v" id="baBl">2</span></label><input id="baB" class="wslider" type="range" min="1" max="20" value="2"></div>
+        <div class="lab-ctl"><label>Observed heads <span class="v" id="baHl">7</span></label><input id="baH" class="wslider" type="range" min="0" max="50" value="7"></div>
+        <div class="lab-ctl"><label>Observed tails <span class="v" id="baTl">3</span></label><input id="baT" class="wslider" type="range" min="0" max="50" value="3"></div>
+      </div>
+      <div class="lab-stage"><span class="badge">belief about the coin's bias p</span><canvas id="bacv" width="820" height="430" aria-label="prior likelihood posterior"></canvas></div>
+      <div class="lab-readout" id="baread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> each curve is a <b>Beta distribution</b> over the coin's true heads-probability p. The prior is your starting belief; the likelihood is what the flips alone say; the posterior multiplies them and re-normalises. With few flips the prior dominates; pile on evidence and the data wins and the belief narrows to a spike. This is <a href="../lessons/track-1-linear-algebra-probability/09-probability-bayes.html">Bayes' rule</a>, live.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('bacv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var a0=2,b0=2,H=7,T=3;
+    function betaPdf(p,a,b){ if(p<=0||p>=1) return 0; return Math.exp((a-1)*Math.log(p)+(b-1)*Math.log(1-p)); }
+    function curve(a,b){ var ys=[],Z=0,dp=1/240; for(var i=0;i<=240;i++){ var p=i/240, v=betaPdf(p,a,b); ys.push(v); Z+=v*dp; } var mx=0; for(var i=0;i<=240;i++){ ys[i]/=(Z||1); if(ys[i]>mx)mx=ys[i]; } return {ys:ys,mx:mx}; }
+    function PX(i){return 54+i/240*(Wd-84);} function PY(v,mx){return Ht-42-v/mx*(Ht-90);}
+    function drawCurve(c,mxAll,color,fill){ ctx.beginPath(); for(var i=0;i<=240;i++){ var x=PX(i),y=PY(c.ys[i],mxAll); (i?ctx.lineTo:ctx.moveTo).call(ctx,x,y); }
+      if(fill){ ctx.lineTo(PX(240),Ht-42); ctx.lineTo(PX(0),Ht-42); ctx.closePath(); var gr=ctx.createLinearGradient(0,40,0,Ht); gr.addColorStop(0,color+'66'); gr.addColorStop(1,color+'08'); ctx.fillStyle=gr; ctx.fill(); }
+      ctx.beginPath(); for(var i=0;i<=240;i++){ var x=PX(i),y=PY(c.ys[i],mxAll); (i?ctx.lineTo:ctx.moveTo).call(ctx,x,y); } ctx.strokeStyle=color; ctx.lineWidth=fill?2.8:2; ctx.shadowBlur=fill?14:0; ctx.shadowColor=color; ctx.stroke(); ctx.shadowBlur=0; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.lineWidth=1; for(var g=0;g<=10;g++){ var x=PX(g*24); ctx.beginPath(); ctx.moveTo(x,Ht-42); ctx.lineTo(x,40); ctx.stroke(); ctx.fillStyle='#8892b0'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText((g/10).toFixed(1),x,Ht-24); }
+      ctx.fillStyle='#8892b0'; ctx.fillText('p (chance of heads)  →  fair = 0.5',Wd/2,Ht-8);
+      var prior=curve(a0,b0), like=curve(H+1,T+1), post=curve(a0+H,b0+T);
+      var mxAll=Math.max(prior.mx,like.mx,post.mx);
+      drawCurve(prior,mxAll,'#8aa0c8',false); drawCurve(like,mxAll,'#ffa24d',false); drawCurve(post,mxAll,'#5be0c0',true);
+      // legend
+      var lg=[['prior (your belief)','#8aa0c8'],['likelihood (the flips)','#ffa24d'],['posterior (updated)','#5be0c0']];
+      ctx.textAlign='left'; for(var i=0;i<3;i++){ ctx.fillStyle=lg[i][1]; ctx.fillRect(60,48+i*20,14,4); ctx.fillStyle='#cdd6ea'; ctx.font='12px system-ui'; ctx.fillText(lg[i][1]&&lg[i][0],80,53+i*20); }
+      var pm=(a0+H)/(a0+H+b0+T);
+      document.getElementById('baread').textContent='Posterior belief: the coin lands heads about '+(pm*100).toFixed(0)+'% of the time (peak of the green curve). '+((H+T)<6?'Few flips → the prior still has a big say.':'Lots of flips → the data dominates and the belief is sharp.'); }
+    function bind(id,lab,set){ var e=document.getElementById(id); e.addEventListener('input',function(){ set(+e.value); document.getElementById(lab).textContent=e.value; draw(); }); }
+    bind('baA','baAl',function(v){a0=v;}); bind('baB','baBl',function(v){b0=v;}); bind('baH','baHl',function(v){H=v;}); bind('baT','baTl',function(v){T=v;});
+    draw();
+  })();
+  </script>
+</body>
+</html>

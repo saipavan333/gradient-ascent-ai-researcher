@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>K-Means Clustering Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; K-Means Clustering</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>K-Means Clustering</h1>
+        <p>Unsupervised learning you can watch happen. There are no labels — just a cloud of points. K-means finds the groups by itself, two moves at a time: colour each point by its nearest centre, then slide every centre to the middle of its colour.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Set <b>k</b> (how many clusters), then press <b>Run</b> — or <b>Step</b> to go one move at a time. Click the canvas to add your own points.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Points snap to their nearest glowing centre; the centres drift into the heart of each group and lock in place once nothing changes.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Clusters k <span class="v" id="kmKl">4</span></label><input id="kmK" class="wslider" type="range" min="2" max="6" value="4"></div>
+        <button class="lab-btn" id="kmRun">▶ Run</button>
+        <button class="lab-btn ghost" id="kmStep">Step</button>
+        <button class="lab-btn ghost" id="kmReset">↺ Re-seed centres</button>
+        <button class="lab-btn ghost" id="kmNew">⚄ New points</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="kmIt">0</b><span>iterations</span></div><div class="s"><b id="kmMoved">—</b><span>points that moved</span></div></div>
+      <div class="lab-stage"><span class="badge">click to add points</span><canvas id="kmcv" width="820" height="470" aria-label="k-means clustering"></canvas></div>
+      <div class="lab-readout" id="kmread">Press ▶ Run and watch the centres find the clusters. Try k=3 on a 4-blob cloud — what goes wrong?</div>
+      <div class="lab-explain"><b>What's happening:</b> k-means minimises the total distance from points to their centre by alternating two guaranteed-downhill steps — <b>assign</b> (nearest centre) and <b>update</b> (mean of the group). It always converges, but where it lands depends on the starting centres — press <b>Re-seed</b> a few times and watch it settle differently. This is <a href="../lessons/track-12-classical-ml/00-linear-logistic-regression.html">Classical ML</a> in motion.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('kmcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var PAL=['#5b9bff','#ffa24d','#4fd6b5','#c58bff','#ff7a9c','#ffd24d'];
+    var pts=[], cen=[], K=4, it=0, playing=false, raf=null, fc=0, moved=0;
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function genData(){ pts=[]; var nb=4; for(var b=0;b<nb;b++){ var cx=90+Math.random()*(Wd-180), cy=70+Math.random()*(Ht-140), s=28+Math.random()*22;
+      for(var i=0;i<44;i++) pts.push({x:cx+gauss()*s*2.0,y:cy+gauss()*s*2.0,c:-1}); } clampPts(); }
+    function clampPts(){ for(var i=0;i<pts.length;i++){ pts[i].x=Math.max(12,Math.min(Wd-12,pts[i].x)); pts[i].y=Math.max(12,Math.min(Ht-12,pts[i].y)); } }
+    function seed(){ cen=[]; for(var i=0;i<K;i++){ var p=pts[Math.floor(Math.random()*pts.length)]; cen.push({x:p.x+gauss()*10,y:p.y+gauss()*10,tr:[]}); } it=0; moved=0; assign(); }
+    function assign(){ moved=0; for(var i=0;i<pts.length;i++){ var best=0,bd=1e18; for(var k=0;k<cen.length;k++){ var dx=pts[i].x-cen[k].x,dy=pts[i].y-cen[k].y,d=dx*dx+dy*dy; if(d<bd){bd=d;best=k;} } if(pts[i].c!==best){moved++;} pts[i].c=best; } }
+    function move(){ for(var k=0;k<cen.length;k++){ var sx=0,sy=0,n=0; for(var i=0;i<pts.length;i++) if(pts[i].c===k){sx+=pts[i].x;sy+=pts[i].y;n++;} if(n){ cen[k].tr.push([cen[k].x,cen[k].y]); if(cen[k].tr.length>30)cen[k].tr.shift(); cen[k].x=sx/n; cen[k].y=sy/n; } } }
+    function step(){ move(); assign(); it++; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      for(var i=0;i<pts.length;i++){ var c=pts[i].c<0?'#8892b0':PAL[pts[i].c%PAL.length]; ctx.fillStyle=c; ctx.globalAlpha=.9; ctx.beginPath(); ctx.arc(pts[i].x,pts[i].y,3.6,0,6.2832); ctx.fill(); }
+      ctx.globalAlpha=1;
+      for(var k=0;k<cen.length;k++){ var c=PAL[k%PAL.length];
+        ctx.strokeStyle=c; ctx.globalAlpha=.5; ctx.lineWidth=2; ctx.beginPath(); for(var t=0;t<cen[k].tr.length;t++){var p=cen[k].tr[t];(t?ctx.lineTo:ctx.moveTo).call(ctx,p[0],p[1]);} ctx.lineTo(cen[k].x,cen[k].y); ctx.stroke(); ctx.globalAlpha=1;
+        ctx.shadowBlur=20; ctx.shadowColor=c; ctx.fillStyle=c; ctx.beginPath(); var s=9; ctx.moveTo(cen[k].x,cen[k].y-s); ctx.lineTo(cen[k].x+s,cen[k].y); ctx.lineTo(cen[k].x,cen[k].y+s); ctx.lineTo(cen[k].x-s,cen[k].y); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=1.6; ctx.stroke(); }
+      document.getElementById('kmIt').textContent=it; document.getElementById('kmMoved').textContent=moved;
+      document.getElementById('kmread').textContent = moved===0&&it>0 ? ('Converged in '+it+' iterations — no point changed cluster. Re-seed to try a different start.') : (playing?('Iterating… '+moved+' points just switched clusters.'):'Paused. Press Run or Step.'); }
+    function loop(){ if(!playing)return; fc++; if(fc%20===0){ step(); if(moved===0){ setRun(false); } } draw(); if(playing)raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('kmRun').textContent=on?'⏸ Pause':'▶ Run'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('kmK').addEventListener('input',function(e){ K=+e.target.value; document.getElementById('kmKl').textContent=K; setRun(false); seed(); draw(); });
+    document.getElementById('kmRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('kmStep').addEventListener('click',function(){ setRun(false); step(); draw(); });
+    document.getElementById('kmReset').addEventListener('click',function(){ setRun(false); seed(); draw(); });
+    document.getElementById('kmNew').addEventListener('click',function(){ setRun(false); genData(); seed(); draw(); });
+    cv.addEventListener('click',function(e){ var r=cv.getBoundingClientRect(); var x=(e.clientX-r.left)/r.width*Wd, y=(e.clientY-r.top)/r.height*Ht; pts.push({x:x,y:y,c:-1}); assign(); draw(); });
+    genData(); seed(); draw();
+  })();
+  </script>
+</body>
+</html>
