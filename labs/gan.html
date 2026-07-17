@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GAN Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; GAN Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>GAN: The Forger's Game</h1>
+        <p>Two networks locked in a duel. A <b style="color:#ffa24d">generator</b> tries to forge samples that look real; a <b style="color:#c58bff">discriminator</b> tries to spot the fakes. As they fight, the forgeries get better and better — until they're indistinguishable from the real thing.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Train</b>. Drag the <b>real data</b> somewhere new and watch the generator chase it.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The orange <b>fake</b> distribution slides and reshapes until it sits right on top of the blue <b>real</b> one, and the discriminator's confidence flattens to a coin-flip.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Real centre <span class="v" id="gnRl">1.2</span></label><input id="gnR" class="wslider" type="range" min="-25" max="25" value="12"></div>
+        <button class="lab-btn" id="gnRun">▶ Train</button>
+        <button class="lab-btn ghost" id="gnReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="gnIt">0</b><span>steps</span></div><div class="s"><b id="gnGap">—</b><span>fake − real gap</span></div><div class="s"><b id="gnD">—</b><span>discriminator</span></div></div>
+      <div class="lab-stage"><span class="badge">blue = real · orange = generated · violet = discriminator</span><canvas id="gncv" width="820" height="420" aria-label="gan training"></canvas></div>
+      <div class="lab-readout" id="gnread">Press ▶ Train — the generator starts clueless and learns to mimic the real distribution.</div>
+      <div class="lab-explain"><b>What's happening:</b> the generator maps noise to samples with a mean and spread it can tune; the discriminator is a classifier trying to separate real from fake. Each step, the discriminator sharpens and the generator moves to fool it — a min-max game whose equilibrium is <b>fake = real</b>, where the discriminator can only guess (50%). This is <a href="../lessons/track-6-generative/03-gan.html">GANs</a>, in one dimension.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('gncv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var realMu=1.2, realSig=0.6, gMu=-2.2, gSig=1.4, dw=1, dc=0, it=0, playing=false, raf=null;
+    function sig(z){return 1/(1+Math.exp(-z));}
+    function step(){ // sample real + fake
+      var real=[],fake=[]; for(var i=0;i<64;i++){ real.push(realMu+gnoise()*realSig); fake.push(gMu+gnoise()*gSig); }
+      // train discriminator: logistic, real=1 fake=0
+      var gw=0,gc=0; for(var i=0;i<64;i++){ var pr=sig(dw*real[i]+dc); gw+=(pr-1)*real[i]; gc+=(pr-1); var pf=sig(dw*fake[i]+dc); gw+=(pf-0)*fake[i]; gc+=(pf-0); }
+      dw-=0.02*gw/128; dc-=0.02*gc/128;
+      // train generator: push fake to increase D(fake) -> move mu toward where D says real
+      var gmu=0; for(var i=0;i<64;i++){ var pf=sig(dw*fake[i]+dc); gmu+=(pf-1)*dw; } gMu-=0.06*gmu/64;
+      gSig+=0.02*(realSig-gSig); gSig=Math.max(0.25,gSig);
+      it++; }
+    function gnoise(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function normpdf(x,mu,s){ return Math.exp(-0.5*Math.pow((x-mu)/s,2))/(s*2.5066); }
+    var XR=6;
+    function DX(x){return (x/XR+1)/2*Wd;} function DY(v,mx){return Ht-40-v/mx*(Ht-80);}
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var mx=Math.max(normpdf(realMu,realMu,realSig),normpdf(gMu,gMu,gSig))*1.1;
+      function curve(mu,s,col,fill){ ctx.beginPath(); for(var i=0;i<=300;i++){ var x=-XR+i/300*2*XR,v=normpdf(x,mu,s); (i?ctx.lineTo:ctx.moveTo).call(ctx,DX(x),DY(v,mx)); }
+        if(fill){ ctx.lineTo(DX(XR),Ht-40); ctx.lineTo(DX(-XR),Ht-40); ctx.closePath(); var g=ctx.createLinearGradient(0,40,0,Ht); g.addColorStop(0,col+'55'); g.addColorStop(1,col+'08'); ctx.fillStyle=g; ctx.fill(); }
+        ctx.beginPath(); for(var i=0;i<=300;i++){ var x=-XR+i/300*2*XR,v=normpdf(x,mu,s); (i?ctx.lineTo:ctx.moveTo).call(ctx,DX(x),DY(v,mx)); } ctx.strokeStyle=col; ctx.lineWidth=2.6; ctx.shadowBlur=10; ctx.shadowColor=col; ctx.stroke(); ctx.shadowBlur=0; }
+      // discriminator curve (0..1) scaled
+      ctx.beginPath(); for(var i=0;i<=300;i++){ var x=-XR+i/300*2*XR,d=sig(dw*x+dc); (i?ctx.lineTo:ctx.moveTo).call(ctx,DX(x),Ht-40-d*(Ht-80)); } ctx.strokeStyle='rgba(197,139,255,.8)'; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+      curve(realMu,realSig,'#5b9bff',true); curve(gMu,gSig,'#ffa24d',true);
+      var gap=Math.abs(gMu-realMu); document.getElementById('gnIt').textContent=it; document.getElementById('gnGap').textContent=gap.toFixed(2); document.getElementById('gnD').textContent=(sig(dw*gMu+dc)*100).toFixed(0)+'% fake→real';
+      document.getElementById('gnread').textContent = gap<0.35?'The forgeries now match the real data — the discriminator is down to a coin-flip. Equilibrium reached.':(playing?('Training… the fake distribution is closing in (gap '+gap.toFixed(2)+').'):'Paused. Press Train to continue the duel.'); }
+    function loop(){ if(!playing)return; for(var k=0;k<3;k++)step(); draw(); raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('gnRun').textContent=on?'⏸ Pause':'▶ Train'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('gnR').addEventListener('input',function(e){ realMu=(+e.target.value)/10; document.getElementById('gnRl').textContent=realMu.toFixed(1); draw(); });
+    document.getElementById('gnRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('gnReset').addEventListener('click',function(){ setRun(false); gMu=-2.2;gSig=1.4;dw=1;dc=0;it=0; draw(); });
+    draw();
+  })();
+  </script>
+</body>
+</html>
