@@ -796,6 +796,43 @@
     window.addEventListener("beforeunload", function () { synth.cancel(); });
   }
 
+  /* --------------------------------------------------------------------------
+     constellation backdrop — faint generative starfield behind opaque content
+     (z-index:-1 in CSS; theme-aware; pauses off-screen; static on reduced-motion)
+     -------------------------------------------------------------------------- */
+  function initSkyfield() {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+    var cv = document.createElement("canvas"); cv.id = "skyfield"; cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv);
+    var ctx = cv.getContext && cv.getContext("2d"); if (!ctx) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), pts = [], W = 0, H = 0, raf = null;
+    function col() { return document.documentElement.getAttribute("data-theme") === "dark" ? "233,229,219" : "58,74,134"; }
+    function resize() {
+      W = cv.width = Math.floor(window.innerWidth * dpr); H = cv.height = Math.floor(window.innerHeight * dpr);
+      cv.style.width = window.innerWidth + "px"; cv.style.height = window.innerHeight + "px";
+      var n = Math.max(24, Math.min(120, Math.round(window.innerWidth * window.innerHeight / 14000)));
+      pts = []; for (var i = 0; i < n; i++) pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .10 * dpr, vy: (Math.random() - .5) * .10 * dpr, r: (Math.random() * 1.3 + .6) * dpr });
+    }
+    function draw(anim) {
+      var c = col(), md = 120 * dpr; ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < pts.length; i++) {
+        var p = pts[i];
+        if (anim) { p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x += W; if (p.x > W) p.x -= W; if (p.y < 0) p.y += H; if (p.y > H) p.y -= H; }
+        for (var j = i + 1; j < pts.length; j++) {
+          var q = pts[j], dx = p.x - q.x, dy = p.y - q.y, d2 = dx * dx + dy * dy;
+          if (d2 < md * md) { var a = (1 - Math.sqrt(d2) / md) * .10; ctx.strokeStyle = "rgba(" + c + "," + a.toFixed(3) + ")"; ctx.lineWidth = dpr; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+        }
+        ctx.fillStyle = "rgba(" + c + ",0.17)"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+      }
+    }
+    function loop() { if (document.hidden) { raf = null; return; } draw(true); raf = window.requestAnimationFrame(loop); }
+    resize();
+    window.addEventListener("resize", function () { resize(); if (reduce) draw(false); });
+    if (reduce) { draw(false); }
+    else { loop(); document.addEventListener("visibilitychange", function () { if (!document.hidden && !raf) loop(); }); }
+  }
+
   function boot() {
     // theme: stored or system preference
     const saved = store.get("theme", null);
@@ -812,6 +849,7 @@
     mobileMenu();
     buildHome();
     readAloud();
+    initSkyfield();
   }
 
   if (document.readyState === "loading") {
