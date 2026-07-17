@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RNN Memory · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; RNN Memory</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>RNN Memory: Vanishing &amp; Exploding</h1>
+        <p>A recurrent network reads a sequence one step at a time, carrying a hidden "memory" forward. But that memory has a problem: nudge the recurrence weight below 1 and early signals fade to nothing; above 1 and they blow up. This is why plain RNNs forget.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">A pulse enters at step 0. Slide the <b>memory weight</b> and the <b>sequence length</b>.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Weight &lt; 1 → the memory <b>fades</b> (vanishing gradient, forgetting). Weight = 1 → it <b>holds</b>. Weight &gt; 1 → it <b>explodes</b>.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Memory weight <span class="v" id="rnWl">0.85</span></label><input id="rnW" class="wslider" type="range" min="30" max="150" value="85"></div>
+        <div class="lab-ctl"><label>Sequence length <span class="v" id="rnNl">24</span></label><input id="rnN" class="wslider" type="range" min="6" max="40" value="24"></div>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rnEnd">—</b><span>memory left at the end</span></div></div>
+      <div class="lab-stage"><span class="badge">hidden state after a pulse at step 0</span><canvas id="rncv" width="820" height="360" aria-label="rnn memory decay"></canvas></div>
+      <div class="lab-readout" id="rnread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> the hidden state updates as <b>h<sub>t</sub> = tanh(w·h<sub>t−1</sub> + x<sub>t</sub>)</b>. With one pulse at the start, h shrinks by roughly a factor of w each step — so after many steps only a weight near 1 preserves it. The same factor multiplies the gradient on the way back, which is exactly the <b>vanishing/exploding gradient</b> problem that LSTMs and GRUs were invented to fix. This is <a href="../lessons/track-16-sequence-models/01-vanishing-gradients.html">Vanishing Gradients</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rncv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var w=0.85, N=24;
+    function series(){ var h=0, hs=[]; for(var t=0;t<N;t++){ var x=(t===0)?2.0:0; h=Math.tanh(w*h+x); hs.push(h); } return hs; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); var hs=series(); var pad=50, bw=(Wd-2*pad)/N, base=Ht-60, top=50;
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(pad,base); ctx.lineTo(Wd-pad,base); ctx.stroke();
+      // bars
+      for(var t=0;t<N;t++){ var hh=hs[t]*(base-top); var x=pad+t*bw; var col=hs[t]>=0?'#4fd6b5':'#ff8f6e';
+        ctx.fillStyle=col; ctx.globalAlpha=.85; ctx.shadowBlur=8; ctx.shadowColor=col; ctx.fillRect(x+2,base-hh,bw-4,hh); ctx.shadowBlur=0; ctx.globalAlpha=1; }
+      // line
+      ctx.strokeStyle='#8ab4ff'; ctx.lineWidth=2; ctx.beginPath(); for(var t=0;t<N;t++){ var x=pad+t*bw+bw/2,y=base-hs[t]*(base-top); (t?ctx.lineTo:ctx.moveTo).call(ctx,x,y);} ctx.stroke();
+      ctx.fillStyle='#8892b0'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('step 0 (pulse in)',pad+bw/2,base+20); ctx.fillText('step '+(N-1),Wd-pad-bw/2,base+20);
+      var endv=Math.abs(hs[N-1]); document.getElementById('rnEnd').textContent=(endv*100).toFixed(0)+'%';
+      document.getElementById('rnread').textContent = w<0.98?('Memory weight '+w.toFixed(2)+' < 1 → the pulse has faded to '+(endv*100).toFixed(0)+'% by the end. The network has forgotten.'):(w>1.02?('Weight '+w.toFixed(2)+' > 1 → the signal saturates/explodes — unstable training.'):'Weight ≈ 1 → the memory is preserved all the way. This knife-edge is why plain RNNs are fragile.'); }
+    document.getElementById('rnW').addEventListener('input',function(e){ w=(+e.target.value)/100; document.getElementById('rnWl').textContent=w.toFixed(2); draw(); });
+    document.getElementById('rnN').addEventListener('input',function(e){ N=+e.target.value; document.getElementById('rnNl').textContent=N; draw(); });
+    draw();
+  })();
+  </script></body></html>
