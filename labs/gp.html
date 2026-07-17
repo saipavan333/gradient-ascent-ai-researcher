@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gaussian Process · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Gaussian Process</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Gaussian Process: Honest Uncertainty</h1>
+        <p>Most models give you a single guess. A Gaussian process gives you a guess <b>plus</b> how sure it is — confident where it has seen data, and honestly uncertain everywhere else. Click to add points and watch the confidence band breathe.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Click anywhere</b> to add a data point, and slide the <b>smoothness</b> (length-scale).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The shaded band <b>pinches</b> to nothing at every data point and <b>flares</b> wide in the gaps and beyond the edges — the model admitting what it doesn't know.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Smoothness <span class="v" id="gpLl">1.0</span></label><input id="gpL" class="wslider" type="range" min="20" max="200" value="100" style="min-width:240px"></div>
+        <button class="lab-btn ghost" id="gpClear">Clear points</button>
+      </div>
+      <div class="lab-stage"><span class="badge">click to add points · band = ±2σ uncertainty</span><canvas id="gpcv" width="820" height="440" aria-label="gaussian process regression"></canvas></div>
+      <div class="lab-readout" id="gpread">Click to place a few points and watch the curve thread them with an uncertainty band.</div>
+      <div class="lab-explain"><b>What's happening:</b> a GP treats the unknown function as a distribution over <i>all</i> smooth curves that pass through your points. Its <b>posterior mean</b> is the best single guess; its <b>variance</b> is zero at the data (it must pass through) and grows with distance from it. The <b>length-scale</b> sets how quickly the function is allowed to wiggle. This is <a href="../lessons/track-21-bayesian-ml/03-gaussian-processes.html">Gaussian Processes</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('gpcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var X=[], Y=[], ell=1.0, XR=5, YR=2.4, noise=0.02;
+    function DX(x){return (x/XR+1)/2*Wd;} function DY(y){return (1-(y/YR+1)/2)*Ht;}
+    function px2x(px){return (px/Wd*2-1)*XR;} function py2y(py){return (1-py/Ht)*2*YR-YR;}
+    function ker(a,b){ return Math.exp(-0.5*(a-b)*(a-b)/(ell*ell)); }
+    function inv(A){ var n=A.length, I=[]; for(var i=0;i<n;i++){I.push([]);for(var j=0;j<n;j++)I[i].push(i===j?1:0);}
+      for(var i=0;i<n;i++){ var p=A[i][i]||1e-9; for(var j=0;j<n;j++){A[i][j]/=p;I[i][j]/=p;} for(var r=0;r<n;r++){ if(r===i)continue; var f=A[r][i]; for(var j=0;j<n;j++){A[r][j]-=f*A[i][j];I[r][j]-=f*I[i][j];} } } return I; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.moveTo(0,DY(0)); ctx.lineTo(Wd,DY(0)); ctx.stroke();
+      var n=X.length, mean=[], sd=[], xs=[];
+      if(n>0){ var K=[]; for(var i=0;i<n;i++){K.push([]);for(var j=0;j<n;j++)K[i].push(ker(X[i],X[j])+(i===j?noise:0));} var Ki=inv(K.map(function(r){return r.slice();}));
+        var alpha=[]; for(var i=0;i<n;i++){var s=0;for(var j=0;j<n;j++)s+=Ki[i][j]*Y[j];alpha.push(s);}
+        for(var t=0;t<=200;t++){ var x=-XR+t/200*2*XR; xs.push(x); var ks=[]; for(var i=0;i<n;i++)ks.push(ker(x,X[i]));
+          var m=0; for(var i=0;i<n;i++)m+=ks[i]*alpha[i]; var vv=0; for(var i=0;i<n;i++){var s=0;for(var j=0;j<n;j++)s+=Ki[i][j]*ks[j];vv+=ks[i]*s;} var variance=Math.max(0,1-vv); mean.push(m); sd.push(Math.sqrt(variance)); } }
+      else { for(var t=0;t<=200;t++){ xs.push(-XR+t/200*2*XR); mean.push(0); sd.push(1); } }
+      // band
+      ctx.beginPath(); for(var t=0;t<=200;t++){ var x=DX(xs[t]),y=DY(mean[t]+2*sd[t]); (t?ctx.lineTo:ctx.moveTo).call(ctx,x,y);} for(var t=200;t>=0;t--){ ctx.lineTo(DX(xs[t]),DY(mean[t]-2*sd[t])); } ctx.closePath(); ctx.fillStyle='rgba(91,155,255,.18)'; ctx.fill();
+      // mean
+      ctx.strokeStyle='#5be0c0'; ctx.lineWidth=2.6; ctx.shadowBlur=10; ctx.shadowColor='#5be0c0'; ctx.beginPath(); for(var t=0;t<=200;t++){ (t?ctx.lineTo:ctx.moveTo).call(ctx,DX(xs[t]),DY(mean[t])); } ctx.stroke(); ctx.shadowBlur=0;
+      for(var i=0;i<n;i++){ ctx.fillStyle='#ffd24d'; ctx.shadowBlur=10; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(DX(X[i]),DY(Y[i]),5,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#0a0f1f'; ctx.lineWidth=1.5; ctx.stroke(); }
+      document.getElementById('gpread').textContent = n===0?'Empty — the model is uncertain everywhere (flat band). Click to teach it.':('With '+n+' point'+(n>1?'s':'')+', the band pinches at the data and flares in the gaps. Lower the smoothness to let it wiggle more.'); }
+    cv.addEventListener('click',function(e){ var r=cv.getBoundingClientRect(); X.push(px2x((e.clientX-r.left)/r.width*Wd)); Y.push(py2y((e.clientY-r.top)/r.height*Ht)); draw(); });
+    document.getElementById('gpL').addEventListener('input',function(e){ ell=(+e.target.value)/100; document.getElementById('gpLl').textContent=ell.toFixed(2); draw(); });
+    document.getElementById('gpClear').addEventListener('click',function(){ X=[];Y=[]; draw(); });
+    draw();
+  })();
+  </script></body></html>
