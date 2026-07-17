@@ -336,7 +336,7 @@
         (primary ? 'color:var(--primary-ink);background:var(--primary-weak)' : 'color:var(--text-muted);background:var(--bg);border:1px solid var(--border)') + '">' + label + '</a>';
     }
     onramp.innerHTML = _oc("start-here.html", "\u{1F680} Start", true) + _oc("math-primer.html", "\u2211 Math") +
-      _oc("progress.html", "\u{1F4CA} Progress") + _oc("glossary.html", "\u{1F4D6} Glossary") + _oc("flashcards.html", "\u{1F0CF} Cards");
+      _oc("progress.html", "\u{1F4CA} Progress") + _oc("glossary.html", "\u{1F4D6} Glossary") + _oc("flashcards.html", "\u{1F0CF} Cards") + _oc("labs.html", "\u{1F52C} Labs");
     sb.appendChild(onramp);
 
     const nav = el("nav", "sb-nav");
