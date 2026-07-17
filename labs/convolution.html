@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Convolution Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Convolution Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Convolution &amp; Filters</h1>
+        <p>The one operation behind every vision model. A tiny <b>filter</b> slides across your drawing and, at each spot, reports how strongly the local pattern matches it. Draw something, pick a filter, and watch the <b>feature map</b> light up on the right.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Draw</b> on the left grid (click &amp; drag), then choose a <b>filter</b> from the menu.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The 3×3 window sweeps your image; the right grid glows <b style="color:#4fd6b5">teal</b> where the filter fires and <b style="color:#ffa24d">orange</b> where it fires the opposite way — edges, blur, or sharpening.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Filter</label><select id="cvK"><option value="edge">Edge detect</option><option value="sobelx">Vertical edges</option><option value="sobely">Horizontal edges</option><option value="sharpen">Sharpen</option><option value="blur">Blur</option><option value="emboss">Emboss</option></select></div>
+        <button class="lab-btn ghost" id="cvClear">✎ Clear</button>
+        <button class="lab-btn ghost" id="cvShape">⚄ Sample shape</button>
+      </div>
+      <div class="lab-stage"><span class="badge">left: your image  ·  right: filter response</span><canvas id="cvcv" width="820" height="410" aria-label="convolution feature map"></canvas></div>
+      <div class="lab-readout" id="cvread">Draw a shape on the left. The window sweeping across shows convolution happening one patch at a time.</div>
+      <div class="lab-explain"><b>What's happening:</b> at every position the filter multiplies its 3×3 numbers by the pixels underneath and adds them up — one number out. An <b>edge</b> filter sums to zero on flat areas and spikes at borders; a <b>blur</b> filter averages. Because the same tiny filter is reused everywhere, a CNN learns to spot a pattern <i>anywhere</i> in the image. This is <a href="../lessons/track-15-cnns-vision/00-convolution.html">Convolution</a>, hands-on.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('cvcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var N=18, img=[], out=[], K='edge', wi=1, wj=1, raf=null, painting=false, paintVal=1;
+    var KERN={ edge:[[-1,-1,-1],[-1,8,-1],[-1,-1,-1]], sobelx:[[-1,0,1],[-2,0,2],[-1,0,1]], sobely:[[-1,-2,-1],[0,0,0],[1,2,1]], sharpen:[[0,-1,0],[-1,5,-1],[0,-1,0]], blur:[[1,1,1],[1,1,1],[1,1,1]], emboss:[[-2,-1,0],[-1,1,1],[0,1,2]] };
+    function blank(){ img=[]; for(var i=0;i<N;i++){img.push([]);for(var j=0;j<N;j++)img[i].push(0);} conv(); }
+    function shape(){ blank(); for(var i=0;i<N;i++)for(var j=0;j<N;j++){ if(Math.abs(i-j)<2) img[i][j]=1; if(i>3&&i<N-4&&Math.abs(j-(N-4))<2) img[i][j]=1; var dx=i-6,dy=j-11; if(dx*dx+dy*dy<10) img[i][j]=1; } conv(); }
+    function conv(){ out=[]; var kk=KERN[K], div=(K==='blur')?9:1; for(var i=0;i<N;i++){ out.push([]); for(var j=0;j<N;j++){ var s=0; for(var a=-1;a<=1;a++)for(var b=-1;b<=1;b++){ var ii=i+a,jj=j+b; if(ii<0||jj<0||ii>=N||jj>=N)continue; s+=img[ii][jj]*kk[a+1][b+1]; } out[i].push(s/div); } } }
+    var GW, gx0=0, gx1=0, cellsz=0, pad=18;
+    function layout(){ GW=(Wd-3*pad)/2; cellsz=Math.min(GW/N,(Ht-2*pad)/N); GW=cellsz*N; gx0=pad; gx1=Wd-pad-GW; }
+    function cell(v,glow,col){ return; }
+    function draw(){ layout(); ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); var oy=(Ht-cellsz*N)/2;
+      ctx.textAlign='left'; ctx.fillStyle='#8892b0'; ctx.font='12px system-ui'; ctx.fillText('input',gx0,oy-6); ctx.fillText('feature map',gx1,oy-6);
+      var mx=0.001; for(var i=0;i<N;i++)for(var j=0;j<N;j++)mx=Math.max(mx,Math.abs(out[i][j]));
+      for(var i=0;i<N;i++)for(var j=0;j<N;j++){
+        var v=img[i][j]; ctx.fillStyle='rgba(120,160,255,'+(0.06+v*0.9)+')'; ctx.fillRect(gx0+j*cellsz,oy+i*cellsz,cellsz-1,cellsz-1);
+        var o=out[i][j]/mx, col=o>=0?'79,214,181':'255,162,77'; ctx.fillStyle='rgba('+col+','+(Math.min(1,Math.abs(o))*0.92+0.04)+')'; ctx.fillRect(gx1+j*cellsz,oy+i*cellsz,cellsz-1,cellsz-1);
+      }
+      // sliding window on input + highlighted output cell
+      ctx.strokeStyle='#ffe08a'; ctx.lineWidth=2.4; ctx.shadowBlur=12; ctx.shadowColor='#ffe08a';
+      ctx.strokeRect(gx0+(wj-1)*cellsz,oy+(wi-1)*cellsz,cellsz*3,cellsz*3);
+      ctx.strokeRect(gx1+wj*cellsz,oy+wi*cellsz,cellsz,cellsz); ctx.shadowBlur=0;
+    }
+    function loop(){ wj++; if(wj>=N-1){wj=1;wi++; if(wi>=N-1)wi=1;} draw(); raf=requestAnimationFrame(function(){ setTimeout(loop,55); }); }
+    function paintAt(e){ layout(); var r=cv.getBoundingClientRect(); var x=(e.clientX-r.left)/r.width*Wd, y=(e.clientY-r.top)/r.height*Ht; var oy=(Ht-cellsz*N)/2;
+      var j=Math.floor((x-gx0)/cellsz), i=Math.floor((y-oy)/cellsz); if(i>=0&&j>=0&&i<N&&j<N){ img[i][j]=paintVal; conv(); } }
+    cv.addEventListener('mousedown',function(e){ painting=true; paintVal=1; paintAt(e); });
+    cv.addEventListener('mousemove',function(e){ if(painting)paintAt(e); });
+    window.addEventListener('mouseup',function(){ painting=false; });
+    document.getElementById('cvK').addEventListener('change',function(e){ K=e.target.value; conv(); });
+    document.getElementById('cvClear').addEventListener('click',function(){ blank(); });
+    document.getElementById('cvShape').addEventListener('click',function(){ shape(); });
+    shape(); loop();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Attention Visualizer · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Attention Visualizer</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Attention Visualizer</h1>
+        <p>The idea that made Transformers work: every word can look at every other word and decide who matters. Click a word to see where <em>it</em> pays attention — and switch between "heads" to see that different heads learn completely different jobs.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Click any word</b> to make it the one doing the looking, and change the <b>head</b>.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Glowing arcs reach from your word to the ones it attends to — thicker arc = stronger attention. Each head has its own habit.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Attention head</label><select id="atH"><option value="0">Head 1 — previous word</option><option value="1">Head 2 — the subject</option><option value="2">Head 3 — first word</option><option value="3">Head 4 — itself</option></select></div>
+      </div>
+      <div class="lab-stage"><span class="badge">click a word · arcs show what it attends to</span><canvas id="atcv" width="820" height="360" aria-label="attention weights between tokens"></canvas></div>
+      <div class="lab-readout" id="atread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> attention gives every word a <b>query</b> and every word a <b>key</b>; the match between them (a dot product, softmaxed) becomes the weight of the arc. Stacking many heads lets one look back one word, another find the subject, another track quotes — and the network blends them. This is <a href="../lessons/track-5-transformers/01-self-attention.html">Self-attention</a>, made visible.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('atcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var toks=['The','cat','sat','on','the','mat','because','it','was','tired'], n=toks.length, head=0, q=7, box=[];
+    function weights(i){ var w=[]; for(var j=0;j<n;j++)w.push(0);
+      if(head===0){ w[Math.max(0,i-1)]=1; }
+      else if(head===1){ w[1]=0.7; w[Math.max(0,i-1)]+=0.3; }   // subject "cat"
+      else if(head===2){ w[0]=1; }
+      else { w[i]=1; }
+      var s=0; for(var j=0;j<n;j++)s+=w[j]; for(var j=0;j<n;j++)w[j]/=(s||1); return w; }
+    function layout(){ box=[]; var y=Ht-70, pad=24, gap=(Wd-2*pad)/n; ctx.font='600 17px system-ui';
+      for(var i=0;i<n;i++){ var w=ctx.measureText(toks[i]).width+26, x=pad+gap*i+gap/2; box.push({x:x,y:y,w:w,h:36}); } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); layout();
+      var w=weights(q);
+      for(var j=0;j<n;j++){ if(w[j]<0.02)continue; var a=box[q], b=box[j]; var mx=(a.x+b.x)/2, top=Math.min(a.y,b.y)-40-Math.abs(a.x-b.x)*0.18;
+        ctx.beginPath(); ctx.moveTo(a.x,a.y-20); ctx.quadraticCurveTo(mx,top,b.x,b.y-20);
+        ctx.strokeStyle='rgba(91,224,192,'+(0.25+w[j]*0.7)+')'; ctx.lineWidth=1.5+w[j]*9; ctx.shadowBlur=10; ctx.shadowColor='#5be0c0'; ctx.stroke(); ctx.shadowBlur=0; }
+      for(var i=0;i<n;i++){ var b=box[i], isq=(i===q); ctx.fillStyle=isq?'#5be0c0':'#141c30'; ctx.strokeStyle=isq?'#5be0c0':'rgba(255,255,255,.18)'; ctx.lineWidth=isq?2:1;
+        rr(b.x-b.w/2,b.y-b.h/2,b.w,b.h,9); ctx.fill(); ctx.stroke();
+        ctx.fillStyle=isq?'#06221d':'#dce4f2'; ctx.font='600 17px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(toks[i],b.x,b.y); }
+      ctx.textBaseline='alphabetic';
+      var top=0,tj=0; for(var j=0;j<n;j++)if(w[j]>top){top=w[j];tj=j;}
+      document.getElementById('atread').textContent='“'+toks[q]+'” attends most to “'+toks[tj]+'”. '+['This head just looks one word back.','This head hunts for the sentence subject.','This head always checks the first word.','This head attends to itself.'][head]; }
+    function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    cv.addEventListener('click',function(e){ var r=cv.getBoundingClientRect(); var x=(e.clientX-r.left)/r.width*Wd, y=(e.clientY-r.top)/r.height*Ht;
+      for(var i=0;i<n;i++){ var b=box[i]; if(Math.abs(x-b.x)<b.w/2&&Math.abs(y-b.y)<26){ q=i; draw(); break; } } });
+    document.getElementById('atH').addEventListener('change',function(e){ head=+e.target.value; draw(); });
+    draw();
+  })();
+  </script>
+</body>
+</html>
