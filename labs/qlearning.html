@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Q-Learning Gridworld · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Q-Learning Gridworld</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Q-Learning Gridworld</h1>
+        <p>An agent that learns to reach the goal purely by trial and error — no map, no instructions, just reward. Press <b>Train</b> and watch value flow outward from the goal while the arrows sharpen into a plan that dodges the pit.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Train</b> to run learning episodes (or <b>+100</b> for a burst). Reset to start over.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Cells glow <b style="color:#4fd6b5">green</b> as the agent learns they lead to reward; the arrows form the shortest safe route to the goal, curving around the <b style="color:#ff6e6e">pit</b>.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="qlRun">▶ Train</button>
+        <button class="lab-btn ghost" id="qlBurst">+100 episodes</button>
+        <button class="lab-btn ghost" id="qlReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="qlEp">0</b><span>episodes</span></div><div class="s"><b id="qlEps">1.00</b><span>exploration</span></div><div class="s"><b id="qlSucc">—</b><span>last outcome</span></div></div>
+      <div class="lab-stage"><span class="badge">cell glow = value · arrows = learned policy</span><canvas id="qlcv" width="560" height="470" aria-label="q-learning gridworld"></canvas></div>
+      <div class="lab-readout" id="qlread">Press ▶ Train. The agent knows nothing yet — watch it discover the goal.</div>
+      <div class="lab-explain"><b>What's happening:</b> the agent stores a value <b>Q(state, action)</b> for every move. After each step it nudges that value toward <i>reward + the best value it can reach next</i> — the <b>Bellman update</b>. Rewards at the goal slowly ripple backward until every cell knows which way to go. Early on it explores randomly; as <b>exploration</b> decays it exploits what it learned. This is <a href="../lessons/track-7-rl/01-value-q-learning.html">Q-learning</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('qlcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var R=6,C=6, goal=[0,5], pit=[1,5], walls=[[2,2],[3,2],[2,3]], Q, ep=0, eps=1.0, playing=false, raf=null, agent=null, lastOut='—';
+    function isW(r,c){ for(var i=0;i<walls.length;i++)if(walls[i][0]===r&&walls[i][1]===c)return true; return false; }
+    function isT(r,c){ return (r===goal[0]&&c===goal[1])||(r===pit[0]&&c===pit[1]); }
+    function reset(){ Q=[]; for(var r=0;r<R;r++){Q.push([]);for(var c=0;c<C;c++){Q[r].push([0,0,0,0]);}} ep=0; eps=1.0; lastOut='—'; agent=null; draw(); }
+    function nxt(r,c,a){ var dr=[-1,1,0,0][a],dc=[0,0,-1,1][a],nr=r+dr,nc=c+dc; if(nr<0||nr>=R||nc<0||nc>=C||isW(nr,nc))return [r,c]; return [nr,nc]; }
+    function episode(){ var r=R-1,c=0, steps=0; // start bottom-left
+      while(!isT(r,c)&&steps<80){ var a; if(Math.random()<eps)a=Math.floor(Math.random()*4); else a=argmax(Q[r][c]);
+        var n=nxt(r,c,a), nr=n[0],nc=n[1]; var rew=-0.03; if(nr===goal[0]&&nc===goal[1])rew=1; else if(nr===pit[0]&&nc===pit[1])rew=-1;
+        var best=isT(nr,nc)?0:Math.max.apply(null,Q[nr][nc]); Q[r][c][a]+=0.35*(rew+0.95*best-Q[r][c][a]); r=nr;c=nc; steps++; }
+      lastOut=(r===goal[0]&&c===goal[1])?'reached goal ✓':(r===pit[0]&&c===pit[1])?'fell in pit ✗':'timed out';
+      ep++; eps=Math.max(0.05,1.0*Math.pow(0.985,ep)); }
+    function argmax(a){ var b=0,bi=0; for(var i=0;i<4;i++)if(a[i]>b||(i===0)){if(i===0||a[i]>b){b=a[i];bi=i;}} return bi; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); var s=Math.min(Wd,Ht)/R, ox=(Wd-s*C)/2, oy=(Ht-s*R)/2;
+      for(var r=0;r<R;r++)for(var c=0;c<C;c++){ var x=ox+c*s,y=oy+r*s;
+        if(isW(r,c)){ ctx.fillStyle='#232a3a'; ctx.fillRect(x+2,y+2,s-4,s-4); continue; }
+        if(r===goal[0]&&c===goal[1]){ ctx.fillStyle='#123a2c'; ctx.fillRect(x+2,y+2,s-4,s-4); ctx.shadowBlur=16;ctx.shadowColor='#4fd6b5';ctx.fillStyle='#4fd6b5';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('GOAL',x+s/2,y+s/2+4);ctx.shadowBlur=0; continue; }
+        if(r===pit[0]&&c===pit[1]){ ctx.fillStyle='#3a1518'; ctx.fillRect(x+2,y+2,s-4,s-4); ctx.fillStyle='#ff6e6e';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('PIT',x+s/2,y+s/2+4); continue; }
+        var v=Math.max.apply(null,Q[r][c]); var t=Math.max(-1,Math.min(1,v)); var col=t>=0?[79,214,181]:[255,110,110]; var al=Math.min(.75,Math.abs(t)*.7+.04);
+        ctx.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+al+')'; ctx.fillRect(x+2,y+2,s-4,s-4); ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.strokeRect(x+2,y+2,s-4,s-4);
+        if(v>0.001){ var a=argmax(Q[r][c]); var ar=['↑','↓','←','→'][a]; ctx.fillStyle='rgba(230,238,252,.85)'; ctx.font='bold 20px system-ui'; ctx.textAlign='center'; ctx.fillText(ar,x+s/2,y+s/2+7); } }
+      document.getElementById('qlEp').textContent=ep; document.getElementById('qlEps').textContent=eps.toFixed(2); document.getElementById('qlSucc').textContent=lastOut;
+      document.getElementById('qlread').textContent = ep===0?'Untrained — every cell is blank. Press Train.':(ep<40?'Learning… still exploring randomly ('+lastOut+').':'Policy forming — arrows point the safe way to the goal. Last run: '+lastOut+'.'); }
+    function loop(){ if(!playing)return; for(var k=0;k<4;k++)episode(); draw(); raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('qlRun').textContent=on?'⏸ Pause':'▶ Train'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('qlRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('qlBurst').addEventListener('click',function(){ setRun(false); for(var k=0;k<100;k++)episode(); draw(); });
+    document.getElementById('qlReset').addEventListener('click',function(){ setRun(false); reset(); });
+    reset();
+  })();
+  </script>
+</body>
+</html>
