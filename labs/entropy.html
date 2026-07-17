@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entropy Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Entropy Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Entropy: Measuring Surprise</h1>
+        <p>Information has a unit — the <b>bit</b> — and entropy counts how many you need. Reshape the distribution and watch uncertainty rise when outcomes are even, and collapse to zero when one becomes a sure thing.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Drag the bars</b> up and down to change how likely each outcome is (or use the <b>skew</b> slider).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Entropy is <b>highest</b> when all bars are equal (maximum uncertainty) and drops toward <b>0</b> as one bar dominates (no surprise left).</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Skew  <span class="v" id="enSk">even</span></label><input id="enS" class="wslider" type="range" min="0" max="100" value="0" style="min-width:260px"></div>
+        <button class="lab-btn ghost" id="enEven">Make even</button>
+        <button class="lab-btn ghost" id="enPeak">Make certain</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="enH" style="color:#4fd6b5">—</b><span>entropy (bits)</span></div><div class="s"><b id="enMax">2.58</b><span>maximum possible</span></div></div>
+      <div class="lab-stage"><span class="badge">drag bars · height = probability</span><canvas id="encv" width="820" height="410" aria-label="entropy of a distribution"></canvas></div>
+      <div class="lab-readout" id="enread">Drag a bar up to make that outcome more likely — watch the entropy fall.</div>
+      <div class="lab-explain"><b>What's happening:</b> entropy is <b>H = −Σ p·log₂p</b> — the average <i>surprise</i> of an outcome, where a rare event (small p) carries more bits. A fair 6-way choice needs log₂6 ≈ 2.58 bits; a certain outcome needs 0. This is exactly the quantity a model minimises as <b>cross-entropy loss</b>, and the limit on how far data can be compressed. This is <a href="../lessons/track-13-information-theory/00-entropy.html">Entropy</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('encv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var N=6, w=[1,1,1,1,1,1], drag=-1;
+    var COLS=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c','#ffd24d'];
+    function probs(){ var s=0; for(var i=0;i<N;i++)s+=w[i]; return w.map(function(x){return x/(s||1);}); }
+    function H(p){ var h=0; for(var i=0;i<N;i++){ if(p[i]>1e-9)h-=p[i]*Math.log(p[i])/Math.log(2); } return h; }
+    var ox=60, bw, gap=18, base, top=70;
+    function layout(){ bw=(Wd-2*ox-(N-1)*gap)/N; base=Ht-70; }
+    function draw(){ layout(); ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); var p=probs(), h=H(p), mx=Math.log(N)/Math.log(2);
+      // entropy meter bar
+      ctx.fillStyle='rgba(255,255,255,.08)'; rr(ox,28,Wd-2*ox,10,5); ctx.fill(); ctx.fillStyle='#4fd6b5'; ctx.shadowBlur=10; ctx.shadowColor='#4fd6b5'; rr(ox,28,(Wd-2*ox)*h/mx,10,5); ctx.fill(); ctx.shadowBlur=0;
+      for(var i=0;i<N;i++){ var x=ox+i*(bw+gap), hh=(base-top)*p[i]/Math.max.apply(null,p.concat([0.001]))*0.94, y=base-hh; var c=COLS[i];
+        ctx.fillStyle=c; ctx.globalAlpha=.9; ctx.shadowBlur=14; ctx.shadowColor=c; rr(x,y,bw,hh,7); ctx.fill(); ctx.shadowBlur=0; ctx.globalAlpha=1;
+        ctx.fillStyle='#dce4f2'; ctx.textAlign='center'; ctx.font='bold 14px system-ui'; ctx.fillText((p[i]*100).toFixed(0)+'%',x+bw/2,y-8);
+        ctx.fillStyle='#8892b0'; ctx.font='11px system-ui'; ctx.fillText('surprise '+(p[i]>1e-6?(-Math.log(p[i])/Math.log(2)).toFixed(1):'∞')+' bits',x+bw/2,base+18);
+        ctx.fillText('outcome '+(i+1),x+bw/2,base+34); }
+      document.getElementById('enH').textContent=h.toFixed(2); document.getElementById('enMax').textContent=mx.toFixed(2);
+      document.getElementById('enread').textContent = h>mx-0.05?'Maximum entropy — all outcomes equally likely, '+mx.toFixed(2)+' bits of pure uncertainty.':(h<0.15?'Almost no entropy — one outcome is nearly certain, so there is little to learn from a draw.':'Entropy '+h.toFixed(2)+' of '+mx.toFixed(2)+' bits. Even it out for more, peak it for less.'); }
+    function rr(x,y,w2,h2,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w2,y,x+w2,y+h2,r); ctx.arcTo(x+w2,y+h2,x,y+h2,r); ctx.arcTo(x,y+h2,x,y,r); ctx.arcTo(x,y,x+w2,y,r); ctx.closePath(); }
+    function atBar(mx2){ layout(); for(var i=0;i<N;i++){ var x=ox+i*(bw+gap); if(mx2>=x&&mx2<=x+bw)return i; } return -1; }
+    function setFromY(i,my){ var frac=Math.max(0.02,Math.min(1,(base-my)/(base-top))); w[i]=frac*5+0.05; }
+    cv.addEventListener('mousedown',function(e){ var r=cv.getBoundingClientRect(); var mx2=(e.clientX-r.left)/r.width*Wd, my=(e.clientY-r.top)/r.height*Ht; drag=atBar(mx2); if(drag>=0){setFromY(drag,my);draw();} });
+    cv.addEventListener('mousemove',function(e){ if(drag<0)return; var r=cv.getBoundingClientRect(); var my=(e.clientY-r.top)/r.height*Ht; setFromY(drag,my); draw(); });
+    window.addEventListener('mouseup',function(){ drag=-1; });
+    document.getElementById('enS').addEventListener('input',function(e){ var k=(+e.target.value)/100; for(var i=0;i<N;i++)w[i]=Math.pow(0.03,k*i/(N-1)*3)+0.02*(1-k); document.getElementById('enSk').textContent=k<0.03?'even':(k>0.9?'certain':'skew '+k.toFixed(2)); draw(); });
+    document.getElementById('enEven').addEventListener('click',function(){ w=[1,1,1,1,1,1]; document.getElementById('enS').value=0; document.getElementById('enSk').textContent='even'; draw(); });
+    document.getElementById('enPeak').addEventListener('click',function(){ w=[1,.02,.02,.02,.02,.02]; document.getElementById('enS').value=95; draw(); });
+    draw();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Backprop Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Backprop Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Backprop: the Chain Rule, Alive</h1>
+        <p>Every neural network learns by one trick: run numbers <b style="color:#4fd6b5">forward</b> through a graph, then send gradients <b style="color:#ff8f6e">backward</b> to see how each input pushed the output. Drag the inputs and watch both passes update instantly.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag the inputs <b>a</b>, <b>b</b>, <b>c</b>. Watch the green forward values and the orange gradients.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Each node's <b>gradient</b> is how much the final output L would change if you nudged that node — the chain rule multiplying local slopes along every edge.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>a <span class="v" id="bpAl">2.0</span></label><input id="bpA" class="wslider" type="range" min="-40" max="40" value="20"></div>
+        <div class="lab-ctl"><label>b <span class="v" id="bpBl">-3.0</span></label><input id="bpB" class="wslider" type="range" min="-40" max="40" value="-30"></div>
+        <div class="lab-ctl"><label>c <span class="v" id="bpCl">10.0</span></label><input id="bpC" class="wslider" type="range" min="-120" max="120" value="100"></div>
+      </div>
+      <div class="lab-stage"><span class="badge">green = forward value · orange = gradient (∂L/∂·)</span><canvas id="bpcv" width="820" height="380" aria-label="backprop computation graph"></canvas></div>
+      <div class="lab-readout" id="bpread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> the graph computes <b>e = a×b</b>, then <b>d = e + c</b>, then <b>L = d</b>. Backprop starts with ∂L/∂L = 1 and walks backward: a <b>+</b> gate passes the gradient straight through, and a <b>×</b> gate swaps the values (∂L/∂a = b, ∂L/∂b = a). Stack millions of these and you have a trainable network. This is <a href="../lessons/track-4-deep-learning/01-backpropagation.html">Backpropagation</a>, one node at a time.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('bpcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var a=2,b=-3,c=10;
+    var pos={a:[110,80],b:[110,180],c:[110,300],e:[370,130],d:[580,215],L:[740,215]};
+    function edge(p,q,gcol){ ctx.strokeStyle=gcol; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(p[0]+46,p[1]); ctx.lineTo(q[0]-46,q[1]); ctx.stroke();
+      // arrowhead
+      var ang=Math.atan2(q[1]-p[1],q[0]-p[0]); ctx.beginPath(); ctx.moveTo(q[0]-46,q[1]); ctx.lineTo(q[0]-46-9*Math.cos(ang-0.4),q[1]-9*Math.sin(ang-0.4)); ctx.lineTo(q[0]-46-9*Math.cos(ang+0.4),q[1]-9*Math.sin(ang+0.4)); ctx.closePath(); ctx.fillStyle=gcol; ctx.fill(); }
+    function node(p,label,val,grad,op){ ctx.save();
+      ctx.shadowBlur=14; ctx.shadowColor='rgba(79,214,181,.5)'; ctx.fillStyle='#0e1830'; ctx.strokeStyle='#2a3a5a'; ctx.lineWidth=1.5;
+      rr(p[0]-46,p[1]-34,92,68,12); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.textAlign='center'; ctx.fillStyle='#9fb0d0'; ctx.font='600 13px system-ui'; ctx.fillText(label,p[0],p[1]-16);
+      ctx.fillStyle='#4fd6b5'; ctx.shadowBlur=8; ctx.shadowColor='#4fd6b5'; ctx.font='bold 19px system-ui'; ctx.fillText((val>=0?'':'')+val.toFixed(2),p[0],p[1]+4); ctx.shadowBlur=0;
+      ctx.fillStyle='#ff8f6e'; ctx.font='600 12px system-ui'; ctx.fillText('∂L='+grad.toFixed(2),p[0],p[1]+24);
+      if(op){ ctx.fillStyle='#c9b3ff'; ctx.font='bold 15px system-ui'; ctx.fillText(op,p[0]+30,p[1]-16); } ctx.restore(); }
+    function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var e=a*b, d=e+c, L=d; var dL=1, dd=1, de=1, dc=1, da=de*b, db=de*a;
+      edge(pos.a,pos.e,'rgba(255,143,110,.5)'); edge(pos.b,pos.e,'rgba(255,143,110,.5)'); edge(pos.e,pos.d,'rgba(255,143,110,.5)'); edge(pos.c,pos.d,'rgba(255,143,110,.5)'); edge(pos.d,pos.L,'rgba(255,143,110,.5)');
+      node(pos.a,'a',a,da); node(pos.b,'b',b,db); node(pos.c,'c',c,dc); node(pos.e,'e = a×b',e,de,'×'); node(pos.d,'d = e+c',d,dd,'+'); node(pos.L,'L',L,dL);
+      document.getElementById('bpread').textContent='Forward: e=a×b='+e.toFixed(1)+', d=e+c='+d.toFixed(1)+', L='+L.toFixed(1)+'.  Backward: ∂L/∂a=b='+da.toFixed(1)+', ∂L/∂b=a='+db.toFixed(1)+', ∂L/∂c=1. Nudge a by +1 → L changes by '+da.toFixed(1)+'.'; }
+    function bind(id,lab,set){ var e=document.getElementById(id); e.addEventListener('input',function(){ set(+e.value/10); document.getElementById(lab).textContent=(+e.value/10).toFixed(1); draw(); }); }
+    bind('bpA','bpAl',function(v){a=v;}); bind('bpB','bpBl',function(v){b=v;}); bind('bpC','bpCl',function(v){c=v;});
+    draw();
+  })();
+  </script>
+</body>
+</html>
