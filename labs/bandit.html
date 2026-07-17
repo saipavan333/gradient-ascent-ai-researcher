@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Multi-Armed Bandit · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Multi-Armed Bandit</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>The Multi-Armed Bandit</h1>
+        <p>Five slot machines, each with a hidden payout rate. Every pull is a choice: cash in on the best one you've found, or gamble on a machine you haven't tried enough. This explore-vs-exploit dilemma is the seed of all reinforcement learning.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Pick a <b>strategy</b> and press <b>Play</b> to let it pull arms.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Pure <b>greedy</b> often locks onto a lucky-looking but sub-optimal arm. <b>ε-greedy</b> and <b>UCB</b> keep sampling and home in on the true best, earning more.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Strategy</label><select id="bdS"><option value="greedy">Greedy (always best-so-far)</option><option value="eps">ε-greedy (10% random)</option><option value="ucb">UCB (optimism)</option></select></div>
+        <button class="lab-btn" id="bdRun">▶ Play</button>
+        <button class="lab-btn ghost" id="bdReset">↺ New machines</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="bdPulls">0</b><span>pulls</span></div><div class="s"><b id="bdReward">0</b><span>reward earned</span></div><div class="s"><b id="bdRegret" style="color:#ff8f6e">0</b><span>regret (vs best)</span></div></div>
+      <div class="lab-stage"><span class="badge">bar = your estimate · tick = true rate</span><canvas id="bdcv" width="820" height="410" aria-label="multi-armed bandit"></canvas></div>
+      <div class="lab-readout" id="bdread">Press Play and watch the strategy figure out which machine pays best.</div>
+      <div class="lab-explain"><b>What's happening:</b> each arm keeps a running estimate of its payout. Greedy trusts those estimates completely and can get stuck; <b>ε-greedy</b> tries a random arm now and then; <b>UCB</b> adds a bonus to arms it's unsure about, so it explores exactly what it hasn't tested enough. <b>Regret</b> — how much reward you lost versus always picking the true best — is the score to minimise. This is <a href="../lessons/track-7-rl/00-mdps.html">Reinforcement Learning</a>'s core tension.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('bdcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var K=5, arms=[], strat='greedy', t=0, reward=0, playing=false, raf=null, best=0, lastArm=-1;
+    var COLS=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c'];
+    function reset(){ arms=[]; for(var i=0;i<K;i++)arms.push({mu:0.15+Math.random()*0.7,est:0,n:0}); best=0; for(var i=0;i<K;i++)best=Math.max(best,arms[i].mu); t=0;reward=0;lastArm=-1; draw(); }
+    function pick(){ if(strat==='eps'&&Math.random()<0.1)return Math.floor(Math.random()*K);
+      if(strat==='ucb'){ var bi=0,bv=-1; for(var i=0;i<K;i++){ var u=arms[i].n===0?1e6:arms[i].est+Math.sqrt(2*Math.log(t+1)/arms[i].n); if(u>bv){bv=u;bi=i;} } return bi; }
+      var bi=0,bv=-1; for(var i=0;i<K;i++)if(arms[i].est>bv){bv=arms[i].est;bi=i;} return bi; }
+    function step(){ var a=pick(); var r=Math.random()<arms[a].mu?1:0; arms[a].n++; arms[a].est+=(r-arms[a].est)/arms[a].n; reward+=r; t++; lastArm=a; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); var pad=60, bw=(Wd-2*pad)/K, base=Ht-70, top=50;
+      for(var i=0;i<K;i++){ var x=pad+i*bw+bw*0.15, w=bw*0.7; var hh=arms[i].est*(base-top); var c=COLS[i];
+        if(i===lastArm){ ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(pad+i*bw,top-6,bw,base-top+12); }
+        ctx.fillStyle=c; ctx.globalAlpha=.85; ctx.shadowBlur=14; ctx.shadowColor=c; ctx.fillRect(x,base-hh,w,hh); ctx.shadowBlur=0; ctx.globalAlpha=1;
+        // true rate tick
+        var ty=base-arms[i].mu*(base-top); ctx.strokeStyle='#e6ecfb'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-4,ty); ctx.lineTo(x+w+4,ty); ctx.stroke();
+        ctx.fillStyle='#cdd6ea'; ctx.textAlign='center'; ctx.font='12px system-ui'; ctx.fillText('est '+arms[i].est.toFixed(2),x+w/2,base-hh-8);
+        ctx.fillStyle='#8892b0'; ctx.font='11px system-ui'; ctx.fillText(arms[i].n+' pulls',x+w/2,base+18); ctx.fillText('machine '+(i+1),x+w/2,base+34); }
+      document.getElementById('bdPulls').textContent=t; document.getElementById('bdReward').textContent=reward; var regret=(t*best-reward); document.getElementById('bdRegret').textContent=regret.toFixed(0);
+      var bi=0; for(var i=0;i<K;i++)if(arms[i].mu>arms[bi].mu)bi=i; var found=0; for(var i=0;i<K;i++)if(arms[i].n>arms[found].n)found=i;
+      document.getElementById('bdread').textContent = t<5?'Just getting started — every machine looks equal until it is tried.':(found===bi?('Found it — machine '+(bi+1)+' is the true best and is being played most. Regret is growing slowly.'):('Currently favouring machine '+(found+1)+', but the best is machine '+(bi+1)+' (rate '+arms[bi].mu.toFixed(2)+'). More exploration would help.')); }
+    function loop(){ if(!playing)return; step(); draw(); raf=requestAnimationFrame(function(){ setTimeout(loop,60); }); }
+    function setRun(on){ playing=on; document.getElementById('bdRun').textContent=on?'⏸ Pause':'▶ Play'; if(on){if(!raf)loop();}else{raf=null;} }
+    document.getElementById('bdS').addEventListener('change',function(e){ strat=e.target.value; });
+    document.getElementById('bdRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('bdReset').addEventListener('click',function(){ setRun(false); reset(); });
+    reset();
+  })();
+  </script></body></html>

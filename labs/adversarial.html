@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Adversarial Examples · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Adversarial Examples</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Adversarial Examples</h1>
+        <p>A model can be 99% accurate and still be fooled by a nudge too small to see. Push a correctly-classified point a hair in just the right direction and it leaps across the boundary — same-looking input, opposite answer.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>perturbation ε</b> from zero upward.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The point barely moves along the gradient arrow — then crosses the boundary and the prediction <b>flips</b>, even though the change is tiny.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Perturbation ε <span class="v" id="avEl">0.00</span></label><input id="avE" class="wslider" type="range" min="0" max="100" value="0" style="min-width:300px"></div>
+        <button class="lab-btn ghost" id="avNew">⚄ New point</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="avCls">—</b><span>prediction</span></div><div class="s"><b id="avMove">—</b><span>distance moved</span></div></div>
+      <div class="lab-stage"><span class="badge">ghost = original · bright = perturbed</span><canvas id="avcv" width="820" height="440" aria-label="adversarial example"></canvas></div>
+      <div class="lab-readout" id="avread">—</div>
+      <div class="lab-explain"><b>What's happening:</b> the attack moves the input along <b>∇<sub>x</sub>loss</b> — the direction that most increases the model's error — by a tiny step ε. In high dimensions the decision boundary passes surprisingly close to normal inputs, so a minuscule, human-invisible shift is enough to cross it. Jailbreak prompts are the language-model version of the same trick. This is <a href="../lessons/track-14-safety/04-adversarial-robustness.html">Adversarial Robustness</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('avcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var eps=0, px=0.28, py=0.30, XR=3, YR=(Ht/Wd)*3; var wv=[1/Math.SQRT2,1/Math.SQRT2], bnd=1.6;
+    function DX(x){return (x/XR+1)/2*Wd;} function DY(y){return (1-(y/YR+1)/2)*Ht;}
+    function side(x,y){ return (x*wv[0]+y*wv[1])-bnd; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // regions
+      for(var i=0;i<80;i++)for(var j=0;j<46;j++){ var x=(i/80*2-1)*XR,y=(1-j/46*2)*YR; var s=side(x,y); var rgb=s<0?[91,155,255]:[255,110,110]; ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',.12)'; ctx.fillRect(i*Wd/80,j*Ht/46,Wd/80+1,Ht/46+1); }
+      // boundary
+      ctx.strokeStyle='#e6ecfb'; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.beginPath(); var y1=(bnd-wv[0]*(-XR))/wv[1], y2=(bnd-wv[0]*(XR))/wv[1]; ctx.moveTo(DX(-XR),DY(y1)); ctx.lineTo(DX(XR),DY(y2)); ctx.stroke(); ctx.setLineDash([]);
+      var e=eps*1.6; var qx=px+e*wv[0], qy=py+e*wv[1];
+      // arrow
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(DX(px),DY(py)); ctx.lineTo(DX(qx),DY(qy)); ctx.stroke();
+      ctx.fillStyle='rgba(150,160,190,.5)'; ctx.beginPath(); ctx.arc(DX(px),DY(py),6,0,6.2832); ctx.fill();
+      var flipped=side(qx,qy)>0; var col=flipped?'#ff6e6e':'#5b9bff'; ctx.fillStyle=col; ctx.shadowBlur=18; ctx.shadowColor=col; ctx.beginPath(); ctx.arc(DX(qx),DY(qy),9,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+      document.getElementById('avCls').textContent=flipped?'RED ✗ (wrong)':'BLUE ✓'; document.getElementById('avMove').textContent=e.toFixed(2);
+      document.getElementById('avread').textContent = flipped ? ('Flipped! A shift of just '+e.toFixed(2)+' pushed it over the line — the model now says the wrong class though the point barely moved.') : ('ε='+eps.toFixed(2)+': still correct. Nudge ε higher to cross the boundary.'); }
+    document.getElementById('avE').addEventListener('input',function(e){ eps=(+e.target.value)/100; document.getElementById('avEl').textContent=eps.toFixed(2); draw(); });
+    document.getElementById('avNew').addEventListener('click',function(){ px=(Math.random()*1.2+0.1); py=(Math.random()*1.0+0.1); if(side(px,py)>=0){px*=0.5;py*=0.5;} document.getElementById('avE').value=0; eps=0; document.getElementById('avEl').textContent='0.00'; draw(); });
+    draw();
+  })();
+  </script></body></html>
