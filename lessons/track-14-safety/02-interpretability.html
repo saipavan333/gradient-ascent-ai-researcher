@@ -55,7 +55,7 @@ linear_probe(h, random_label)# -> 0.51   ... but not noise (chance)
 
       <!-- WIDGET -->
       <div class="widget" id="incvbox">
-        <div class="wtitle">🔬 Interactive Lab · look inside — each attention head does a different job</div>
+        <div class="wtitle">▶ Interactive · look inside — each attention head does a different job</div>
         <div class="whint">Interpretability means opening the black box and reading what the parts compute. Transformer <strong>attention heads</strong> are a great example: each head learns a distinct pattern of which words look at which. Flip between heads and watch the heatmap change — a bright cell at row&nbsp;<em>i</em>, column&nbsp;<em>j</em> means token&nbsp;<em>i</em> is attending to token&nbsp;<em>j</em>. Some heads just look one word back; others hunt for the subject of a verb.</div>
         <canvas id="incv" width="640" height="300" aria-label="look inside — each attention head does a different job"></canvas>
         <div class="wrow"><span class="wlab">attention head: <b id="inh">0</b></span><input class="wslider" id="ins" type="range" min="0" max="3" value="0" /></div>

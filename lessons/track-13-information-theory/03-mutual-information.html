@@ -57,7 +57,7 @@ MI = sum( pxy * log2( pxy / (px⊗py) ) )    # KL(joint || product of marginals)
 
       <!-- WIDGET -->
       <div class="widget" id="micvbox">
-        <div class="wtitle">🔬 Interactive Lab · dependence, measured in bits</div>
+        <div class="wtitle">▶ Interactive · dependence, measured in bits</div>
         <div class="whint">Two coins, X and Y. Slide their <strong>dependence</strong> from independent (each tells you nothing about the other) to perfectly linked (knowing one tells you the other exactly). The grid is their joint distribution; the number is the mutual information \(I(X;Y)\) — the bits of uncertainty about Y that knowing X removes. Independent = 0 bits; identical = 1 bit.</div>
         <canvas id="micv" width="640" height="300" aria-label="dependence, measured in bits"></canvas>
         <div class="wrow"><span class="wlab">independent ← dependence → identical: <b id="mir">0.0</b></span><input class="wslider" id="mis" type="range" min="0" max="100" value="0" /></div>

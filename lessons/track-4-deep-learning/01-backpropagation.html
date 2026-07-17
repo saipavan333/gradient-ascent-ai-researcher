@@ -63,7 +63,7 @@
 
       <!-- INTERACTIVE -->
       <div class="widget" id="bpLab">
-        <div class="wtitle">🔬 Interactive Lab · watch gradients flow backward</div>
+        <div class="wtitle">▶ Interactive · watch gradients flow backward</div>
         <div class="whint">The graph computes \(d = a\times b + c\). The forward pass (blue/purple values) fills the nodes left to right. Press <strong>Run backward</strong> to release the red gradients: they start at the output with value 1 and flow back — add-node first (passes 1 through to \(e\) and \(c\)), then the multiply node (sends each input the <em>other</em> input's value). Change \(a,b,c\) with the sliders and run it again.</div>
         <canvas id="bpCanvas" width="620" height="270" aria-label="Interactive computation graph showing forward values and backward gradients"></canvas>
         <div class="wrow">

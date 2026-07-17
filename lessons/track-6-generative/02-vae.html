@@ -86,7 +86,7 @@
 
       <!-- INTERACTIVE -->
       <div class="widget" id="vaelab">
-        <div class="wtitle">🔬 Interactive Lab · fly through the latent space</div>
+        <div class="wtitle">▶ Interactive · fly through the latent space</div>
         <div class="whint">This is a decoder from a 2-D latent space to a simple face. Move the two sliders — the latent code \(z=(z_1,z_2)\) — and watch the face morph <strong>smoothly</strong>: \(z_1\) bends the mouth from frown to smile, \(z_2\) sizes the eyes. Nearby codes give nearby faces (no holes), which is exactly the tidiness the KL term buys. Hit "sample z ~ N(0,I)" to draw a random code from the prior and decode it — that's generation.</div>
         <canvas id="vaecanvas" width="620" height="280" aria-label="VAE latent space decoding to a morphing face"></canvas>
         <div class="wrow">

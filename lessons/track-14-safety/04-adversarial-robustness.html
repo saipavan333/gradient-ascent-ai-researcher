@@ -57,7 +57,7 @@ x_adv = x - eps * np.sign(w)          # w is the input gradient of the logit
 
       <!-- WIDGET -->
       <div class="widget" id="avcvbox">
-        <div class="wtitle">🔬 Interactive Lab · a tiny, invisible nudge flips the prediction</div>
+        <div class="wtitle">▶ Interactive · a tiny, invisible nudge flips the prediction</div>
         <div class="whint">The diagonal line is a classifier's decision boundary; the dot is an input it gets right. Adversarial examples add a <strong>minuscule</strong> perturbation — aimed straight at the boundary — that a human would never notice, yet it flips the model's answer. Slide the perturbation size and watch the dot cross the line while barely moving. Same-looking input, opposite prediction.</div>
         <canvas id="avcv" width="640" height="300" aria-label="a tiny, invisible nudge flips the prediction"></canvas>
         <div class="wrow"><span class="wlab">perturbation ε: <b id="avt">0.00</b></span><input class="wslider" id="avs" type="range" min="0" max="100" value="0" /></div>

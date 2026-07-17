@@ -66,7 +66,7 @@ for t in range(T):
 
       <!-- WIDGET -->
       <div class="widget" id="qzcvbox">
-        <div class="wtitle">🔬 Interactive Lab · shrink the model by storing weights in fewer bits</div>
+        <div class="wtitle">▶ Interactive · shrink the model by storing weights in fewer bits</div>
         <div class="whint">A 7-billion-parameter model stores one number per weight. At 32-bit that's 28&nbsp;GB — too big for most GPUs. <strong>Quantization</strong> stores each weight in fewer bits (16, 8, even 4), shrinking memory proportionally with only a small quality cost. Slide the precision and watch a 7B model go from 'needs a data-centre card' to 'runs on a laptop.'</div>
         <canvas id="qzcv" width="640" height="300" aria-label="shrink the model by storing weights in fewer bits"></canvas>
         <div class="wrow"><span class="wlab">precision: <b id="qzb">16</b>-bit</span><input class="wslider" id="qzs" type="range" min="0" max="3" value="2" /><span class="wlab">(4 / 8 / 16 / 32)</span></div>
