@@ -1,0 +1,48 @@
+/* ============================================================================
+   Interactive Labs — shared visual language (rich, alive, dark instrument
+   stages; deep colours + glow; readable in both themes; no flat-white canvases)
+   ========================================================================== */
+.lab-wrap{max-width:calc(var(--measure) + 7rem);margin:0 auto;padding:2.4rem 2rem 6rem}
+.lab-hero .kicker{font-family:var(--sans);font-size:.78rem;letter-spacing:2px;text-transform:uppercase;font-weight:800;
+  background:linear-gradient(90deg,#7c83ff,#22c3b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lab-hero h1{font-family:var(--serif);font-size:2.3rem;line-height:1.1;margin:.3rem 0 .5rem;letter-spacing:-.3px}
+.lab-hero p{color:var(--text-muted);font-size:1.08rem;max-width:44rem}
+
+/* "Do this / You'll see" guide */
+.lab-guide{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;margin:1.2rem 0;padding:.95rem 1.15rem;border-radius:13px;
+  background:linear-gradient(135deg,rgba(124,131,255,.16),rgba(34,195,182,.13));border:1px solid rgba(124,131,255,.30)}
+.lab-guide .g{flex:1 1 240px;min-width:0}
+.lab-guide .gk{font-size:.72rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.12rem;display:flex;gap:.4rem;align-items:center}
+.lab-guide .g.do  .gk{color:#5b63e6} .lab-guide .g.see .gk{color:#12968a}
+html[data-theme="dark"] .lab-guide .g.do .gk{color:#a5abff} html[data-theme="dark"] .lab-guide .g.see .gk{color:#4fd6c8}
+.lab-guide .gv{font-size:.96rem;color:var(--text);line-height:1.5}
+
+/* dark instrument stage that holds the canvas */
+.lab-stage{position:relative;border-radius:18px;padding:14px;margin:1.1rem 0;
+  background:radial-gradient(130% 150% at 50% 0%,#1a2440 0%,#0b1020 72%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 22px 60px rgba(6,10,26,.55)}
+.lab-stage canvas{display:block;width:100%;height:auto;border-radius:11px}
+.lab-stage .badge{position:absolute;top:20px;left:22px;font:700 .7rem/1 var(--sans);letter-spacing:.09em;text-transform:uppercase;
+  color:#aab4d4;background:rgba(10,15,30,.55);border:1px solid rgba(255,255,255,.09);padding:.32rem .6rem;border-radius:999px;backdrop-filter:blur(2px)}
+
+.lab-controls{display:flex;flex-wrap:wrap;gap:.65rem 1.1rem;align-items:flex-end;margin:.9rem 0 .3rem}
+.lab-ctl{display:flex;flex-direction:column;gap:.28rem}
+.lab-ctl label{font-size:.73rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.lab-ctl label .v{color:var(--primary-ink);font-family:var(--mono)}
+.lab-ctl select{font:inherit;font-size:.9rem;padding:.4rem .55rem;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text)}
+.lab-ctl input[type=range]{min-width:150px}
+.lab-btn{font:inherit;font-size:.9rem;font-weight:700;border:none;border-radius:999px;padding:.52rem 1.15rem;cursor:pointer;color:#fff;
+  background:linear-gradient(135deg,#6d6ff5,#17b4a6);box-shadow:0 8px 20px rgba(79,70,229,.28);transition:.15s}
+.lab-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.lab-btn:active{transform:translateY(0)}
+.lab-btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);box-shadow:none}
+.lab-btn.ghost:hover{border-color:var(--primary);color:var(--primary-ink)}
+
+.lab-stat{display:flex;gap:1.7rem;flex-wrap:wrap;margin:.5rem 0 .2rem}
+.lab-stat .s b{font-family:var(--mono);font-size:1.25rem;color:var(--text);line-height:1}
+.lab-stat .s span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-top:.15rem}
+.lab-readout{font-family:var(--mono);font-size:.84rem;color:#cdd6ea;background:#0c1122;border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:.6rem .8rem;margin:.7rem 0;line-height:1.5;min-height:1.2rem}
+.lab-explain{border-left:3px solid #6d6ff5;background:var(--surface-2);border-radius:0 11px 11px 0;padding:.85rem 1.1rem;margin:1.4rem 0;font-size:.96rem;color:var(--text-muted);line-height:1.6}
+.lab-explain b{color:var(--text)}
+@media (max-width:640px){ .lab-hero h1{font-size:1.9rem} }

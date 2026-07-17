@@ -6,19 +6,7 @@
   <title>Neural Network Playground · Interactive Labs</title>
   <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
   <link rel="stylesheet" href="../assets/css/style.css" />
-  <style>
-    .lab-wrap{max-width:calc(var(--measure) + 6rem);margin:0 auto;padding:3rem 2rem 6rem}
-    .lab-hero .kicker{font-family:var(--sans);font-size:.78rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:700}
-    .lab-hero h1{font-family:var(--serif);font-size:2.3rem;line-height:1.1;margin:.35rem 0 .5rem}
-    .lab-hero p{color:var(--text-muted);font-size:1.08rem;max-width:42rem}
-    .nnrow{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;margin:.4rem 0 1rem}
-    .nnctl{display:flex;flex-direction:column;gap:.25rem}
-    .nnctl label{font-size:.78rem;font-weight:650;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
-    .nnctl select,.nnctl input[type=range]{min-width:150px}
-    .nnstat{display:flex;gap:1.4rem;flex-wrap:wrap;margin:.2rem 0 .8rem;font-family:var(--mono);font-size:.9rem}
-    .nnstat b{color:var(--primary-ink);font-size:1.15rem}
-    .nnstat span{display:block;color:var(--text-faint);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-family:var(--sans)}
-  </style>
+  <link rel="stylesheet" href="../assets/css/labs.css" />
 </head>
 <body>
   <aside id="sidebar"></aside>
@@ -28,34 +16,26 @@
       <section class="lab-hero">
         <div class="kicker">Flagship Lab</div>
         <h1>Neural Network Playground</h1>
-        <p>A neural network — built by hand in plain JavaScript, no libraries — learning to separate two classes in real time. Pick a shape, choose how many hidden neurons it gets, set the learning rate, and press <b>Train</b>. Watch the coloured decision boundary bend itself around the data.</p>
+        <p>A neural network built by hand in plain JavaScript — no libraries — learning to tell two classes apart in real time. You choose the shape, the number of neurons, and the learning rate; it does the rest, live.</p>
       </section>
-
-      <div class="widget" id="nnbox" style="box-shadow:var(--shadow-lg)">
-        <div class="wtitle">🔬 Interactive Lab · watch a network learn a boundary</div>
-        <div class="whint">Blue vs. orange dots are the two classes. The shaded background is what the network currently believes — where it's unsure, the colour is pale. Training nudges it until the boundary fits.</div>
-        <div class="nnrow">
-          <div class="nnctl"><label>Dataset</label>
-            <select id="nnData"><option value="moons">Two moons</option><option value="blobs">Two blobs</option><option value="circle">Circle in circle</option><option value="xor">XOR (4 quadrants)</option><option value="spiral">Two spirals</option></select></div>
-          <div class="nnctl"><label>Hidden neurons: <span id="nnHl">8</span></label><input id="nnH" class="wslider" type="range" min="1" max="16" value="8"></div>
-          <div class="nnctl"><label>Learning rate: <span id="nnLl">0.08</span></label><input id="nnL" class="wslider" type="range" min="1" max="60" value="16"></div>
-          <div class="nnctl"><label>Activation</label>
-            <select id="nnAct"><option value="tanh">tanh</option><option value="relu">ReLU</option></select></div>
-        </div>
-        <div class="wrow">
-          <button class="wbtn primary" id="nnPlay">▶ Train</button>
-          <button class="wbtn" id="nnReset">↺ New weights</button>
-          <button class="wbtn" id="nnNew">⚄ New data</button>
-        </div>
-        <div class="nnstat"><div><b id="nnEp">0</b><span>epoch</span></div><div><b id="nnLoss">—</b><span>loss</span></div><div><b id="nnAcc">—</b><span>accuracy</span></div></div>
-        <canvas id="nncv" width="680" height="420" aria-label="neural network decision boundary"></canvas>
-        <div class="wreadout" id="nnread">Press ▶ Train to start learning. Try the spiral with 16 neurons — it's the hardest.</div>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Pick a <b>dataset</b>, press <b>Train</b>, then slide the <b>neurons</b> up and down.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The glowing boundary bends to wrap the dots. More neurons → curvier fits; too-high a rate → it thrashes.</div></div>
       </div>
-
-      <div class="callout intuition" style="margin-top:1.6rem">
-        <div class="co-h">💡 What you're actually watching</div>
-        <p style="margin:0">Each hidden neuron draws one straight line and bends it with its activation. With more neurons, the network can combine more bent lines into a curvy boundary. Too few neurons and it can't capture the shape; too high a learning rate and it thrashes. This is the same maths from <a href="../lessons/track-4-deep-learning/00-neuron-graph.html">Deep Learning from Scratch</a> — here you get to drive it.</p>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Dataset</label>
+          <select id="nnData"><option value="moons">Two moons</option><option value="blobs">Two blobs</option><option value="circle">Circle in circle</option><option value="xor">XOR quadrants</option><option value="spiral">Two spirals</option></select></div>
+        <div class="lab-ctl"><label>Neurons <span class="v" id="nnHl">8</span></label><input id="nnH" class="wslider" type="range" min="1" max="16" value="8"></div>
+        <div class="lab-ctl"><label>Learning rate <span class="v" id="nnLl">0.08</span></label><input id="nnL" class="wslider" type="range" min="1" max="60" value="16"></div>
+        <div class="lab-ctl"><label>Activation</label><select id="nnAct"><option value="tanh">tanh</option><option value="relu">ReLU</option></select></div>
+        <button class="lab-btn" id="nnPlay">▶ Train</button>
+        <button class="lab-btn ghost" id="nnReset">↺ New weights</button>
+        <button class="lab-btn ghost" id="nnNew">⚄ New data</button>
       </div>
+      <div class="lab-stat"><div class="s"><b id="nnEp">0</b><span>epoch</span></div><div class="s"><b id="nnLoss">—</b><span>loss</span></div><div class="s"><b id="nnAcc">—</b><span>accuracy</span></div></div>
+      <div class="lab-stage"><span class="badge">decision boundary</span><canvas id="nncv" width="820" height="470" aria-label="neural network decision boundary"></canvas></div>
+      <div class="lab-readout" id="nnread">Press ▶ Train to start. Try the spiral with 16 neurons — it's the hardest to fit.</div>
+      <div class="lab-explain"><b>What's happening:</b> each hidden neuron draws one straight line and bends it with its activation. The network adds those bent lines together into a curved boundary, and <b>backpropagation</b> nudges every weight downhill on the loss until the two colours are cleanly split — the exact maths from <a href="../lessons/track-4-deep-learning/01-backpropagation.html">Backpropagation</a>, here under your control.</div>
       <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
       <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
     </div>
@@ -69,58 +49,49 @@
     function dX(x){return (x/XR+1)/2*Wd;} function dY(y){return (-y/YR+1)/2*Ht;}
     function tX(px){return (px/Wd*2-1)*XR;} function tY(py){return -(py/Ht*2-1)*YR;}
     var pts=[], H=8, act='tanh', lr=0.08, W1,b1,W2,b2, epoch=0, playing=false, raf=null, dataset='moons';
-    function rnd(){return Math.random();}
-    function gauss(){return (rnd()+rnd()+rnd()+rnd()-2)/1.3;}
-    function gen(){ pts=[]; var N=170;
-      for(var i=0;i<N;i++){ var c=i%2,x,y;
-        if(dataset==='blobs'){ x=(c?1.5:-1.5)+gauss()*.75; y=(c?1.0:-1.0)+gauss()*.75; }
-        else if(dataset==='moons'){ var t=rnd()*Math.PI; if(c===0){x=Math.cos(t)*1.7-0.85+gauss()*.12; y=Math.sin(t)*1.7-0.5+gauss()*.12;} else {x=Math.cos(t)*1.7+0.85+gauss()*.12; y=-Math.sin(t)*1.7+0.5+gauss()*.12;} }
-        else if(dataset==='circle'){ var a=rnd()*6.283, rad=c?(2.05+gauss()*.18):(0.75+gauss()*.18); x=Math.cos(a)*rad; y=Math.sin(a)*rad; }
-        else if(dataset==='xor'){ x=(rnd()*2-1)*2.3; y=(rnd()*2-1)*2.3; c=(x*y>0)?1:0; }
-        else { var k=i/N*3.3*Math.PI + (c?Math.PI:0); var rr=(i/N)*2.4+0.2; x=Math.cos(k)*rr+gauss()*.10; y=Math.sin(k)*rr+gauss()*.10; }
-        pts.push({x:x,y:y,c:c}); }
-    }
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function gen(){ pts=[]; var N=170; for(var i=0;i<N;i++){ var c=i%2,x,y;
+      if(dataset==='blobs'){ x=(c?1.5:-1.5)+gauss()*.75; y=(c?1.0:-1.0)+gauss()*.75; }
+      else if(dataset==='moons'){ var t=Math.random()*Math.PI; if(c===0){x=Math.cos(t)*1.7-.85+gauss()*.12;y=Math.sin(t)*1.7-.5+gauss()*.12;}else{x=Math.cos(t)*1.7+.85+gauss()*.12;y=-Math.sin(t)*1.7+.5+gauss()*.12;} }
+      else if(dataset==='circle'){ var a=Math.random()*6.283,rad=c?(2.05+gauss()*.18):(.75+gauss()*.18); x=Math.cos(a)*rad;y=Math.sin(a)*rad; }
+      else if(dataset==='xor'){ x=(Math.random()*2-1)*2.3;y=(Math.random()*2-1)*2.3;c=(x*y>0)?1:0; }
+      else { var k=i/N*3.3*Math.PI+(c?Math.PI:0),rr=(i/N)*2.4+.2; x=Math.cos(k)*rr+gauss()*.10;y=Math.sin(k)*rr+gauss()*.10; }
+      pts.push({x:x,y:y,c:c}); } }
     function mat(r,c,s){var m=[];for(var i=0;i<r;i++){var row=[];for(var j=0;j<c;j++)row.push(s?(Math.random()*2-1)*Math.sqrt(1/c):0);m.push(row);}return m;}
     function vec(n){var v=[];for(var i=0;i<n;i++)v.push(0);return v;}
     function initNet(){ W1=mat(H,2,1); b1=vec(H); W2=mat(1,H,1); b2=vec(1); epoch=0; }
     function af(z){return act==='tanh'?Math.tanh(z):Math.max(0,z);}
     function ad(a,z){return act==='tanh'?(1-a*a):(z>0?1:0);}
     function sig(z){return 1/(1+Math.exp(-z));}
-    function fwd(x){ var a1=[],z1=[]; for(var i=0;i<H;i++){var s=b1[i]+W1[i][0]*x[0]+W1[i][1]*x[1]; z1.push(s); a1.push(af(s));}
-      var z2=b2[0]; for(var i=0;i<H;i++) z2+=W2[0][i]*a1[i]; return {a1:a1,z1:z1,out:sig(z2)}; }
-    function step(){ var loss=0, gW1=mat(H,2,0),gb1=vec(H),gW2=mat(1,H,0),gb2=vec(1);
-      for(var p=0;p<pts.length;p++){ var x=[pts[p].x,pts[p].y],y=pts[p].c,f=fwd(x); var d2=f.out-y;
-        loss+=-(y*Math.log(f.out+1e-9)+(1-y)*Math.log(1-f.out+1e-9));
-        for(var i=0;i<H;i++){ gW2[0][i]+=d2*f.a1[i]; } gb2[0]+=d2;
-        for(var i=0;i<H;i++){ var dz1=d2*W2[0][i]*ad(f.a1[i],f.z1[i]); gW1[i][0]+=dz1*x[0]; gW1[i][1]+=dz1*x[1]; gb1[i]+=dz1; } }
-      var m=pts.length; for(var i=0;i<H;i++){ W2[0][i]-=lr*gW2[0][i]/m; W1[i][0]-=lr*gW1[i][0]/m; W1[i][1]-=lr*gW1[i][1]/m; b1[i]-=lr*gb1[i]/m; }
-      b2[0]-=lr*gb2[0]/m; epoch++; return loss/m; }
-    var RES=72, cwd=Wd/RES, chd=Ht/RES;
+    function fwd(x){ var a1=[],z1=[]; for(var i=0;i<H;i++){var s=b1[i]+W1[i][0]*x[0]+W1[i][1]*x[1];z1.push(s);a1.push(af(s));} var z2=b2[0]; for(var i=0;i<H;i++)z2+=W2[0][i]*a1[i]; return {a1:a1,z1:z1,out:sig(z2)}; }
+    function stepN(){ var gW1=mat(H,2,0),gb1=vec(H),gW2=mat(1,H,0),gb2=vec(1);
+      for(var p=0;p<pts.length;p++){ var x=[pts[p].x,pts[p].y],y=pts[p].c,f=fwd(x),d2=f.out-y;
+        for(var i=0;i<H;i++)gW2[0][i]+=d2*f.a1[i]; gb2[0]+=d2;
+        for(var i=0;i<H;i++){var dz1=d2*W2[0][i]*ad(f.a1[i],f.z1[i]);gW1[i][0]+=dz1*x[0];gW1[i][1]+=dz1*x[1];gb1[i]+=dz1;} }
+      var m=pts.length; for(var i=0;i<H;i++){W2[0][i]-=lr*gW2[0][i]/m;W1[i][0]-=lr*gW1[i][0]/m;W1[i][1]-=lr*gW1[i][1]/m;b1[i]-=lr*gb1[i]/m;} b2[0]-=lr*gb2[0]/m; epoch++; }
+    var RES=74, cw=Wd/RES, ch=Ht/RES;
     function draw(){
-      for(var gi=0;gi<RES;gi++)for(var gj=0;gj<RES;gj++){ var o=fwd([tX((gi+.5)*cwd),tY((gj+.5)*chd)]).out;
-        var t=o; // 0 blue .. 1 orange
-        var r=Math.round(74+(217-74)*t), g=Math.round(120+(119-120)*t), b=Math.round(210+(6-210)*t);
-        var al=(0.20+Math.abs(t-0.5)*0.5).toFixed(2);
-        ctx.fillStyle='rgba('+r+','+g+','+b+','+al+')'; ctx.fillRect(gi*cwd,gj*chd,cwd+1,chd+1); }
-      for(var p=0;p<pts.length;p++){ ctx.fillStyle=pts[p].c?'#d97706':'#2563eb'; ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.4;
-        ctx.beginPath(); ctx.arc(dX(pts[p].x),dY(pts[p].y),4.2,0,6.2832); ctx.fill(); ctx.stroke(); }
+      var bgm=ctx.createLinearGradient(0,0,0,Ht); bgm.addColorStop(0,'#0f1730'); bgm.addColorStop(1,'#0a0f1f'); ctx.fillStyle=bgm; ctx.fillRect(0,0,Wd,Ht);
+      for(var gi=0;gi<RES;gi++)for(var gj=0;gj<RES;gj++){ var o=fwd([tX((gi+.5)*cw),tY((gj+.5)*ch)]).out;
+        var r=Math.round(74+(255-74)*o), g=Math.round(140+(150-140)*o), b=Math.round(255+(60-255)*o);
+        var conf=Math.abs(o-.5)*2, al=(0.10+conf*0.42).toFixed(3);
+        ctx.fillStyle='rgba('+r+','+g+','+b+','+al+')'; ctx.fillRect(gi*cw,gj*ch,cw+1,ch+1); }
+      for(var p=0;p<pts.length;p++){ var col=pts[p].c?'#ffa24d':'#5b9bff';
+        ctx.shadowBlur=12; ctx.shadowColor=col; ctx.fillStyle=col; ctx.beginPath(); ctx.arc(dX(pts[p].x),dY(pts[p].y),4.4,0,6.2832); ctx.fill();
+        ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1.3; ctx.stroke(); }
     }
-    function metrics(){ var loss=0,corr=0; for(var p=0;p<pts.length;p++){ var f=fwd([pts[p].x,pts[p].y]); loss+=-(pts[p].c*Math.log(f.out+1e-9)+(1-pts[p].c)*Math.log(1-f.out+1e-9)); if((f.out>=.5?1:0)===pts[p].c) corr++; }
-      return {loss:loss/pts.length, acc:corr/pts.length}; }
-    function refresh(){ draw(); var mm=metrics();
-      document.getElementById('nnEp').textContent=epoch;
-      document.getElementById('nnLoss').textContent=mm.loss.toFixed(3);
-      document.getElementById('nnAcc').textContent=(mm.acc*100).toFixed(0)+'%';
-      document.getElementById('nnread').textContent = playing? ('Training… epoch '+epoch+', accuracy '+(mm.acc*100).toFixed(0)+'%. The paler the background, the less sure the network is there.') : ('Paused at epoch '+epoch+'. Press ▶ Train to continue, or change the dataset / neurons and retrain.'); }
-    function loop(){ if(!playing) return; for(var k=0;k<3;k++) step(); refresh(); raf=requestAnimationFrame(loop); }
-    function setPlay(on){ playing=on; document.getElementById('nnPlay').textContent=on?'⏸ Pause':'▶ Train'; document.getElementById('nnPlay').classList.toggle('on',on); if(on){ if(!raf) loop(); } else { if(raf){cancelAnimationFrame(raf); raf=null;} } }
-    document.getElementById('nnData').addEventListener('change',function(e){ dataset=e.target.value; gen(); initNet(); refresh(); });
-    document.getElementById('nnH').addEventListener('input',function(e){ H=+e.target.value; document.getElementById('nnHl').textContent=H; initNet(); refresh(); });
-    document.getElementById('nnL').addEventListener('input',function(e){ lr=(+e.target.value)/200; document.getElementById('nnLl').textContent=lr.toFixed(3); });
-    document.getElementById('nnAct').addEventListener('change',function(e){ act=e.target.value; initNet(); refresh(); });
-    document.getElementById('nnPlay').addEventListener('click',function(){ setPlay(!playing); });
-    document.getElementById('nnReset').addEventListener('click',function(){ initNet(); refresh(); });
-    document.getElementById('nnNew').addEventListener('click',function(){ gen(); initNet(); refresh(); });
+    function metrics(){ var loss=0,corr=0; for(var p=0;p<pts.length;p++){ var f=fwd([pts[p].x,pts[p].y]); loss+=-(pts[p].c*Math.log(f.out+1e-9)+(1-pts[p].c)*Math.log(1-f.out+1e-9)); if((f.out>=.5?1:0)===pts[p].c)corr++; } return {loss:loss/pts.length,acc:corr/pts.length}; }
+    function refresh(){ draw(); var mm=metrics(); document.getElementById('nnEp').textContent=epoch; document.getElementById('nnLoss').textContent=mm.loss.toFixed(3); document.getElementById('nnAcc').textContent=(mm.acc*100).toFixed(0)+'%';
+      document.getElementById('nnread').textContent = playing ? ('Training… epoch '+epoch+' · accuracy '+(mm.acc*100).toFixed(0)+'% · the paler the glow, the less sure the network is there.') : ('Paused at epoch '+epoch+'. Change the dataset or neurons and press Train again.'); }
+    function loop(){ if(!playing)return; for(var k=0;k<3;k++)stepN(); refresh(); raf=requestAnimationFrame(loop); }
+    function setPlay(on){ playing=on; var b=document.getElementById('nnPlay'); b.textContent=on?'⏸ Pause':'▶ Train'; if(on){ if(!raf)loop(); } else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('nnData').addEventListener('change',function(e){dataset=e.target.value;gen();initNet();refresh();});
+    document.getElementById('nnH').addEventListener('input',function(e){H=+e.target.value;document.getElementById('nnHl').textContent=H;initNet();refresh();});
+    document.getElementById('nnL').addEventListener('input',function(e){lr=(+e.target.value)/200;document.getElementById('nnLl').textContent=lr.toFixed(3);});
+    document.getElementById('nnAct').addEventListener('change',function(e){act=e.target.value;initNet();refresh();});
+    document.getElementById('nnPlay').addEventListener('click',function(){setPlay(!playing);});
+    document.getElementById('nnReset').addEventListener('click',function(){initNet();refresh();});
+    document.getElementById('nnNew').addEventListener('click',function(){gen();initNet();refresh();});
     gen(); initNet(); refresh();
   })();
   </script>

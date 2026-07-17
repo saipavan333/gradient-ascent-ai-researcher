@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gradient Descent Lab · Interactive Labs</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" />
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="lab-wrap">
+      <div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Gradient Descent Lab</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Gradient Descent Lab</h1>
+        <p>Three optimizers — plain <b style="color:#5b9bff">gradient descent</b>, <b style="color:#ffa24d">momentum</b>, and <b style="color:#b39bff">Adam</b> — race downhill across the same loss landscape. Watch who reaches the valley first, who zig-zags, and who overshoots.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Pick a <b>landscape</b>, press <b>Run</b>, and drag the <b>learning rate</b> higher and higher.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Plain descent zig-zags down narrow valleys; momentum and Adam cut straight through. Push the rate too high and they overshoot and explode.</div></div>
+      </div>
+      <div class="lab-controls">
+        <div class="lab-ctl"><label>Landscape</label><select id="gdLand"><option value="ravine">Narrow ravine</option><option value="bowl">Round bowl</option><option value="rosen">Rosenbrock (banana)</option></select></div>
+        <div class="lab-ctl"><label>Learning rate <span class="v" id="gdLrl">0.090</span></label><input id="gdLr" class="wslider" type="range" min="1" max="100" value="45"></div>
+        <button class="lab-btn" id="gdRun">▶ Run</button>
+        <button class="lab-btn ghost" id="gdStep">Step</button>
+        <button class="lab-btn ghost" id="gdReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="gdIt">0</b><span>iteration</span></div><div class="s"><b id="gdG" style="color:#5b9bff">—</b><span>GD loss</span></div><div class="s"><b id="gdM" style="color:#ffa24d">—</b><span>Momentum</span></div><div class="s"><b id="gdA" style="color:#b39bff">—</b><span>Adam</span></div></div>
+      <div class="lab-stage"><span class="badge">loss landscape · bright = low</span><canvas id="gdcv" width="820" height="470" aria-label="gradient descent on a loss landscape"></canvas></div>
+      <div class="lab-readout" id="gdread">Press ▶ Run. Try the ravine — plain gradient descent will zig-zag while the others glide.</div>
+      <div class="lab-explain"><b>What's happening:</b> the glowing field is the loss — the bright well is the minimum. Each dot steps <b>opposite the gradient</b> (downhill). Momentum keeps a running velocity so it powers through narrow valleys; Adam scales each direction by its own history, so it barely notices bad conditioning. This is <a href="../lessons/track-2-optimization/03-momentum-adam.html">Momentum, RMSProp &amp; Adam</a>, made visible.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div>
+  </main>
+  <div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('gdcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var LAND={
+      ravine:{dom:[-3.1,3.1,-1.75,1.75], start:[-2.7,1.25], min:[0,0], lr:.09, f:function(x,y){return .5*(x*x+16*y*y);}, g:function(x,y){return [x,16*y];}},
+      bowl:{dom:[-3,3,-3,3], start:[-2.4,2.2], min:[0,0], lr:.12, f:function(x,y){return .5*(x*x+y*y);}, g:function(x,y){return [x,y];}},
+      rosen:{dom:[-2,2,-.7,3], start:[-1.5,2.5], min:[1,1], lr:.0016, f:function(x,y){var a=1-x,b=y-x*x;return a*a+18*b*b;}, g:function(x,y){var b=y-x*x;return [-2*(1-x)-72*x*b,36*b];}}}
+    ;
+    var land='ravine', L=LAND[land], lr=L.lr, opt={}, it=0, playing=false, raf=null;
+    var COLS={gd:'#5b9bff',mo:'#ffa24d',ad:'#b39bff'};
+    function DX(x){return (x-L.dom[0])/(L.dom[1]-L.dom[0])*Wd;} function DY(y){return (1-(y-L.dom[2])/(L.dom[3]-L.dom[2]))*Ht;}
+    function reset(){ L=LAND[land]; it=0;
+      opt={ gd:{x:L.start[0],y:L.start[1],tr:[]}, mo:{x:L.start[0],y:L.start[1],vx:0,vy:0,tr:[]}, ad:{x:L.start[0],y:L.start[1],mx:0,my:0,vx:0,vy:0,t:0,tr:[]} }; drawField(); render(); }
+    var field=null;
+    function drawField(){ field=document.createElement('canvas'); field.width=Wd; field.height=Ht; var f=field.getContext('2d');
+      var RES=70, cw=Wd/RES, ch=Ht/RES, vals=[], mn=1e9,mx=-1e9;
+      for(var i=0;i<RES;i++){vals.push([]);for(var j=0;j<RES;j++){ var x=L.dom[0]+(i+.5)/RES*(L.dom[1]-L.dom[0]), y=L.dom[3]-(j+.5)/RES*(L.dom[3]-L.dom[2]); var v=Math.log(1+L.f(x,y)); vals[i].push(v); if(v<mn)mn=v; if(v>mx)mx=v; }}
+      for(var i=0;i<RES;i++)for(var j=0;j<RES;j++){ var t=1-(vals[i][j]-mn)/(mx-mn+1e-9); // 1 = min
+        var r=Math.round(14+(120-14)*t), g=Math.round(22+(232-22)*Math.pow(t,1.3)), b=Math.round(58+(207-58)*t);
+        f.fillStyle='rgb('+r+','+g+','+b+')'; f.fillRect(i*cw,j*ch,cw+1,ch+1);
+        if((j>0&&Math.abs(vals[i][j]-vals[i][j-1])>(mx-mn)/9)){ f.fillStyle='rgba(255,255,255,.05)'; f.fillRect(i*cw,j*ch,cw+1,1.5); } }
+    }
+    function stepOpt(){ it++;
+      var gg=L.g(opt.gd.x,opt.gd.y); opt.gd.x-=lr*gg[0]; opt.gd.y-=lr*gg[1]; push(opt.gd);
+      var gm=L.g(opt.mo.x,opt.mo.y); opt.mo.vx=.9*opt.mo.vx-lr*gm[0]; opt.mo.vy=.9*opt.mo.vy-lr*gm[1]; opt.mo.x+=opt.mo.vx; opt.mo.y+=opt.mo.vy; push(opt.mo);
+      var o=opt.ad, ga=L.g(o.x,o.y), b1=.9,b2=.999,eps=1e-8; o.t++; var alr=Math.max(lr,.02)*8;
+      o.mx=b1*o.mx+(1-b1)*ga[0]; o.my=b1*o.my+(1-b1)*ga[1]; o.vx=b2*o.vx+(1-b2)*ga[0]*ga[0]; o.vy=b2*o.vy+(1-b2)*ga[1]*ga[1];
+      var mhx=o.mx/(1-Math.pow(b1,o.t)), mhy=o.my/(1-Math.pow(b1,o.t)), vhx=o.vx/(1-Math.pow(b2,o.t)), vhy=o.vy/(1-Math.pow(b2,o.t));
+      o.x-=alr*mhx/(Math.sqrt(vhx)+eps); o.y-=alr*mhy/(Math.sqrt(vhy)+eps); push(o);
+    }
+    function push(o){ o.tr.push([o.x,o.y]); if(o.tr.length>60)o.tr.shift(); }
+    function ok(o){ return isFinite(o.x)&&isFinite(o.y)&&Math.abs(o.x)<50&&Math.abs(o.y)<50; }
+    function ball(o,c){ if(!ok(o))return; ctx.strokeStyle=c; ctx.lineWidth=2.4; ctx.globalAlpha=.55; ctx.beginPath();
+      for(var i=0;i<o.tr.length;i++){var p=o.tr[i];(i?ctx.lineTo:ctx.moveTo).call(ctx,DX(p[0]),DY(p[1]));} ctx.stroke(); ctx.globalAlpha=1;
+      ctx.shadowBlur=16; ctx.shadowColor=c; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(DX(o.x),DY(o.y),6,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+    function render(){ ctx.drawImage(field,0,0);
+      ctx.shadowBlur=18; ctx.shadowColor='#fff'; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(DX(L.min[0]),DY(L.min[1]),4,0,6.2832); ctx.fill(); ctx.shadowBlur=0;
+      ball(opt.gd,COLS.gd); ball(opt.mo,COLS.mo); ball(opt.ad,COLS.ad);
+      document.getElementById('gdIt').textContent=it;
+      document.getElementById('gdG').textContent=ok(opt.gd)?L.f(opt.gd.x,opt.gd.y).toFixed(3):'∞';
+      document.getElementById('gdM').textContent=ok(opt.mo)?L.f(opt.mo.x,opt.mo.y).toFixed(3):'∞';
+      document.getElementById('gdA').textContent=ok(opt.ad)?L.f(opt.ad.x,opt.ad.y).toFixed(3):'∞';
+      var div=[!ok(opt.gd)&&'GD',!ok(opt.mo)&&'Momentum',!ok(opt.ad)&&'Adam'].filter(Boolean);
+      document.getElementById('gdread').textContent = div.length? (div.join(' & ')+' diverged — the rate is too high, lower it and reset.') : (playing?('Descending… iteration '+it+'. Watch the paths curve toward the bright minimum.'):'Paused. Press Run or Step to descend.');
+    }
+    function loop(){ if(!playing)return; stepOpt(); render(); raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('gdRun').textContent=on?'⏸ Pause':'▶ Run'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('gdLand').addEventListener('change',function(e){ land=e.target.value; setRun(false); lr=LAND[land].lr; document.getElementById('gdLr').value=Math.round(lr*500); document.getElementById('gdLrl').textContent=lr.toFixed(3); reset(); });
+    document.getElementById('gdLr').addEventListener('input',function(e){ lr=(+e.target.value)/500; document.getElementById('gdLrl').textContent=lr.toFixed(3); });
+    document.getElementById('gdRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('gdStep').addEventListener('click',function(){ setRun(false); for(var k=0;k<1;k++)stepOpt(); render(); });
+    document.getElementById('gdReset').addEventListener('click',function(){ setRun(false); reset(); });
+    document.getElementById('gdLr').value=Math.round(lr*500); document.getElementById('gdLrl').textContent=lr.toFixed(3);
+    reset();
+  })();
+  </script>
+</body>
+</html>
