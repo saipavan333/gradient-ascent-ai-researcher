@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mixture of Experts · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Mixture of Experts</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Mixture of Experts</h1>
+        <p>How do you make a model enormous without making it slow? Keep many specialist "experts" but, for each input, wake up only a couple. A little <b>gate</b> decides who handles what — giant capacity, tiny compute per token.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Drag the white input</b> around the space.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The gate routes it to the nearest <b>2 experts</b>, which light up; the rest stay asleep. Each expert owns a region of the input space.</div></div>
+      </div>
+      <div class="lab-stage"><span class="badge">colours = each expert's territory · lit = active for this input</span><canvas id="mecv" width="820" height="460" aria-label="mixture of experts routing"></canvas></div>
+      <div class="lab-readout" id="meread">Drag the input dot — only the two nearest experts activate for it.</div>
+      <div class="lab-explain"><b>What's happening:</b> the gate scores every expert by how well it matches the input (here, closeness) and softmaxes those scores; only the <b>top-k</b> experts actually run, weighted by the gate. So a model can hold billions of parameters across hundreds of experts yet spend the compute of just a few per token. This is how frontier models scale — <a href="../lessons/track-24-frontier-agents/00-mixture-of-experts.html">Mixture of Experts</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('mecv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var K=6, exp=[[180,120],[380,90],[620,150],[150,330],[430,340],[660,340]], COLS=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c','#ffd24d'], ix=Wd/2, iy=Ht/2;
+    function gate(x,y){ var d=[]; for(var i=0;i<K;i++){ var dd=Math.hypot(x-exp[i][0],y-exp[i][1]); d.push({i:i,s:-dd/120}); } var mx=Math.max.apply(null,d.map(function(o){return o.s;})); var ex=d.map(function(o){return {i:o.i,e:Math.exp(o.s-mx)};}); var Z=ex.reduce(function(a,b){return a+b.e;},0); ex.forEach(function(o){o.w=o.e/Z;}); ex.sort(function(a,b){return b.w-a.w;}); return ex; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var RES=60,cw=Wd/RES,ch=Ht/RES; for(var i=0;i<RES;i++)for(var j=0;j<RES;j++){ var g=gate((i+.5)*cw,(j+.5)*ch); var c=COLS[g[0].i]; var rgb=[parseInt(c.substr(1,2),16),parseInt(c.substr(3,2),16),parseInt(c.substr(5,2),16)]; ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',.13)'; ctx.fillRect(i*cw,j*ch,cw+1,ch+1); }
+      var g=gate(ix,iy); var active={}; active[g[0].i]=g[0].w; active[g[1].i]=g[1].w;
+      for(var i=0;i<K;i++){ var on=(i in active); var c=COLS[i]; ctx.fillStyle=on?c:'#1a2233'; ctx.strokeStyle=c; ctx.lineWidth=on?3:1.5; ctx.shadowBlur=on?22:0; ctx.shadowColor=c;
+        ctx.beginPath(); ctx.arc(exp[i][0],exp[i][1],on?26:20,0,6.2832); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+        ctx.fillStyle=on?'#04121f':'#7f8db0'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('E'+(i+1),exp[i][0],exp[i][1]);
+        if(on){ ctx.fillStyle=c; ctx.font='bold 12px system-ui'; ctx.fillText((active[i]*100).toFixed(0)+'%',exp[i][0],exp[i][1]-36); }
+        // route line
+        if(on){ ctx.strokeStyle=c; ctx.globalAlpha=.6; ctx.lineWidth=1.5+active[i]*4; ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(exp[i][0],exp[i][1]); ctx.stroke(); ctx.globalAlpha=1; } }
+      ctx.textBaseline='alphabetic';
+      ctx.fillStyle='#fff'; ctx.shadowBlur=16; ctx.shadowColor='#fff'; ctx.beginPath(); ctx.arc(ix,iy,9,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#0a0f1f'; ctx.font='bold 10px system-ui'; ctx.textAlign='center'; ctx.fillText('in',ix,iy+3);
+      document.getElementById('meread').textContent='Gate routes this input to Expert '+(g[0].i+1)+' ('+(g[0].w*100).toFixed(0)+'%) and Expert '+(g[1].i+1)+' ('+(g[1].w*100).toFixed(0)+'%). The other '+(K-2)+' experts stay asleep — no compute spent.'; }
+    function setI(e){ var r=cv.getBoundingClientRect(); ix=(e.clientX-r.left)/r.width*Wd; iy=(e.clientY-r.top)/r.height*Ht; draw(); }
+    cv.addEventListener('mousedown',setI); cv.addEventListener('mousemove',function(e){ if(e.buttons)setI(e); });
+    draw();
+  })();
+  </script></body></html>

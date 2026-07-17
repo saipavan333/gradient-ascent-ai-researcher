@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Graph Message Passing · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Graph Message Passing</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Graph Neural Networks: Message Passing</h1>
+        <p>How do you run a network on a shape with no rows or columns — a social graph, a molecule, a road map? Each node repeatedly gathers a message from its neighbours and updates itself. Light one node and watch the signal ripple across the graph.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv"><b>Click a node</b> to light it up, then press <b>Step</b> (or Run) to pass messages.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The glow spreads to neighbours, then their neighbours — fast within a tight cluster, slower across the lone bridge. After a few rounds every node "knows" about the source.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="gnRun">▶ Run</button>
+        <button class="lab-btn ghost" id="gnStep">Step</button>
+        <button class="lab-btn ghost" id="gnReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="gnRound">0</b><span>message rounds</span></div></div>
+      <div class="lab-stage"><span class="badge">click a node to inject a signal</span><canvas id="gncv" width="820" height="440" aria-label="graph message passing"></canvas></div>
+      <div class="lab-readout" id="gnread">Click any node to light it, then Step to watch the message spread to its neighbours.</div>
+      <div class="lab-explain"><b>What's happening:</b> one round of a GNN updates every node to a blend of its own value and the average of its neighbours' — a message-passing step. Stack a few rounds and each node's representation absorbs information from further and further away in the graph. Because it only ever looks along edges, the same network handles any graph shape or size. This is <a href="../lessons/track-20-graph-neural-networks/01-message-passing.html">Message Passing</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('gncv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var nodes=[[160,120],[110,240],[230,300],[300,150],[210,190],[560,130],[660,250],[520,300],[620,180],[700,120],[400,230],[480,190]];
+    var edges=[[0,1],[0,3],[0,4],[1,2],[1,4],[2,4],[3,4],[3,10],[5,8],[5,9],[6,7],[6,8],[7,8],[8,9],[8,11],[10,11],[11,5]];
+    var adj=[]; nodes.forEach(function(){adj.push([]);}); edges.forEach(function(e){adj[e[0]].push(e[1]);adj[e[1]].push(e[0]);});
+    var val=[], round=0, playing=false, raf=null, fc=0;
+    function reset(){ val=nodes.map(function(){return 0;}); round=0; draw(); }
+    function step(){ var nv=val.slice(); for(var i=0;i<nodes.length;i++){ var s=val[i],c=1; for(var k=0;k<adj[i].length;k++){s+=val[adj[i][k]];c++;} nv[i]=0.45*val[i]+0.55*(s/c); } val=nv; round++; }
+    function col(v){ v=Math.max(0,Math.min(1,v)); var r=Math.round(40+(255-40)*v),g=Math.round(70+(220-70)*v),b=Math.round(120+(150-120)*v); return 'rgb('+r+','+g+','+b+')'; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.13)'; ctx.lineWidth=1.5; for(var e=0;e<edges.length;e++){ ctx.beginPath(); ctx.moveTo(nodes[edges[e][0]][0],nodes[edges[e][0]][1]); ctx.lineTo(nodes[edges[e][1]][0],nodes[edges[e][1]][1]); ctx.stroke(); }
+      for(var i=0;i<nodes.length;i++){ var c=col(val[i]); ctx.fillStyle=c; ctx.shadowBlur=8+val[i]*20; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(nodes[i][0],nodes[i][1],16,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.5; ctx.stroke(); ctx.fillStyle=val[i]>0.55?'#04121f':'#cdd6ea'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val[i].toFixed(2),nodes[i][0],nodes[i][1]); }
+      ctx.textBaseline='alphabetic'; document.getElementById('gnRound').textContent=round;
+      var mn=1,mx=0; for(var i=0;i<val.length;i++){mn=Math.min(mn,val[i]);mx=Math.max(mx,val[i]);}
+      document.getElementById('gnread').textContent = mx<0.01?'All nodes are dark. Click one to inject a signal.':(round===0?'Signal injected. Press Step to pass it to neighbours.':'Round '+round+': the signal is spreading and evening out. Spread ranges '+mn.toFixed(2)+'–'+mx.toFixed(2)+'.'); }
+    function loop(){ if(!playing)return; fc++; if(fc%18===0)step(); draw(); if(playing)raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('gnRun').textContent=on?'⏸ Pause':'▶ Run'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    cv.addEventListener('click',function(e){ var r=cv.getBoundingClientRect(); var mx=(e.clientX-r.left)/r.width*Wd,my=(e.clientY-r.top)/r.height*Ht; for(var i=0;i<nodes.length;i++){ if(Math.hypot(mx-nodes[i][0],my-nodes[i][1])<18){ val[i]=1; draw(); break; } } });
+    document.getElementById('gnRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('gnStep').addEventListener('click',function(){ setRun(false); step(); draw(); });
+    document.getElementById('gnReset').addEventListener('click',function(){ setRun(false); reset(); });
+    reset(); val[0]=1; draw();
+  })();
+  </script></body></html>
