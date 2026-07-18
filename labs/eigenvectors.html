@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eigenvectors · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Eigenvectors</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Eigenvectors &amp; Power Iteration</h1>
+        <p>A matrix usually knocks a vector off its line — stretching and rotating it. But most matrices have a few special directions that only get <b>stretched, never turned</b>. Those are the eigenvectors, and finding the strongest one is how PCA, PageRank, and spectral methods actually work.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Pick a matrix, then press <b>Power step</b> (or <b>Auto</b>) to repeatedly apply it to a starting arrow — from a random direction.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The moving arrow swings until it locks onto the <b>dominant eigenvector</b> (the white line) and then only changes length. The spiral matrix has <em>no</em> real eigenvector — it just keeps rotating.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn ghost" data-m="sym">Symmetric</button>
+        <button class="lab-btn ghost" data-m="shear">Shear</button>
+        <button class="lab-btn ghost" data-m="scale">Scale</button>
+        <button class="lab-btn ghost" data-m="spiral">Spiral</button>
+        <button class="lab-btn" id="egStep">▶ Power step</button>
+        <button class="lab-btn" id="egAuto">⏩ Auto</button>
+        <button class="lab-btn ghost" id="egRand">🎲 new start</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="egEv">—</b><span>eigenvalues</span></div><div class="s"><b id="egIt">0</b><span>power-iteration steps</span></div></div>
+      <div class="lab-stage"><span class="badge">grey circle → orange ellipse = the matrix's action · white = eigenvector directions · gold = iterating arrow</span><canvas id="egcv" width="820" height="470" aria-label="eigenvectors"></canvas></div>
+      <div class="lab-readout" id="egread">Choose a matrix and press Power step.</div>
+      <div class="lab-explain"><b>What's happening:</b> for a matrix M, an <b>eigenvector</b> v satisfies M v = λ v — applying M just scales v by a number λ (the <b>eigenvalue</b>), without rotating it. <b>Power iteration</b> starts from any arrow and repeatedly applies M and renormalizes; because the strongest eigen-direction grows fastest, the arrow converges to the <b>dominant</b> eigenvector, and λ is read off as the growth factor (the Rayleigh quotient vᵀMv). A rotation matrix has complex eigenvalues — no real fixed direction — so the arrow never settles. This is <a href="../lessons/track-01-linear-algebra-probability/03-eigen.html">Eigenvectors &amp; PCA</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('egcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=70, ox=Wd/2, oy=Ht/2; var mats={sym:[[1.7,0.7],[0.7,1.1]],shear:[[1,0.9],[0,1]],scale:[[1.7,0],[0,0.6]],spiral:[[0.8,-0.9],[0.9,0.8]]};
+    var M=mats.sym, v={x:Math.cos(0.9),y:Math.sin(0.9)}, iter=0, playing=false, raf=null, fc=0;
+    function eig(M){ var a=M[0][0],b=M[0][1],c=M[1][0],d=M[1][1]; var tr=a+d, det=a*d-b*c; var disc=tr*tr-4*det; if(disc<0) return {complex:true, re:tr/2, im:Math.sqrt(-disc)/2}; var s=Math.sqrt(disc); var l1=(tr+s)/2,l2=(tr-s)/2; function vec(l){ if(Math.abs(b)>1e-6)return norm({x:l-d,y:c}); if(Math.abs(c)>1e-6)return norm({x:b,y:l-a}); return norm({x:1,y:0}); } return {complex:false,l1:l1,l2:l2,v1:vec(l1),v2:vec(l2)}; }
+    function norm(u){ var n=Math.hypot(u.x,u.y)||1; return {x:u.x/n,y:u.y/n}; }
+    function ap(m,u){ return {x:m[0][0]*u.x+m[0][1]*u.y, y:m[1][0]*u.x+m[1][1]*u.y}; }
+    function PX(u){return ox+u.x*S;} function PY(u){return oy-u.y*S;}
+    function line(dir,color,w,alpha){ ctx.strokeStyle=color; ctx.globalAlpha=alpha||1; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(ox-dir.x*S*3,oy+dir.y*S*3); ctx.lineTo(ox+dir.x*S*3,oy-dir.y*S*3); ctx.stroke(); ctx.globalAlpha=1; }
+    function arrow(u,color){ var x=PX(u),y=PY(u); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=4; ctx.shadowBlur=12; ctx.shadowColor=color; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(x,y); ctx.stroke(); var ang=Math.atan2(y-oy,x-ox); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-14*Math.cos(ang-0.4),y-14*Math.sin(ang-0.4)); ctx.lineTo(x-14*Math.cos(ang+0.4),y-14*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(Wd,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,Ht); ctx.stroke();
+      // unit circle
+      ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1.5; ctx.beginPath(); for(var i=0;i<=64;i++){ var th=i/64*6.2832; var p={x:Math.cos(th),y:Math.sin(th)}; if(i===0)ctx.moveTo(PX(p),PY(p)); else ctx.lineTo(PX(p),PY(p)); } ctx.stroke();
+      // mapped ellipse
+      ctx.strokeStyle='#ffa24d'; ctx.lineWidth=2.5; ctx.shadowBlur=8; ctx.shadowColor='#ffa24d'; ctx.beginPath(); for(var i=0;i<=64;i++){ var th=i/64*6.2832; var p=ap(M,{x:Math.cos(th),y:Math.sin(th)}); if(i===0)ctx.moveTo(PX(p),PY(p)); else ctx.lineTo(PX(p),PY(p)); } ctx.stroke(); ctx.shadowBlur=0;
+      var E=eig(M);
+      if(!E.complex){ line(E.v1,'#ffffff',2.5,.9); line(E.v2,'#8aa0c8',2,.6); document.getElementById('egEv').textContent='λ₁='+E.l1.toFixed(2)+',  λ₂='+E.l2.toFixed(2); }
+      else document.getElementById('egEv').textContent='complex ('+E.re.toFixed(2)+' ± '+E.im.toFixed(2)+'i) — rotation';
+      arrow(v,'#ffd24d');
+      document.getElementById('egIt').textContent=iter;
+      var rq = (function(){ var mv=ap(M,v); return v.x*mv.x+v.y*mv.y; })();
+      if(E.complex) document.getElementById('egread').textContent='This matrix rotates every direction — it has no real eigenvector, so the arrow keeps spinning and never locks on.';
+      else { var ang=Math.atan2(v.y,v.x), ea=Math.atan2(E.v1.y,E.v1.x); var off=Math.abs(Math.sin(ang-ea)); document.getElementById('egread').textContent = iter===0?'A random starting arrow. Press Power step to apply M over and over.':(off<0.03?'Locked on! After '+iter+' steps the arrow matches the dominant eigenvector — now M only stretches it (×'+rq.toFixed(2)+'), never turns it.':'Step '+iter+': the arrow is swinging toward the dominant eigenvector (growth ×'+rq.toFixed(2)+').'); } }
+    function step(){ v=norm(ap(M,v)); iter++; }
+    function loop(){ if(!playing)return; fc++; if(fc%18===0)step(); draw(); raf=requestAnimationFrame(loop); }
+    function setAuto(on){ playing=on; document.getElementById('egAuto').textContent=on?'⏸ Pause':'⏩ Auto'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-m]'),function(btn){ btn.addEventListener('click',function(){ M=mats[btn.getAttribute('data-m')]; iter=0; draw(); }); });
+    document.getElementById('egStep').addEventListener('click',function(){ step(); draw(); });
+    document.getElementById('egAuto').addEventListener('click',function(){ setAuto(!playing); });
+    document.getElementById('egRand').addEventListener('click',function(){ var th=Math.random()*6.2832; v={x:Math.cos(th),y:Math.sin(th)}; iter=0; draw(); });
+    draw();
+  })();
+  </script></body></html>
