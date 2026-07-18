@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quantization · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Quantization</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Quantization: Fewer Bits, Almost the Same Model</h1>
+        <p>A model's weights are stored as high-precision numbers, but most of that precision is wasted. Quantization snaps every weight to one of a small set of levels, so each needs only a few bits — shrinking the model 4–8× and speeding it up, with surprisingly little loss.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Lower the <b>bits</b> per weight. The smooth weight profile (white) gets snapped to the available levels (gold staircase).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">At 8 bits the staircase is indistinguishable; drop toward 2–3 bits and visible steps appear as error grows — but memory falls in step. The sweet spot keeps quality while slashing size.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">bits per weight <input type="range" id="qzB" min="1" max="8" step="1" value="3"><span id="qzBv" class="lab-tag">3</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="qzLvl">—</b><span>levels available</span></div><div class="s"><b id="qzErr">—</b><span>quantization error</span></div><div class="s"><b id="qzMem">—</b><span>memory vs 32-bit</span></div></div>
+      <div class="lab-stage"><span class="badge">white = original weights · gold = quantized · dashed = the available levels</span><canvas id="qzcv" width="820" height="450" aria-label="quantization"></canvas></div>
+      <div class="lab-readout" id="qzread">Lower the bits and watch the staircase coarsen.</div>
+      <div class="lab-explain"><b>What's happening:</b> with b bits you get 2ᵇ distinct levels spread across the weight range; every weight is rounded to the nearest level, so it can be stored as a small integer index instead of a 32-bit float. Here we quantize a smooth weight profile: at 8 bits (256 levels) the rounding is invisible; drop to 3 bits (8 levels) and the staircase — and the error — become obvious, while memory shrinks to b⁄32 of the original. Real quantization is cleverer (per-channel scales, calibration, keeping outliers) and routinely runs big models at <b>int8</b> or even <b>int4</b> with tiny accuracy loss, which is what lets large models run on phones and cheap GPUs. This is <a href="../lessons/track-11-efficient-scalable-ml/01-quantization.html">Quantization</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('qzcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var bits=3; var N=120, W=[]; (function(){ var s=3; function rnd(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;} for(var i=0;i<N;i++){ var t=i/(N-1)*6.2832; W.push(Math.sin(t*1.3)*0.7+Math.sin(t*0.5+1)*0.3 + (rnd()-0.5)*0.08); } })();
+    var wmin=Math.min.apply(null,W), wmax=Math.max.apply(null,W);
+    function quant(v,levels){ var t=(v-wmin)/(wmax-wmin); var q=Math.round(t*(levels-1))/(levels-1); return wmin+q*(wmax-wmin); }
+    function AX(i){ return 50+i/(N-1)*(Wd-100); } function AY(v){ return Ht-56-(v-wmin)/(wmax-wmin)*(Ht-120); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var levels=Math.pow(2,bits);
+      // level lines
+      for(var l=0;l<levels && levels<=32;l++){ var v=wmin+l/(levels-1)*(wmax-wmin); ctx.strokeStyle='rgba(200,139,255,.22)'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(50,AY(v)); ctx.lineTo(Wd-50,AY(v)); ctx.stroke(); ctx.setLineDash([]); }
+      // original
+      ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2.5; ctx.beginPath(); for(var i=0;i<N;i++){ if(i===0)ctx.moveTo(AX(i),AY(W[i])); else ctx.lineTo(AX(i),AY(W[i])); } ctx.stroke();
+      // quantized staircase
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.5; ctx.shadowBlur=6; ctx.shadowColor='#ffd24d'; ctx.beginPath(); var prev=null; for(var i=0;i<N;i++){ var q=quant(W[i],levels); var xx=AX(i),yy=AY(q); if(i===0){ctx.moveTo(xx,yy);} else { ctx.lineTo(xx,prev); ctx.lineTo(xx,yy); } prev=yy; } ctx.stroke(); ctx.shadowBlur=0;
+      var err=0; for(var i=0;i<N;i++){ var q=quant(W[i],levels); err+=(q-W[i])*(q-W[i]); } err=Math.sqrt(err/N);
+      document.getElementById('qzLvl').textContent=levels; document.getElementById('qzErr').textContent=err.toFixed(3);
+      document.getElementById('qzMem').textContent=(bits/32*100).toFixed(0)+'%  ('+bits+'-bit)';
+      document.getElementById('qzread').textContent = bits>=7? bits+' bits ('+levels+' levels): the staircase hugs the original — error '+err.toFixed(3)+', essentially lossless, at '+(bits/32*100).toFixed(0)+'% of the memory.' : (bits<=2? bits+' bits ('+levels+' levels): coarse steps, error '+err.toFixed(3)+' — but only '+(bits/32*100).toFixed(0)+'% of the memory. Too aggressive for most models.' : bits+' bits ('+levels+' levels): steps are visible (error '+err.toFixed(3)+') yet the shape survives, at '+(bits/32*100).toFixed(0)+'% of the size — the int8/int4 sweet spot.'); }
+    document.getElementById('qzB').addEventListener('input',function(){ bits=+this.value; document.getElementById('qzBv').textContent=bits; draw(); });
+    draw();
+  })();
+  </script></body></html>
