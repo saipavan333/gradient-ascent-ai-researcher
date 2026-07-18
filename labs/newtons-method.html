@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Newton's Method · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Newton's Method</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Newton's Method vs Gradient Descent</h1>
+        <p>Gradient descent only knows which way is downhill, so it inches along. <b>Newton's method</b> also senses the <em>curvature</em> — it fits a parabola to the spot it's standing on and jumps straight to that parabola's bottom. The result: a handful of giant, well-aimed steps instead of hundreds of timid ones.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Set a <b>start</b>, then press <b>Step</b> repeatedly (or <b>Auto</b>). Gold = Newton, grey = gradient descent, from the same point.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Newton's dashed parabola hugs the curve and it lands near the minimum in ~4 steps; gradient descent is still crawling. That speed is why second-order methods are prized — when you can afford the curvature.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">start x <input type="range" id="nwX" min="-2.8" max="2.8" step="0.1" value="2.5"><span id="nwXv" class="lab-tag">2.5</span></label>
+        <button class="lab-btn" id="nwStep">▶ Step</button>
+        <button class="lab-btn" id="nwAuto">⏩ Auto</button>
+        <button class="lab-btn ghost" id="nwReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="nwNw">0</b><span>Newton steps · dist to min</span></div><div class="s"><b id="nwGd">0</b><span>gradient-descent steps · dist</span></div></div>
+      <div class="lab-stage"><span class="badge">gold = Newton (with its fitted parabola) · grey = gradient descent · both minimizing the same curve</span><canvas id="nwcv" width="820" height="470" aria-label="newtons method"></canvas></div>
+      <div class="lab-readout" id="nwread">Set a start and press Step.</div>
+      <div class="lab-explain"><b>What's happening:</b> to minimize f, gradient descent uses only the slope f′: x ← x − η f′(x), a fixed cautious step. <b>Newton's method</b> also uses the second derivative f″ (the curvature) to build the local parabola and jump to its vertex: x ← x − f′(x)/f″(x). On a perfect parabola that's <em>one</em> step to the exact minimum; on a general curve it converges quadratically — the number of correct digits roughly doubles each step. The catch is you need f″ (here a single number; for a big model it's a huge matrix), which is why deep learning mostly uses cheaper first-order methods with momentum. This is <a href="../lessons/track-02-optimization/00-gradient-descent.html">Optimization</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('nwcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    function f(x){ return Math.cosh(x)-1; } function d1(x){ return Math.sinh(x); } function d2(x){ return Math.cosh(x); }
+    var XMIN=-2.9,XMAX=2.9, ymin=0, ymax=f(XMAX);
+    function PX(x){ return 44+ (x-XMIN)/(XMAX-XMIN)*(Wd-88); }
+    function PY(y){ return 34+ (ymax-y)/(ymax-ymin)*(Ht-90); }
+    var startX=2.5, nw={x:2.5,n:0}, gd={x:2.5,n:0}, lr=0.16, raf=null, playing=false, fc=0;
+    function reset(){ nw={x:startX,n:0}; gd={x:startX,n:0}; playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} document.getElementById('nwAuto').textContent='⏩ Auto'; draw(); }
+    function step(){ if(Math.abs(d1(nw.x))>1e-4){ nw.x=nw.x - d1(nw.x)/d2(nw.x); nw.n++; } if(Math.abs(d1(gd.x))>1e-4){ gd.x=gd.x - lr*d1(gd.x); gd.n++; } }
+    function curve(fn,color,w,dash){ ctx.strokeStyle=color; ctx.lineWidth=w; if(dash)ctx.setLineDash(dash); ctx.beginPath(); var first=true; for(var x=XMIN;x<=XMAX;x+=0.02){ var y=fn(x); if(y>ymax+1)continue; var px=PX(x),py=PY(y); if(first){ctx.moveTo(px,py);first=false;}else ctx.lineTo(px,py);} ctx.stroke(); ctx.setLineDash([]); }
+    function dot(x,color){ ctx.fillStyle=color; ctx.shadowBlur=14; ctx.shadowColor=color; ctx.beginPath(); ctx.arc(PX(x),PY(f(x)),8,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1; ctx.stroke(); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(PX(0),34); ctx.lineTo(PX(0),Ht-40); ctx.stroke();
+      curve(f,'#5b9bff',3);
+      // Newton parabola at nw.x
+      var a=nw.x, fa=f(a), g=d1(a), h=d2(a);
+      curve(function(x){ return fa + g*(x-a) + 0.5*h*(x-a)*(x-a); }, 'rgba(255,210,77,.55)', 2, [6,5]);
+      dot(gd.x,'#9fb0cc'); dot(nw.x,'#ffd24d');
+      document.getElementById('nwNw').textContent=nw.n+' · '+Math.abs(nw.x).toFixed(3);
+      document.getElementById('nwGd').textContent=gd.n+' · '+Math.abs(gd.x).toFixed(3);
+      var nd=Math.abs(nw.x), gdd=Math.abs(gd.x);
+      document.getElementById('nwread').textContent = (nw.n===0)?'Both start at x='+startX.toFixed(1)+'. The gold dashed parabola is Newton’s local model — it will jump to its bottom.':(nd<0.01?'Newton reached the minimum in '+nw.n+' steps (within '+nd.toFixed(3)+'). Gradient descent is at '+gdd.toFixed(2)+' after '+gd.n+' steps — still crawling.':'Step '+nw.n+': Newton jumped to '+nw.x.toFixed(3)+' (its parabola’s bottom); gradient descent only nudged to '+gd.x.toFixed(2)+'.'); }
+    function loop(){ if(!playing)return; fc++; if(fc%22===0)step(); draw(); raf=requestAnimationFrame(loop); }
+    document.getElementById('nwX').addEventListener('input',function(){ startX=+this.value; document.getElementById('nwXv').textContent=startX.toFixed(1); reset(); });
+    document.getElementById('nwStep').addEventListener('click',function(){ step(); draw(); });
+    document.getElementById('nwAuto').addEventListener('click',function(){ playing=!playing; this.textContent=playing?'⏸ Pause':'⏩ Auto'; if(playing){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} });
+    document.getElementById('nwReset').addEventListener('click',reset);
+    reset();
+  })();
+  </script></body></html>

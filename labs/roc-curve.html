@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ROC & Thresholds · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; ROC & Thresholds</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>ROC Curves &amp; the Threshold Dial</h1>
+        <p>A classifier doesn't output "yes" or "no" — it outputs a <em>score</em>, and <b>you</b> choose the cutoff. Slide that cutoff and you trade catching more true cases against raising more false alarms. The ROC curve draws that entire trade-off in one picture.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag the <b>threshold</b> across the two overlapping score distributions and watch the confusion matrix and the point on the ROC curve move.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">A strict cutoff (right) = few false alarms but missed cases; a loose cutoff (left) = catches everything but lots of false positives. The ROC curve is every cutoff at once; more area under it = a better classifier.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">threshold <input type="range" id="rcT" min="0" max="1" step="0.01" value="0.5"><span id="rcTv" class="lab-tag">0.50</span></label>
+        <label class="lab-ctl">class overlap <input type="range" id="rcO" min="0.05" max="0.28" step="0.01" value="0.12"><span id="rcOv" class="lab-tag">0.12</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rcPr">—</b><span>precision</span></div><div class="s"><b id="rcRe">—</b><span>recall (TPR)</span></div><div class="s"><b id="rcAuc">—</b><span>AUC</span></div></div>
+      <div class="lab-stage"><span class="badge">left: score histograms + threshold · right: ROC curve with your operating point</span><canvas id="rccv" width="820" height="470" aria-label="roc curve"></canvas></div>
+      <div class="lab-readout" id="rcread">Drag the threshold to trade recall against false alarms.</div>
+      <div class="lab-explain"><b>What's happening:</b> the orange bumps are the scores the model gives to <b>negatives</b>, the teal bumps to <b>positives</b>; they overlap, so no single cutoff is perfect. For a chosen threshold, everything to its right is predicted positive, giving true/false positives and negatives — the <b>confusion matrix</b>. <b>Recall</b> (= true-positive rate) is the fraction of real positives caught; <b>precision</b> is the fraction of positive <em>predictions</em> that were right; the <b>false-positive rate</b> is the fraction of negatives wrongly flagged. Sweeping the threshold traces the <b>ROC curve</b> (TPR vs FPR); its area (<b>AUC</b>) summarizes the classifier independent of any one cutoff — 1.0 is perfect, 0.5 is a coin flip. This is <a href="../lessons/track-03-ml-theory/02-evaluation-metrics.html">Evaluation metrics</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rccv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var seed=7; function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+    function gauss(m,s){ return m+s*((rnd()+rnd()+rnd()+rnd()+rnd()+rnd()-3)/0.7071); }
+    var thr=0.5, overlap=0.12, neg=[], pos=[], N=260;
+    function gen(){ seed=7; neg=[];pos=[]; for(var i=0;i<N;i++){ neg.push(Math.max(0,Math.min(1,gauss(0.36,overlap)))); pos.push(Math.max(0,Math.min(1,gauss(0.64,overlap)))); } }
+    function counts(t){ var TP=0,FP=0,FN=0,TN=0; for(var i=0;i<N;i++){ if(pos[i]>=t)TP++; else FN++; if(neg[i]>=t)FP++; else TN++; } return {TP:TP,FP:FP,FN:FN,TN:TN}; }
+    function roc(){ var pts=[]; for(var t=1.0;t>=-0.001;t-=0.02){ var c=counts(t); pts.push([c.FP/N, c.TP/N]); } return pts; }
+    function auc(pts){ var a=0; for(var i=1;i<pts.length;i++){ a+=(pts[i][0]-pts[i-1][0])*(pts[i][1]+pts[i-1][1])/2; } return a; }
+    var HX=44, HW=380, HTOP=90, HH=180; // histogram area
+    function histAxisX(v){ return HX+v*HW; }
+    function drawHist(arr,color,base){ var B=34, bins=new Array(B).fill(0); for(var i=0;i<arr.length;i++){ var b=Math.floor(arr[i]*B); if(b<0)b=0; if(b>=B)b=B-1; bins[b]++; } var mx=Math.max.apply(null,bins)||1; for(var b=0;b<B;b++){ var h=bins[b]/mx*(HH*0.5); var x=HX+b/B*HW; ctx.fillStyle=color; ctx.globalAlpha=.75; ctx.fillRect(x,base-h,HW/B*0.9,h); ctx.globalAlpha=1; } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // histograms
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.textAlign='left'; ctx.fillText('model score  →',HX,HTOP-16);
+      var baseY=HTOP+HH;
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(HX,baseY); ctx.lineTo(HX+HW,baseY); ctx.stroke();
+      drawHist(neg,'#ffa24d',baseY); drawHist(pos,'#4fd6b5',baseY);
+      // legend
+      ctx.fillStyle='#ffa24d'; ctx.fillRect(HX,HTOP-8,10,10); ctx.fillStyle='#9fb0cc'; ctx.fillText('negatives',HX+14,HTOP);
+      ctx.fillStyle='#4fd6b5'; ctx.fillRect(HX+100,HTOP-8,10,10); ctx.fillStyle='#9fb0cc'; ctx.fillText('positives',HX+114,HTOP);
+      // threshold line
+      var tx=histAxisX(thr); ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.5; ctx.shadowBlur=8; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.moveTo(tx,HTOP-2); ctx.lineTo(tx,baseY+6); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle='#ffd24d'; ctx.textAlign='center'; ctx.fillText('threshold',tx,baseY+22); ctx.textAlign='left';
+      ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillText('← predict negative',HX+4,baseY+40); ctx.textAlign='right'; ctx.fillText('predict positive →',HX+HW,baseY+40); ctx.textAlign='left';
+      var c=counts(thr);
+      // confusion matrix
+      var mx=HX, my=baseY+58, cw=90, ch=34;
+      var cells=[['TP',c.TP,'#4fd6b5'],['FN',c.FN,'#7a5a2a'],['FP',c.FP,'#a24d2a'],['TN',c.TN,'#33415e']];
+      ctx.font='12px system-ui';
+      for(var i=0;i<4;i++){ var col=i%2, row=Math.floor(i/2); var x=mx+col*cw, y=my+row*ch; ctx.fillStyle=cells[i][2]; ctx.globalAlpha=.85; ctx.fillRect(x,y,cw-4,ch-4); ctx.globalAlpha=1; ctx.fillStyle='#0a0f1f'; ctx.font='bold 12px system-ui'; ctx.textAlign='left'; ctx.fillText(cells[i][0]+': '+cells[i][1],x+8,y+21); }
+      // ROC curve panel
+      var rx=Wd-260, ry=HTOP-6, rw=210, rh=210;
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.strokeRect(rx,ry,rw,rh);
+      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(rx,ry+rh); ctx.lineTo(rx+rw,ry); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('ROC curve',rx+rw/2,ry-10); ctx.fillText('false-positive rate →',rx+rw/2,ry+rh+22); ctx.save(); ctx.translate(rx-14,ry+rh/2); ctx.rotate(-Math.PI/2); ctx.fillText('true-positive rate →',0,0); ctx.restore();
+      var pts=roc();
+      ctx.strokeStyle='#c58bff'; ctx.lineWidth=2.5; ctx.shadowBlur=8; ctx.shadowColor='#c58bff'; ctx.beginPath(); for(var i=0;i<pts.length;i++){ var x=rx+pts[i][0]*rw, y=ry+rh-pts[i][1]*rh; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); ctx.shadowBlur=0;
+      var cur=[c.FP/N,c.TP/N]; var cxp=rx+cur[0]*rw, cyp=ry+rh-cur[1]*rh; ctx.fillStyle='#ffd24d'; ctx.shadowBlur=12; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(cxp,cyp,7,0,6.2832); ctx.fill(); ctx.shadowBlur=0;
+      var prec= (c.TP+c.FP)>0? c.TP/(c.TP+c.FP):0, rec=c.TP/(c.TP+c.FN), A=auc(pts);
+      document.getElementById('rcPr').textContent=prec.toFixed(2); document.getElementById('rcRe').textContent=rec.toFixed(2); document.getElementById('rcAuc').textContent=A.toFixed(3);
+      document.getElementById('rcread').textContent = thr>0.7?'Strict cutoff ('+thr.toFixed(2)+'): high precision '+prec.toFixed(2)+' but recall drops to '+rec.toFixed(2)+' — you miss real positives.':(thr<0.3?'Loose cutoff ('+thr.toFixed(2)+'): recall '+rec.toFixed(2)+' catches almost everything, but precision falls to '+prec.toFixed(2)+' — many false alarms.':'Balanced cutoff ('+thr.toFixed(2)+'): precision '+prec.toFixed(2)+', recall '+rec.toFixed(2)+'. Drag to see the trade-off; AUC='+A.toFixed(3)+' rates the whole curve.'); }
+    document.getElementById('rcT').addEventListener('input',function(){ thr=+this.value; document.getElementById('rcTv').textContent=thr.toFixed(2); draw(); });
+    document.getElementById('rcO').addEventListener('input',function(){ overlap=+this.value; document.getElementById('rcOv').textContent=overlap.toFixed(2); gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
