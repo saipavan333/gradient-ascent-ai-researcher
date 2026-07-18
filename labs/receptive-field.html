@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Receptive Field · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Receptive Field</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>The Growing Receptive Field</h1>
+        <p>Each neuron in a convolutional network only looks at a small patch of the layer below it. But stack a few layers and a single deep neuron ends up "seeing" a wide swath of the original image — that expanding window is the <b>receptive field</b>, and it's why deep CNNs perceive both fine detail and big-picture context.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Add <b>layers</b> and change the <b>kernel size</b>. The highlighted cone traces what one top neuron can see, all the way down to the input.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Each layer widens the view by (kernel−1). One neuron atop a few 3×3 layers already covers a large chunk of the input — depth buys context.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">layers <input type="range" id="rfL" min="1" max="5" step="1" value="3"><span id="rfLv" class="lab-tag">3</span></label>
+        <label class="lab-ctl">kernel <input type="range" id="rfK" min="3" max="7" step="2" value="3"><span id="rfKv" class="lab-tag">3</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rfSize">—</b><span>receptive field (input pixels seen)</span></div></div>
+      <div class="lab-stage"><span class="badge">top node = one deep neuron · gold cone = everything it can see · bottom row = input</span><canvas id="rfcv" width="820" height="470" aria-label="receptive field"></canvas></div>
+      <div class="lab-readout" id="rfread">Add layers and watch the cone widen.</div>
+      <div class="lab-explain"><b>What's happening:</b> a convolution with kernel size k means each neuron reads k neighbours from the layer below. Trace one neuron down: layer by layer, the set of inputs it depends on grows by (k−1) on top of the previous window, so after L layers (stride 1) the <b>receptive field</b> is 1 + L·(k−1) pixels wide. That's why early layers detect edges and textures (tiny fields) while deep layers respond to whole objects (huge fields). Bigger kernels, more depth, striding, and dilation all enlarge it faster — the central knob CNN architects tune so the network's "view" matches the size of the thing it must recognize. This is <a href="../lessons/track-08-cnns-computer-vision/02-receptive-field.html">CNN receptive fields</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rfcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var W=23, L=3, K=3;
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var layers=L+1; var top=60, botY=Ht-70, dy=(botY-top)/(layers-1);
+      var cx=Math.floor(W/2); var mgn=60, dx=(Wd-2*mgn)/(W-1);
+      function NX(i){ return mgn+i*dx; } function NY(l){ return top+ (layers-1-l)*dy; } // l=0 top(deep), l=layers-1 bottom(input)? let l index from top(deep=0)
+      // compute receptive field per layer from top neuron (center) downward
+      var half=(K-1)/2; var lo=cx, hi=cx; var ranges=[[cx,cx]];
+      for(var d=1;d<layers;d++){ lo=Math.max(0,lo-half); hi=Math.min(W-1,hi+half); ranges.push([lo,hi]); }
+      // ranges[0]=top neuron, ranges[layers-1]=input RF
+      // draw cone fill
+      ctx.fillStyle='rgba(255,210,77,.10)'; ctx.beginPath();
+      ctx.moveTo(NX(ranges[0][0])-dx*0.4, top+0*dy);
+      for(var d=0;d<layers;d++){ ctx.lineTo(NX(ranges[d][0])-dx*0.4, top+d*dy); }
+      for(var d=layers-1;d>=0;d--){ ctx.lineTo(NX(ranges[d][1])+dx*0.4, top+d*dy); }
+      ctx.closePath(); ctx.fill();
+      // draw nodes
+      for(var d=0;d<layers;d++){ var y=top+d*dy; var inRange=ranges[d];
+        for(var i=0;i<W;i++){ var on = i>=inRange[0]&&i<=inRange[1]; ctx.fillStyle= on? '#ffd24d':'#26324a'; if(on){ctx.shadowBlur=6;ctx.shadowColor='#ffd24d';} ctx.beginPath(); ctx.arc(NX(i),y,d===0?9:5.5,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+        ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='11px system-ui'; ctx.textAlign='right'; ctx.fillText(d===0?'deep neuron':(d===layers-1?'input':'layer '+(layers-1-d)), NX(0)-14, y+4);
+      }
+      var rf=1+L*(K-1); rf=Math.min(rf,W);
+      document.getElementById('rfSize').textContent=rf+' pixels';
+      document.getElementById('rfread').textContent = 'One neuron after '+L+' layer(s) of '+K+'×'+K+' convolutions sees '+rf+' input pixels (1 + '+L+'×'+(K-1)+'). '+(rf>=W?'It now spans essentially the whole input.':'Add layers or enlarge the kernel to widen its view.'); }
+    document.getElementById('rfL').addEventListener('input',function(){ L=+this.value; document.getElementById('rfLv').textContent=L; draw(); });
+    document.getElementById('rfK').addEventListener('input',function(){ K=+this.value; document.getElementById('rfKv').textContent=K; draw(); });
+    draw();
+  })();
+  </script></body></html>

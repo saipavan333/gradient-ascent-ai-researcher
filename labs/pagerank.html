@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PageRank · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; PageRank</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>PageRank: Importance by Random Walk</h1>
+        <p>How did early Google rank the whole web? Imagine a surfer clicking links forever at random. The pages they'd land on most often are the "important" ones — and a page is important if important pages link to it. That circular idea has a clean solution: the dominant eigenvector of the link graph.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Step</b> to run one round of rank-flow (or <b>Auto</b>). Each node passes its score along its outgoing links.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The circles resize as importance flows and settles. Nodes that collect links from other important nodes swell up — not just the ones with the most links.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="prStep">▶ Step</button>
+        <button class="lab-btn" id="prAuto">⏩ Auto</button>
+        <label class="lab-ctl">damping d <input type="range" id="prD" min="0.5" max="0.95" step="0.05" value="0.85"><span id="prDv" class="lab-tag">0.85</span></label>
+        <button class="lab-btn ghost" id="prReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="prIt">0</b><span>iterations</span></div><div class="s"><b id="prTop">—</b><span>highest-ranked node</span></div></div>
+      <div class="lab-stage"><span class="badge">circle size + number = PageRank · arrows = links · rank flows along the arrows</span><canvas id="prcv" width="820" height="470" aria-label="pagerank"></canvas></div>
+      <div class="lab-readout" id="prread">Press Step to flow rank around the graph.</div>
+      <div class="lab-explain"><b>What's happening:</b> every page starts with equal rank. Each iteration, a page splits its rank evenly across its outgoing links and sends it on; a page's new rank is the sum of what it receives, plus a "teleport" term: r(i) = (1−d)/N + d·Σ_{j→i} r(j)/outdeg(j). The <b>damping factor</b> d (≈0.85) is the chance the surfer keeps clicking rather than jumping to a random page — which also stops rank getting trapped in dead ends. Iterating this is <b>power iteration</b> converging to the dominant eigenvector of the link matrix, i.e. the surfer's long-run visit frequencies. Importance is recursive: links from high-rank pages count for more, so a few good backlinks beat many weak ones. This is <a href="../lessons/track-13-graph-neural-networks/01-pagerank.html">PageRank &amp; graph centrality</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('prcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var names=['A','B','C','D','E','F','G'];
+    var edges=[[0,1],[0,2],[2,0],[1,2],[3,0],[3,1],[4,1],[5,1],[6,1],[2,3],[4,2],[5,4],[6,4]];
+    var N=names.length, pos=[], r=[], d=0.85, iter=0;
+    (function(){ for(var i=0;i<N;i++){ var ang=-Math.PI/2+i/N*6.2832; pos.push([Wd/2+Math.cos(ang)*180, Ht/2+Math.sin(ang)*150]); } })();
+    function out(j){ var o=0; for(var e=0;e<edges.length;e++)if(edges[e][0]===j)o++; return o; }
+    function reset(){ r=[]; for(var i=0;i<N;i++)r.push(1/N); iter=0; stop(); draw(); }
+    function step(){ var nr=new Array(N).fill((1-d)/N); for(var e=0;e<edges.length;e++){ var j=edges[e][0], i=edges[e][1]; nr[i]+= d*r[j]/out(j); }
+      // handle dangling (none here) + renormalize
+      var s=nr.reduce(function(a,b){return a+b;},0); for(var i=0;i<N;i++)nr[i]/=s; r=nr; iter++; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // edges
+      for(var e=0;e<edges.length;e++){ var a=pos[edges[e][0]], b=pos[edges[e][1]]; var ang=Math.atan2(b[1]-a[1],b[0]-a[0]); var r2=26; var sx=a[0]+Math.cos(ang)*r2, sy=a[1]+Math.sin(ang)*r2, ex=b[0]-Math.cos(ang)*r2, ey=b[1]-Math.sin(ang)*r2; ctx.strokeStyle='rgba(127,224,255,.28)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.fillStyle='rgba(127,224,255,.5)'; ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-9*Math.cos(ang-0.4),ey-9*Math.sin(ang-0.4)); ctx.lineTo(ex-9*Math.cos(ang+0.4),ey-9*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill(); }
+      var mx=Math.max.apply(null,r), top=0; for(var i=0;i<N;i++)if(r[i]>r[top])top=i;
+      for(var i=0;i<N;i++){ var rad=12+r[i]/mx*26; var c= i===top?'#ffd24d':'#5b9bff'; ctx.fillStyle=c; ctx.shadowBlur=12; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(pos[i][0],pos[i][1],rad,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#08101f'; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(names[i],pos[i][0],pos[i][1]); ctx.fillStyle='#eaf0ff'; ctx.font='11px system-ui'; ctx.fillText(r[i].toFixed(3),pos[i][0],pos[i][1]+rad+12); }
+      ctx.textBaseline='alphabetic';
+      document.getElementById('prIt').textContent=iter; document.getElementById('prTop').textContent=names[top]+' ('+r[top].toFixed(3)+')';
+      document.getElementById('prread').textContent = iter===0? 'All pages start equal at '+(1/N).toFixed(3)+'. Press Step to flow rank along the links.' : 'Iteration '+iter+': node '+names[top]+' leads with rank '+r[top].toFixed(3)+' — it gathers links from other well-ranked nodes, not just the most links.'; }
+    function stop(){ if(window._prraf){clearTimeout(window._prraf);window._prraf=null;} document.getElementById('prAuto').textContent='⏩ Auto'; }
+    function loop(){ step(); draw(); if(iter>=40){stop();return;} window._prraf=setTimeout(loop,260); }
+    document.getElementById('prStep').addEventListener('click',function(){ step(); draw(); });
+    document.getElementById('prAuto').addEventListener('click',function(){ if(window._prraf){stop();return;} document.getElementById('prAuto').textContent='⏸ Pause'; loop(); });
+    document.getElementById('prD').addEventListener('input',function(){ d=+this.value; document.getElementById('prDv').textContent=d.toFixed(2); reset(); });
+    document.getElementById('prReset').addEventListener('click',reset);
+    reset();
+  })();
+  </script></body></html>
