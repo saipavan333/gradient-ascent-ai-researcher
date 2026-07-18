@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gradient Boosting · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Gradient Boosting</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Gradient Boosting: Fixing Your Own Mistakes</h1>
+        <p>Instead of one big model, gradient boosting builds a team of tiny ones — but sequentially. Each new little tree is trained to predict the <em>errors</em> the team has made so far. Add it in, and the errors shrink. Repeat, and a stack of weak stumps becomes a strong predictor.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Add tree</b> (or <b>Auto</b>) to add one stump at a time, each fit to the current residuals.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The prediction (gold staircase) climbs toward the target and the residual bars (red) shrink round by round. A few dozen tiny steps add up to a close fit.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="gbAdd">➕ Add tree</button>
+        <button class="lab-btn" id="gbAuto">⏩ Auto</button>
+        <label class="lab-ctl">learning rate <input type="range" id="gbLr" min="0.1" max="1" step="0.05" value="0.3"><span id="gbLrv" class="lab-tag">0.30</span></label>
+        <button class="lab-btn ghost" id="gbReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="gbN">0</b><span>trees added</span></div><div class="s"><b id="gbErr">—</b><span>residual error (shrinking)</span></div></div>
+      <div class="lab-stage"><span class="badge">white = target points · gold = current prediction · red bars = residuals still to fix</span><canvas id="gbcv" width="820" height="460" aria-label="gradient boosting"></canvas></div>
+      <div class="lab-readout" id="gbread">Add trees and watch the residuals shrink.</div>
+      <div class="lab-explain"><b>What's happening:</b> we start with a flat prediction (the average). Each round we compute the <b>residuals</b> — how far off each point still is — and fit a small regression tree (here a one-split <b>stump</b>) to those residuals, then add a fraction (the <b>learning rate</b>) of it to the running prediction. Fitting the residuals is literally taking a gradient-descent step on the squared-error loss in function space — hence "gradient" boosting. Small learning rates plus many trees generalize best (each tree corrects a little, so no single one overfits). This sequential error-correction is what makes boosted trees (XGBoost, LightGBM) dominate tabular ML. This is <a href="../lessons/track-05-classical-ml/05-ensembles.html">Boosting</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('gbcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var lr=0.3, Xs=[], ys=[], F=[], stumps=[], nT=0, playing=false, raf=null, fc=0;
+    function target(x){ return Math.sin(2.4*x)*0.8 + 0.3*x; }
+    function gen(){ Xs=[];ys=[]; for(var i=0;i<48;i++){ var x=-1.6+3.2*i/47; Xs.push(x); ys.push(target(x)+ (Math.random()-0.5)*0.12); } reset(); }
+    function reset(){ var m=0; for(var i=0;i<ys.length;i++)m+=ys[i]; m/=ys.length; F=ys.map(function(){return m;}); stumps=[{c:m}]; nT=0; stop(); draw(); }
+    function fitStump(res){ // best single split on x minimizing SSE of residuals
+      var best=null,bestSSE=1e18; var cand=Xs.slice().sort(function(a,b){return a-b;});
+      for(var k=2;k<cand.length-2;k+=1){ var thr=(cand[k]+cand[k-1])/2; var lS=0,lN=0,rS=0,rN=0; for(var i=0;i<Xs.length;i++){ if(Xs[i]<thr){lS+=res[i];lN++;} else {rS+=res[i];rN++;} } if(lN===0||rN===0)continue; var lm=lS/lN, rm=rS/rN; var sse=0; for(var i=0;i<Xs.length;i++){ var p=Xs[i]<thr?lm:rm; sse+=(res[i]-p)*(res[i]-p); } if(sse<bestSSE){bestSSE=sse;best={thr:thr,lm:lm,rm:rm};} }
+      return best; }
+    function addTree(){ var res=[]; for(var i=0;i<Xs.length;i++)res.push(ys[i]-F[i]); var st=fitStump(res); if(!st)return; stumps.push(st); for(var i=0;i<Xs.length;i++){ F[i]+= lr*(Xs[i]<st.thr?st.lm:st.rm); } nT++; }
+    function predict(x){ var p=stumps[0].c; for(var t=1;t<stumps.length;t++){ var st=stumps[t]; p+= lr*(x<st.thr?st.lm:st.rm); } return p; }
+    function PX(x){ return 44+(x+1.7)/3.4*(Wd-88); } var YMIN=-1.6,YMAX=1.6; function PY(y){ return 30+(YMAX-y)/(YMAX-YMIN)*(Ht-80); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.moveTo(0,PY(0)); ctx.lineTo(Wd,PY(0)); ctx.stroke();
+      // residual bars
+      for(var i=0;i<Xs.length;i++){ ctx.strokeStyle='rgba(255,120,120,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(PX(Xs[i]),PY(ys[i])); ctx.lineTo(PX(Xs[i]),PY(F[i])); ctx.stroke(); }
+      // prediction curve (dense)
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=3; ctx.shadowBlur=8; ctx.shadowColor='#ffd24d'; ctx.beginPath(); var first=true; for(var x=-1.65;x<=1.65;x+=0.01){ var y=predict(x); if(first){ctx.moveTo(PX(x),PY(y));first=false;}else ctx.lineTo(PX(x),PY(y)); } ctx.stroke(); ctx.shadowBlur=0;
+      // target points
+      for(var i=0;i<Xs.length;i++){ ctx.fillStyle='#eaf0ff'; ctx.beginPath(); ctx.arc(PX(Xs[i]),PY(ys[i]),3.5,0,6.2832); ctx.fill(); }
+      var err=0; for(var i=0;i<Xs.length;i++)err+=(ys[i]-F[i])*(ys[i]-F[i]); err=Math.sqrt(err/Xs.length);
+      document.getElementById('gbN').textContent=nT; document.getElementById('gbErr').textContent=err.toFixed(3);
+      document.getElementById('gbread').textContent = nT===0? 'Round 0: prediction is just the flat average — big residuals everywhere.' : (err<0.12? nT+' trees: the staircase tracks the target and residuals are down to noise ('+err.toFixed(3)+').' : nT+' trees: residual error '+err.toFixed(3)+' and falling — each new stump fixes what’s left.'); }
+    function stop(){ playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} document.getElementById('gbAuto').textContent='⏩ Auto'; }
+    function loop(){ if(!playing)return; fc++; if(fc%8===0){ if(nT>=60){stop();return;} addTree(); draw(); } raf=requestAnimationFrame(loop); }
+    document.getElementById('gbAdd').addEventListener('click',function(){ addTree(); draw(); });
+    document.getElementById('gbAuto').addEventListener('click',function(){ if(playing){stop();return;} playing=true; this.textContent='⏸ Pause'; if(!raf)loop(); });
+    document.getElementById('gbLr').addEventListener('input',function(){ lr=+this.value; document.getElementById('gbLrv').textContent=lr.toFixed(2); reset(); });
+    document.getElementById('gbReset').addEventListener('click',reset);
+    gen();
+  })();
+  </script></body></html>

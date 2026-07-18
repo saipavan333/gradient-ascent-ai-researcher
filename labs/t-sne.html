@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>t-SNE · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; t-SNE</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>t-SNE: Unfolding Hidden Structure</h1>
+        <p>Some patterns are invisible to straight-line methods like PCA. t-SNE is a nonlinear map that cares only about <b>who your neighbors are</b> — it pulls points that were close together into tight clusters and pushes everything else apart, revealing structure that a linear projection would smear.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">The left shows three <b>concentric rings</b> — impossible to separate with a straight line. Press <b>Run t-SNE</b> and watch the right panel reorganize.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">t-SNE untangles the nested rings into three cleanly separated blobs, purely by preserving each point's local neighborhood. No labels were used.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="tsRun">▶ Run t-SNE</button>
+        <button class="lab-btn ghost" id="tsReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="tsIt">0</b><span>iterations</span></div><div class="s"><b id="tsSep">—</b><span>cluster separation</span></div></div>
+      <div class="lab-stage"><span class="badge">left = original nested rings · right = t-SNE embedding organizing by neighborhood</span><canvas id="tscv" width="820" height="470" aria-label="t-sne"></canvas></div>
+      <div class="lab-readout" id="tsread">Press Run and watch the rings unfold into clusters.</div>
+      <div class="lab-explain"><b>What's happening:</b> t-SNE first turns high-dimensional distances into <b>neighbor probabilities</b> — for each point, nearby points get high probability, far ones near zero (a Gaussian around each point). Then it lays points out in 2D and moves them so the 2D neighbor probabilities (using a heavy-tailed Student-t curve) match the originals, by gradient descent on their mismatch (a KL divergence). Because it only tries to preserve <em>local</em> neighborhoods, it can tear apart globally-entangled structures like these rings — each ring's points stay together and drift away from the others. It's the go-to tool for visualizing embeddings from deep nets; just remember cluster <em>sizes</em> and <em>distances</em> in a t-SNE plot aren't meaningful. This is <a href="../lessons/track-05-classical-ml/06-dimensionality.html">Dimensionality reduction</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('tscv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var N=0, X=[], col=[], Y=[], vel=[], P=[], iter=0, playing=false, raf=null;
+    var COLS=['#5b9bff','#ffa24d','#4fd6b5'];
+    function gen(){ X=[];col=[]; var radii=[0.32,0.66,1.0]; for(var r=0;r<3;r++){ var n=42; for(var i=0;i<n;i++){ var th=i/n*6.2832+Math.random()*0.05; var rad=radii[r]+ (Math.random()-0.5)*0.05; X.push([Math.cos(th)*rad,Math.sin(th)*rad]); col.push(r); } } N=X.length; computeP(); resetY(); }
+    function computeP(){ var sigma=0.12; P=[]; for(var i=0;i<N;i++){ P.push(new Array(N).fill(0)); var sum=0; for(var j=0;j<N;j++){ if(i===j)continue; var d2=(X[i][0]-X[j][0])*(X[i][0]-X[j][0])+(X[i][1]-X[j][1])*(X[i][1]-X[j][1]); P[i][j]=Math.exp(-d2/(2*sigma*sigma)); sum+=P[i][j]; } for(var j=0;j<N;j++)P[i][j]/=(sum||1); }
+      var Ps=[]; for(var i=0;i<N;i++){ Ps.push(new Array(N).fill(0)); } for(var i=0;i<N;i++)for(var j=0;j<N;j++)Ps[i][j]=(P[i][j]+P[j][i])/(2*N); P=Ps; }
+    function resetY(){ Y=[];vel=[]; for(var i=0;i<N;i++){ Y.push([(Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1]); vel.push([0,0]); } iter=0; }
+    function step(){ var exag = iter<100?4:1; var lr=120, mom=iter<100?0.5:0.8;
+      // Q
+      var num=[], Z=0; for(var i=0;i<N;i++){ num.push(new Array(N).fill(0)); }
+      for(var i=0;i<N;i++)for(var j=i+1;j<N;j++){ var d2=(Y[i][0]-Y[j][0])*(Y[i][0]-Y[j][0])+(Y[i][1]-Y[j][1])*(Y[i][1]-Y[j][1]); var q=1/(1+d2); num[i][j]=q; num[j][i]=q; Z+=2*q; }
+      for(var i=0;i<N;i++){ var gx=0,gy=0; for(var j=0;j<N;j++){ if(i===j)continue; var q=num[i][j]/Z; var mult=(exag*P[i][j]-q)*num[i][j]; gx+=mult*(Y[i][0]-Y[j][0]); gy+=mult*(Y[i][1]-Y[j][1]); } gx*=4;gy*=4;
+        vel[i][0]=mom*vel[i][0]-lr*gx*0.01; vel[i][1]=mom*vel[i][1]-lr*gy*0.01; Y[i][0]+=vel[i][0]; Y[i][1]+=vel[i][1]; }
+      iter++; }
+    function bounds(){ var mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9; for(var i=0;i<N;i++){ mnx=Math.min(mnx,Y[i][0]);mxx=Math.max(mxx,Y[i][0]);mny=Math.min(mny,Y[i][1]);mxy=Math.max(mxy,Y[i][1]); } return [mnx,mxx,mny,mxy]; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.beginPath(); ctx.moveTo(Wd/2,20); ctx.lineTo(Wd/2,Ht-20); ctx.stroke();
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('original (nested rings)',Wd*0.25,28); ctx.fillText('t-SNE embedding',Wd*0.75,28);
+      // left: input
+      var lcx=Wd*0.25, lcy=Ht*0.54, ls=150;
+      for(var i=0;i<N;i++){ ctx.fillStyle=COLS[col[i]]; ctx.beginPath(); ctx.arc(lcx+X[i][0]*ls,lcy-X[i][1]*ls,4,0,6.2832); ctx.fill(); }
+      // right: embedding
+      var b=bounds(); var span=Math.max(b[1]-b[0],b[3]-b[2],0.1); var rcx=Wd*0.75, rcy=Ht*0.54, rs=Math.min(260/span,4000);
+      var mx=(b[0]+b[1])/2, my=(b[2]+b[3])/2;
+      for(var i=0;i<N;i++){ ctx.fillStyle=COLS[col[i]]; ctx.shadowBlur=6; ctx.shadowColor=COLS[col[i]]; ctx.beginPath(); ctx.arc(rcx+(Y[i][0]-mx)*rs,rcy-(Y[i][1]-my)*rs,4,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      // separation metric: ratio of between-cluster to within-cluster mean dist (in Y)
+      var cen=[[0,0,0],[0,0,0],[0,0,0]], cnt=[0,0,0]; for(var i=0;i<N;i++){ cen[col[i]][0]+=Y[i][0]; cen[col[i]][1]+=Y[i][1]; cnt[col[i]]++; } for(var c=0;c<3;c++){cen[c][0]/=cnt[c];cen[c][1]/=cnt[c];}
+      var within=0; for(var i=0;i<N;i++){ within+=Math.hypot(Y[i][0]-cen[col[i]][0],Y[i][1]-cen[col[i]][1]); } within/=N;
+      var between=(Math.hypot(cen[0][0]-cen[1][0],cen[0][1]-cen[1][1])+Math.hypot(cen[0][0]-cen[2][0],cen[0][1]-cen[2][1])+Math.hypot(cen[1][0]-cen[2][0],cen[1][1]-cen[2][1]))/3;
+      var sep= within>1e-6? between/within:0;
+      document.getElementById('tsIt').textContent=iter; document.getElementById('tsSep').textContent= iter>0? sep.toFixed(1)+'×':'—';
+      document.getElementById('tsread').textContent = iter===0? 'Three nested rings on the left — no straight line separates them. Press Run.' : (sep>2.5? 'Unfolded! After '+iter+' iterations the three rings are '+sep.toFixed(1)+'× better separated — each ring became its own cluster.' : 'Iterating ('+iter+')… points are migrating so that neighbors stay together.'); }
+    function loop(){ if(!playing)return; for(var s=0;s<2;s++)step(); draw(); if(iter>=500){ playing=false; document.getElementById('tsRun').textContent='▶ Run t-SNE'; } raf=requestAnimationFrame(loop); }
+    document.getElementById('tsRun').addEventListener('click',function(){ if(playing){playing=false;this.textContent='▶ Run t-SNE';return;} playing=true; this.textContent='⏸ Pause'; if(!raf)loop(); });
+    document.getElementById('tsReset').addEventListener('click',function(){ playing=false; document.getElementById('tsRun').textContent='▶ Run t-SNE'; resetY(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
