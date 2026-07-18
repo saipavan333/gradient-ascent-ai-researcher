@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contrastive Learning · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Contrastive Learning</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Contrastive Learning</h1>
+        <p>How do you learn from data with <b>no labels</b>? Show the model two versions of the same thing and teach it just one rule: pull matching pairs together, push everything else apart. Structure falls out on its own.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Run</b>. Each colour is one item, shown as two "views" (two dots).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The two views of each item <b>snap together</b> and different items <b>push apart</b> — the embedding organises into clean clusters with no labels at all.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="ctRun">▶ Run</button>
+        <button class="lab-btn ghost" id="ctReset">↺ Scatter again</button>
+      </div>
+      <div class="lab-stage"><span class="badge">same colour = two views of one item</span><canvas id="ctcv" width="820" height="460" aria-label="contrastive learning"></canvas></div>
+      <div class="lab-readout" id="ctread">Press Run and watch matching pairs attract while everything else repels.</div>
+      <div class="lab-explain"><b>What's happening:</b> each item is augmented into two views; the <b>contrastive loss</b> maximises agreement between the two views of the same item while minimising it with all others. Minimising that loss is a tug-of-war of attractive and repulsive forces — and its equilibrium is a space where similar things sit together. That's how self-supervised models like SimCLR learn useful features without a single label. This is <a href="../lessons/track-17-learning-paradigms/02-contrastive.html">Contrastive Learning</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('ctcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var M=9, P=[], playing=false, raf=null; var PAL=['#5b9bff','#ffa24d','#4fd6b5','#c58bff','#ff7a9c','#ffd24d','#7ee0ff','#b0ff8a','#ff9e6e'];
+    function reset(){ P=[]; for(var i=0;i<M;i++){ for(var v=0;v<2;v++){ P.push({item:i,x:80+Math.random()*(Wd-160),y:70+Math.random()*(Ht-140)}); } } draw(); }
+    function stepSim(){ var f=[]; for(var i=0;i<P.length;i++)f.push([0,0]);
+      for(var i=0;i<P.length;i++)for(var j=i+1;j<P.length;j++){ var dx=P[j].x-P[i].x,dy=P[j].y-P[i].y,d=Math.hypot(dx,dy)+1e-3,ux=dx/d,uy=dy/d;
+        if(P[i].item===P[j].item){ var fa=(d-30)*0.012; f[i][0]+=fa*ux;f[i][1]+=fa*uy;f[j][0]-=fa*ux;f[j][1]-=fa*uy; }
+        else { var fr=Math.min(3,900/(d*d)); f[i][0]-=fr*ux;f[i][1]-=fr*uy;f[j][0]+=fr*ux;f[j][1]+=fr*uy; } }
+      for(var i=0;i<P.length;i++){ P[i].x+=Math.max(-6,Math.min(6,f[i][0])); P[i].y+=Math.max(-6,Math.min(6,f[i][1])); P[i].x=Math.max(20,Math.min(Wd-20,P[i].x)); P[i].y=Math.max(20,Math.min(Ht-20,P[i].y)); } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      for(var i=0;i<P.length;i+=2){ var a=P[i],b=P[i+1]; ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+      for(var i=0;i<P.length;i++){ var c=PAL[P[i].item%PAL.length]; ctx.fillStyle=c; ctx.shadowBlur=9; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(P[i].x,P[i].y,6,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.2; ctx.stroke(); }
+      // measure clustering: avg same-item distance
+      var s=0; for(var i=0;i<P.length;i+=2)s+=Math.hypot(P[i].x-P[i+1].x,P[i].y-P[i+1].y); s/=M;
+      document.getElementById('ctread').textContent = s<18?'Converged — every pair of views has merged and the items are cleanly separated. No labels were used.':(playing?'Running… matching pairs pull together (avg gap '+s.toFixed(0)+'px) while different items shove apart.':'Paused. Press Run to let the forces organise the space.'); }
+    function loop(){ if(!playing)return; stepSim(); draw(); raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('ctRun').textContent=on?'⏸ Pause':'▶ Run'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('ctRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('ctReset').addEventListener('click',function(){ setRun(false); reset(); });
+    reset();
+  })();
+  </script></body></html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Federated Learning · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Federated Learning</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Federated Learning</h1>
+        <p>Train one shared model across many devices — without any raw data ever leaving them. Each client learns a little on its own private slice, sends only the model update, and a server averages them into a global model that has, in effect, seen everyone's data.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Train</b>. Each coloured client only ever sees its own region of points.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The shared line fits <b>all</b> the clients' data and converges to the true trend — even though no client saw the whole picture and no raw data moved.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="fdRun">▶ Train (FedAvg)</button>
+        <button class="lab-btn ghost" id="fdReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="fdRound">0</b><span>federated rounds</span></div><div class="s"><b id="fdErr">—</b><span>global error</span></div></div>
+      <div class="lab-stage"><span class="badge">colours = clients (data stays local) · white line = shared model</span><canvas id="fdcv" width="820" height="440" aria-label="federated learning"></canvas></div>
+      <div class="lab-readout" id="fdread">Press Train — the clients learn locally and only send updates to be averaged.</div>
+      <div class="lab-explain"><b>What's happening:</b> each round, every client takes a few gradient steps on its own data and sends only the resulting weights; the server <b>averages</b> them (FedAvg) and broadcasts the new global model. Since each client holds a different slice, the average ends up fitting the whole distribution — privacy-preserving training with data that never centralises. This is <a href="../lessons/track-18-federated-privacy/00-federated-averaging.html">Federated Averaging</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('fdcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var COLS=['#5b9bff','#ffa24d','#4fd6b5','#c58bff'], clients=[], gm=0, gb=0, round=0, playing=false, raf=null, fc=0;
+    var TM=0.8, TB=-0.3;
+    function gauss(){return (Math.random()+Math.random()+Math.random()+Math.random()-2)/1.3;}
+    function reset(){ clients=[]; for(var c=0;c<4;c++){ var lo=-3+c*1.5, pts=[]; for(var i=0;i<22;i++){ var x=lo+Math.random()*1.5; pts.push({x:x,y:TM*x+TB+gauss()*0.28}); } clients.push(pts); } gm=0;gb=0;round=0; draw(); }
+    function XR(){return 3.2;} var YRr=3;
+    function DX(x){return (x/XR()+1)/2*Wd;} function DY(y){return (1-(y/YRr+1)/2)*Ht;}
+    function localGrad(pts,m,b){ var gm=0,gb=0; for(var i=0;i<pts.length;i++){ var e=(m*pts[i].x+b)-pts[i].y; gm+=e*pts[i].x; gb+=e; } return [gm/pts.length*2, gb/pts.length*2]; }
+    function step(){ var am=0,ab=0; for(var c=0;c<4;c++){ var lm=gm,lb=gb; for(var k=0;k<3;k++){ var g=localGrad(clients[c],lm,lb); lm-=0.05*g[0]; lb-=0.05*g[1]; } am+=lm; ab+=lb; } gm=am/4; gb=ab/4; round++; }
+    function err(){ var s=0,n=0; for(var c=0;c<4;c++)for(var i=0;i<clients[c].length;i++){ var e=(gm*clients[c][i].x+gb)-clients[c][i].y; s+=e*e; n++; } return s/n; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.moveTo(0,DY(0)); ctx.lineTo(Wd,DY(0)); ctx.stroke();
+      for(var c=0;c<4;c++){ for(var i=0;i<clients[c].length;i++){ ctx.fillStyle=COLS[c]; ctx.shadowBlur=6; ctx.shadowColor=COLS[c]; ctx.beginPath(); ctx.arc(DX(clients[c][i].x),DY(clients[c][i].y),3.8,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+        var mnx=Math.min.apply(null,clients[c].map(function(p){return p.x;})), mxx=Math.max.apply(null,clients[c].map(function(p){return p.x;}));
+        ctx.strokeStyle=COLS[c]; ctx.lineWidth=1; ctx.globalAlpha=.3; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(DX(mnx),0); ctx.lineTo(DX(mnx),Ht); ctx.stroke(); ctx.globalAlpha=1; ctx.setLineDash([]); }
+      ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.shadowBlur=12; ctx.shadowColor='#fff'; ctx.beginPath(); ctx.moveTo(DX(-XR()),DY(gm*-XR()+gb)); ctx.lineTo(DX(XR()),DY(gm*XR()+gb)); ctx.stroke(); ctx.shadowBlur=0;
+      document.getElementById('fdRound').textContent=round; document.getElementById('fdErr').textContent=err().toFixed(3);
+      document.getElementById('fdread').textContent = round===0?'Untrained shared model (flat). Each client sits in its own region — none sees the whole trend.':(err()<0.12?'Converged — the shared line fits every client’s data, learned without any raw data leaving a device.':'Round '+round+': clients trained locally, the server averaged their updates. The line is closing in on the true trend.'); }
+    function loop(){ if(!playing)return; fc++; if(fc%14===0){step(); if(err()<0.1)setRun(false);} draw(); if(playing)raf=requestAnimationFrame(loop); }
+    function setRun(on){ playing=on; document.getElementById('fdRun').textContent=on?'⏸ Pause':'▶ Train (FedAvg)'; if(on){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} }
+    document.getElementById('fdRun').addEventListener('click',function(){ setRun(!playing); });
+    document.getElementById('fdReset').addEventListener('click',function(){ setRun(false); reset(); });
+    reset();
+  })();
+  </script></body></html>
