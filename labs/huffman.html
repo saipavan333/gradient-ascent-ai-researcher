@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Huffman Coding · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Huffman Coding</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Huffman Coding: Shortest Codes for Common Symbols</h1>
+        <p>If some letters appear far more often than others, why give them all equal-length codes? Huffman coding builds the provably shortest possible prefix code by a beautifully simple rule: repeatedly merge the two rarest symbols. Frequent symbols end up near the top of the tree with short codes.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag the <b>frequency</b> sliders. The Huffman tree and the code table rebuild instantly.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Common symbols get short codes (few bits), rare ones get long codes. The average length beats fixed-length coding and sits just above the entropy — the theoretical floor.</div></div>
+      </div>
+      <div class="lab-controls" id="hfCtl"></div>
+      <div class="lab-stat"><div class="s"><b id="hfAvg">—</b><span>avg bits/symbol (Huffman)</span></div><div class="s"><b id="hfFix">—</b><span>fixed-length</span></div><div class="s"><b id="hfEnt">—</b><span>entropy (floor)</span></div></div>
+      <div class="lab-stage"><span class="badge">tree built by merging the two rarest nodes · edges labelled 0/1 · leaves show symbol + code</span><canvas id="hfcv" width="820" height="470" aria-label="huffman"></canvas></div>
+      <div class="lab-readout" id="hfread">Adjust frequencies and watch the codes rebuild.</div>
+      <div class="lab-explain"><b>What's happening:</b> we treat each symbol as a leaf weighted by its frequency, then repeatedly take the <b>two lowest-weight nodes</b> and merge them under a new parent whose weight is their sum, until one tree remains. Labelling each left/right branch 0/1 and reading root→leaf gives every symbol a <b>prefix code</b> (no code is a prefix of another, so the stream decodes unambiguously). Because rare symbols get merged first they sink deep (long codes) while frequent symbols stay shallow (short codes), and the result is provably optimal among prefix codes. Its average length lands between the <b>entropy</b> H (the hard lower bound from information theory) and H+1 bit. This is <a href="../lessons/track-06-information-theory/03-coding.html">source coding &amp; compression</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('hfcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var syms=['A','B','C','D','E'], freq=[40,22,15,12,6], COL=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c'];
+    var ctl=document.getElementById('hfCtl');
+    syms.forEach(function(sy,i){ var lab=document.createElement('label'); lab.className='lab-ctl'; lab.innerHTML=sy+' <input type="range" min="1" max="50" step="1" value="'+freq[i]+'" data-i="'+i+'"><span class="lab-tag" id="hff'+i+'">'+freq[i]+'</span>'; ctl.appendChild(lab); });
+    ctl.addEventListener('input',function(e){ var i=+e.target.getAttribute('data-i'); freq[i]=+e.target.value; document.getElementById('hff'+i).textContent=freq[i]; draw(); });
+    function build(){ var nodes=syms.map(function(s,i){ return {w:freq[i],sym:s,i:i}; }); var id=1000;
+      while(nodes.length>1){ nodes.sort(function(a,b){return a.w-b.w;}); var a=nodes.shift(), b=nodes.shift(); nodes.push({w:a.w+b.w,l:a,r:b,id:id++}); }
+      return nodes[0]; }
+    function codes(node,prefix,map,depth){ if(node.sym!==undefined){ map[node.sym]={code:prefix||'0',i:node.i,d:depth}; return; } codes(node.l,prefix+'0',map,depth+1); codes(node.r,prefix+'1',map,depth+1); }
+    function layout(root){ var leafX=0; function dfs(n,depth){ n._d=depth; if(n.sym!==undefined){ n._x=leafX++; return; } dfs(n.l,depth+1); dfs(n.r,depth+1); n._x=(n.l._x+n.r._x)/2; } dfs(root,0); return leafX; }
+    function maxDepth(n){ if(n.sym!==undefined)return n._d; return Math.max(maxDepth(n.l),maxDepth(n.r)); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var root=build(); var nLeaf=layout(root); var md=maxDepth(root);
+      var total=freq.reduce(function(a,b){return a+b;},0);
+      function NX(n){ return 70+ n._x/(Math.max(1,nLeaf-1))*(Wd-160); }
+      function NY(n){ return 50+ n._d/(Math.max(1,md))*(Ht-140); }
+      function edges(n){ if(n.sym!==undefined)return; [['l','0'],['r','1']].forEach(function(e){ var k=n[e[0]]; ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(NX(n),NY(n)); ctx.lineTo(NX(k),NY(k)); ctx.stroke(); ctx.fillStyle='#ffd24d'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillText(e[1],(NX(n)+NX(k))/2+ (e[1]==='0'?-8:8),(NY(n)+NY(k))/2); edges(k); }); }
+      edges(root);
+      var map={}; codes(root,'',map,0);
+      function nodes(n){ if(n.sym!==undefined){ var c=COL[n.i%COL.length]; ctx.fillStyle=c; ctx.shadowBlur=10; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(NX(n),NY(n),17,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#08101f'; ctx.font='bold 14px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n.sym,NX(n),NY(n)); ctx.fillStyle=c; ctx.font='11px system-ui'; ctx.fillText(map[n.sym].code,NX(n),NY(n)+30); return; } ctx.fillStyle='#22304e'; ctx.beginPath(); ctx.arc(NX(n),NY(n),9,0,6.2832); ctx.fill(); nodes(n.l); nodes(n.r); }
+      nodes(root);
+      var avg=0,ent=0; for(var i=0;i<syms.length;i++){ var p=freq[i]/total; avg+=p*map[syms[i]].code.length; if(p>0)ent-=p*Math.log2(p); }
+      var fixed=Math.ceil(Math.log2(syms.length));
+      document.getElementById('hfAvg').textContent=avg.toFixed(2); document.getElementById('hfFix').textContent=fixed+'.00'; document.getElementById('hfEnt').textContent=ent.toFixed(2);
+      document.getElementById('hfread').textContent = 'Huffman uses '+avg.toFixed(2)+' bits/symbol vs '+fixed+' for fixed-length — a '+((1-avg/fixed)*100).toFixed(0)+'% saving, and within '+(avg-ent).toFixed(2)+' bits of the entropy floor ('+ent.toFixed(2)+').'; }
+    draw();
+  })();
+  </script></body></html>

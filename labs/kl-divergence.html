@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KL Divergence · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; KL Divergence</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>KL Divergence: Distance That Isn't Symmetric</h1>
+        <p>KL divergence measures how many extra bits you waste when you encode data from one distribution using a code built for another. It's the loss function hiding inside cross-entropy, variational inference, and RLHF — and its most surprising property is that it's <em>not</em> symmetric.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide Q's <b>mean</b> and <b>width</b> away from the fixed P, and watch both KL(P‖Q) and KL(Q‖P).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The two numbers are different — order matters. Both hit zero only when Q exactly matches P. Making Q too narrow where P has mass is punished harshly.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">Q mean <input type="range" id="klM" min="-3" max="3" step="0.05" value="1"><span id="klMv" class="lab-tag">1.00</span></label>
+        <label class="lab-ctl">Q width <input type="range" id="klS" min="0.3" max="2.5" step="0.05" value="0.7"><span id="klSv" class="lab-tag">0.70</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="klF">—</b><span>KL(P ‖ Q)</span></div><div class="s"><b id="klR">—</b><span>KL(Q ‖ P)</span></div></div>
+      <div class="lab-stage"><span class="badge">blue = P (fixed) · orange = Q (you control) · shaded = where they disagree</span><canvas id="klcv" width="820" height="450" aria-label="kl divergence"></canvas></div>
+      <div class="lab-readout" id="klread">Move Q and watch the two divergences differ.</div>
+      <div class="lab-explain"><b>What's happening:</b> KL(P‖Q) = ∫ p(x) log[p(x)/q(x)] dx — the average, weighted by P, of the log-ratio between the two densities. It is always ≥ 0 and equals 0 only when Q = P everywhere. It is <b>not</b> a true distance because it isn't symmetric: KL(P‖Q) ≠ KL(Q‖P). The reason is the weighting — KL(P‖Q) is dominated by regions where <em>P</em> is large, so it blows up if Q is nearly zero where P isn't ("mode-covering"); KL(Q‖P) is weighted by Q instead ("mode-seeking"). Which direction you minimize changes what your model learns. For two Gaussians there's a clean closed form, which is what we plot. This is <a href="../lessons/track-06-information-theory/02-kl-divergence.html">KL divergence</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('klcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var mu0=0,s0=1, mu=1,s=0.7;
+    function nd(x,m,sd){ return Math.exp(-(x-m)*(x-m)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI)); }
+    function klGauss(m0,sd0,m1,sd1){ return Math.log(sd1/sd0) + (sd0*sd0+(m0-m1)*(m0-m1))/(2*sd1*sd1) - 0.5; }
+    function PX(x){ return 40+(x+5)/10*(Wd-80); } var YM=0.62; function PY(y){ return Ht-46-y/YM*(Ht-90); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(40,Ht-46); ctx.lineTo(Wd-40,Ht-46); ctx.stroke();
+      // shaded disagreement (|p-q|)
+      ctx.beginPath(); var f0=true; for(var x=-5;x<=5;x+=0.03){ var yy=Math.min(nd(x,mu0,s0),nd(x,mu,s)); if(f0){ctx.moveTo(PX(x),PY(yy));f0=false;}else ctx.lineTo(PX(x),PY(yy)); }
+      // curves
+      function curve(m,sd,color,fill){ ctx.strokeStyle=color; ctx.lineWidth=3; ctx.shadowBlur=8; ctx.shadowColor=color; ctx.beginPath(); var first=true; for(var x=-5;x<=5;x+=0.02){ if(first){ctx.moveTo(PX(x),PY(nd(x,m,sd)));first=false;}else ctx.lineTo(PX(x),PY(nd(x,m,sd))); } ctx.stroke(); ctx.shadowBlur=0; }
+      // fill under overlap
+      ctx.fillStyle='rgba(200,139,255,.12)'; ctx.beginPath(); ctx.moveTo(PX(-5),PY(0)); for(var x=-5;x<=5;x+=0.03){ ctx.lineTo(PX(x),PY(Math.min(nd(x,mu0,s0),nd(x,mu,s)))); } ctx.lineTo(PX(5),PY(0)); ctx.closePath(); ctx.fill();
+      curve(mu0,s0,'#5b9bff'); curve(mu,s,'#ffa24d');
+      ctx.fillStyle='#5b9bff'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.fillText('P',PX(mu0),PY(nd(mu0,mu0,s0))-8);
+      ctx.fillStyle='#ffa24d'; ctx.fillText('Q',PX(mu),PY(nd(mu,mu,s))-8);
+      var klf=klGauss(mu0,s0,mu,s), klr=klGauss(mu,s,mu0,s0);
+      document.getElementById('klF').textContent=klf.toFixed(3); document.getElementById('klR').textContent=klr.toFixed(3);
+      document.getElementById('klread').textContent = (Math.abs(mu-mu0)<0.06&&Math.abs(s-s0)<0.06)? 'Q matches P: both KL values are ~0 — no wasted bits.' : 'KL(P‖Q)='+klf.toFixed(3)+' but KL(Q‖P)='+klr.toFixed(3)+' — different numbers for the same pair. '+(s<0.6?'Q is narrow, so covering P’s tails is expensive.':'Order matters: KL is not a symmetric distance.'); }
+    document.getElementById('klM').addEventListener('input',function(){ mu=+this.value; document.getElementById('klMv').textContent=mu.toFixed(2); draw(); });
+    document.getElementById('klS').addEventListener('input',function(){ s=+this.value; document.getElementById('klSv').textContent=s.toFixed(2); draw(); });
+    draw();
+  })();
+  </script></body></html>
