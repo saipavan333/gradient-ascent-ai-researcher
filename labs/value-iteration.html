@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Value Iteration · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Value Iteration</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Value Iteration: Planning with the Bellman Equation</h1>
+        <p>Give an agent a map — where the rewards are, where the walls are — and it can compute the best move from every square <em>without taking a single step</em>. Value iteration floods the grid with value spreading out from the goal, and the optimal policy falls out for free.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Step</b> to run one Bellman sweep at a time (or <b>Auto</b>). Adjust the discount <b>γ</b> to change how far-sighted the agent is.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Value (colour) spreads outward from the goal, flowing around the walls and away from the pit. The arrows — the optimal policy — snap to point along the best path to the goal.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="viStep">▶ Sweep</button>
+        <button class="lab-btn" id="viAuto">⏩ Auto</button>
+        <label class="lab-ctl">discount γ <input type="range" id="viG" min="0.5" max="0.99" step="0.01" value="0.9"><span id="viGv" class="lab-tag">0.90</span></label>
+        <button class="lab-btn ghost" id="viReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="viIt">0</b><span>Bellman sweeps</span></div><div class="s"><b id="viDl">—</b><span>largest value change</span></div></div>
+      <div class="lab-stage"><span class="badge">green = goal (+1) · red = pit (−1) · grey = wall · colour = value · arrows = optimal policy</span><canvas id="vicv" width="820" height="470" aria-label="value iteration"></canvas></div>
+      <div class="lab-readout" id="viread">Press Sweep to propagate value from the goal.</div>
+      <div class="lab-explain"><b>What's happening:</b> the world is a <b>Markov decision process</b> — states (squares), actions (up/down/left/right), rewards, and a discount γ. Value iteration repeatedly applies the <b>Bellman optimality update</b> V(s) ← maxₐ [ r + γ·V(s′) ]: the value of a square becomes the best you can do by taking one step and then acting optimally forever after. Each sweep pushes value one square further from the goal, and after enough sweeps V stops changing (it has converged). Reading the best action at each square gives the <b>optimal policy</b> (arrows). Unlike Q-learning, which must <em>explore</em> to learn, value iteration plans directly from a known model — the dynamic-programming heart of RL. This is <a href="../lessons/track-07-reinforcement-learning/01-value-iteration.html">Value iteration &amp; MDPs</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('vicv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var R=6, C=9; var walls={}, goal=[0,8], pit=[1,8], gamma=0.9, step=-0.03; var V=[], iter=0, delta=0;
+    [[1,2],[2,2],[3,2],[4,2],[2,5],[3,5],[4,5],[1,6]].forEach(function(w){ walls[w[0]+','+w[1]]=1; });
+    function isWall(r,c){ return walls[r+','+c]===1; }
+    function term(r,c){ return (r===goal[0]&&c===goal[1])||(r===pit[0]&&c===pit[1]); }
+    function reset(){ V=[]; for(var r=0;r<R;r++){ V.push([]); for(var c=0;c<C;c++){ V[r].push( (r===goal[0]&&c===goal[1])?1:((r===pit[0]&&c===pit[1])?-1:0) ); } } iter=0; delta=0; stop(); draw(); }
+    var ACT=[[-1,0],[1,0],[0,-1],[0,1]];
+    function nextV(r,c){ var best=-1e9,ba=0; for(var a=0;a<4;a++){ var nr=r+ACT[a][0], nc=c+ACT[a][1]; if(nr<0||nr>=R||nc<0||nc>=C||isWall(nr,nc)){ nr=r;nc=c; } var val=step+gamma*V[nr][nc]; if(val>best){best=val;ba=a;} } return [best,ba]; }
+    function sweep(){ var nV=[]; delta=0; for(var r=0;r<R;r++){ nV.push([]); for(var c=0;c<C;c++){ if(isWall(r,c)){nV[r].push(0);continue;} if(term(r,c)){ nV[r].push(V[r][c]); continue; } var nv=nextV(r,c)[0]; delta=Math.max(delta,Math.abs(nv-V[r][c])); nV[r].push(nv); } } V=nV; iter++; }
+    function col(v){ if(v>=0){ var t=Math.min(1,v); return 'rgb('+Math.round(30+t*40)+','+Math.round(60+t*150)+','+Math.round(70+t*40)+')'; } var t=Math.min(1,-v); return 'rgb('+Math.round(60+t*150)+','+Math.round(50+t*10)+','+Math.round(60+t*20)+')'; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var cw=Math.min((Wd-80)/C,(Ht-80)/R), ox=(Wd-cw*C)/2, oy=(Ht-cw*R)/2;
+      for(var r=0;r<R;r++)for(var c=0;c<C;c++){ var x=ox+c*cw,y=oy+r*cw;
+        if(isWall(r,c)){ ctx.fillStyle='#2a3550'; ctx.fillRect(x,y,cw-2,cw-2); continue; }
+        if(r===goal[0]&&c===goal[1]){ ctx.fillStyle='#2fbf6f'; } else if(r===pit[0]&&c===pit[1]){ ctx.fillStyle='#d0485a'; } else ctx.fillStyle=col(V[r][c]);
+        ctx.fillRect(x,y,cw-2,cw-2);
+        ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='10px system-ui'; ctx.textAlign='left'; if(!term(r,c))ctx.fillText(V[r][c].toFixed(2),x+4,y+13);
+        if(!term(r,c)&&iter>0){ var a=nextV(r,c)[1]; var cx=x+cw/2,cy=y+cw/2, dx=ACT[a][1],dy=ACT[a][0]; ctx.strokeStyle='#ffd24d'; ctx.fillStyle='#ffd24d'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx-dx*cw*0.22,cy-dy*cw*0.22); ctx.lineTo(cx+dx*cw*0.22,cy+dy*cw*0.22); ctx.stroke(); var ang=Math.atan2(dy,dx); ctx.beginPath(); ctx.moveTo(cx+dx*cw*0.22,cy+dy*cw*0.22); ctx.lineTo(cx+dx*cw*0.22-8*Math.cos(ang-0.4),cy+dy*cw*0.22-8*Math.sin(ang-0.4)); ctx.lineTo(cx+dx*cw*0.22-8*Math.cos(ang+0.4),cy+dy*cw*0.22-8*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill(); }
+      }
+      ctx.fillStyle='#fff'; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('+1',ox+goal[1]*cw+cw/2,oy+goal[0]*cw+cw/2); ctx.fillText('−1',ox+pit[1]*cw+cw/2,oy+pit[0]*cw+cw/2); ctx.textBaseline='alphabetic';
+      document.getElementById('viIt').textContent=iter; document.getElementById('viDl').textContent= iter>0? delta.toFixed(4):'—';
+      document.getElementById('viread').textContent = iter===0? 'All values start at 0 (except goal +1, pit −1). Press Sweep to begin.' : (delta<0.001? 'Converged after '+iter+' sweeps — values stopped changing and the arrows show the optimal path to the goal from anywhere.' : 'Sweep '+iter+': value has spread '+iter+' square(s) out from the goal; largest change '+delta.toFixed(3)+'.'); }
+    function stop(){ if(window._vraf){cancelAnimationFrame(window._vraf);window._vraf=null;} document.getElementById('viAuto').textContent='⏩ Auto'; }
+    function loop(){ sweep(); draw(); if(delta<0.001){ stop(); return; } window._vraf=requestAnimationFrame(function(){ setTimeout(loop,260); }); }
+    document.getElementById('viStep').addEventListener('click',function(){ sweep(); draw(); });
+    document.getElementById('viAuto').addEventListener('click',function(){ if(window._vraf){stop();return;} document.getElementById('viAuto').textContent='⏸ Pause'; loop(); });
+    document.getElementById('viG').addEventListener('input',function(){ gamma=+this.value; document.getElementById('viGv').textContent=gamma.toFixed(2); reset(); });
+    document.getElementById('viReset').addEventListener('click',reset);
+    reset();
+  })();
+  </script></body></html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Policy Gradient (REINFORCE) · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Policy Gradient (REINFORCE)</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Policy Gradient: Learning by Trying</h1>
+        <p>Sometimes you can't compute the best action — you can only try things and notice what worked. Policy gradient methods like REINFORCE do exactly that: sample actions from a policy, then push the policy to make the actions that earned reward more likely.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Learn</b> (or <b>Auto</b>). The agent is aiming at a hidden target; each round it samples several shots and updates its aim.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The policy (the bell curve over aim angle) slides toward the target and sharpens — shots that scored high pull the mean their way, and confidence grows as it homes in.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="pgStep">▶ Learn (1 round)</button>
+        <button class="lab-btn" id="pgAuto">⏩ Auto</button>
+        <button class="lab-btn ghost" id="pgReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="pgMu">—</b><span>policy mean vs target</span></div><div class="s"><b id="pgR">—</b><span>average reward</span></div></div>
+      <div class="lab-stage"><span class="badge">gold bell = current policy over aim · green line = target · ticks = sampled shots (brighter = more reward)</span><canvas id="pgcv" width="820" height="450" aria-label="policy gradient"></canvas></div>
+      <div class="lab-readout" id="pgread">Press Learn and watch the aim improve.</div>
+      <div class="lab-explain"><b>What's happening:</b> the policy is a Gaussian over the aim angle, N(μ, σ). Each round we <b>sample</b> a batch of shots, score each by reward (how close to the target), and nudge μ and σ with the <b>REINFORCE</b> update: Δμ ∝ Σ (rᵢ − b)·(aᵢ − μ)/σ² — every sampled action is pulled toward or away from the mean in proportion to how much better than a baseline b its reward was. High-reward shots that landed to one side drag the mean that way; subtracting the baseline b cuts the noise. No model of the world, no gradient of the reward — just "do more of what worked", which is how policy gradients train robots and tune LLMs with RLHF. This is <a href="../lessons/track-07-reinforcement-learning/03-policy-gradient.html">Policy gradients</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('pgcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var target=1.1, mu=-1.2, sigma=1.0, round=0, avgR=0, lastShots=[];
+    function reset(){ mu=-1.2; sigma=1.0; round=0; avgR=0; lastShots=[]; stop(); draw(); }
+    function randn(){ return (Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3)/0.7071; }
+    function reward(a){ return Math.exp(-(a-target)*(a-target)/0.5); }
+    function learn(){ var B=14, shots=[], rs=[]; for(var i=0;i<B;i++){ var a=mu+sigma*randn(); shots.push(a); rs.push(reward(a)); }
+      var base=0; for(var i=0;i<B;i++)base+=rs[i]; base/=B; avgR=base;
+      var gm=0,gs=0; for(var i=0;i<B;i++){ var adv=rs[i]-base; gm+=adv*(shots[i]-mu)/(sigma*sigma); gs+=adv*(((shots[i]-mu)*(shots[i]-mu))/(sigma*sigma)-1)/sigma; }
+      gm/=B; gs/=B; mu+=0.35*gm; sigma+=0.15*gs; sigma=Math.max(0.12,Math.min(1.6,sigma)); round++; lastShots=shots.map(function(a,i){return {a:a,r:rs[i]};}); }
+    function AX(a){ return 60+(a+3)/6*(Wd-120); } function bellY(a){ return Math.exp(-(a-mu)*(a-mu)/(2*sigma*sigma))/(sigma*Math.sqrt(2*Math.PI)); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var baseY=Ht-70, top=50, h=baseY-top;
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(60,baseY); ctx.lineTo(Wd-60,baseY); ctx.stroke();
+      // target
+      ctx.strokeStyle='#2fbf6f'; ctx.lineWidth=2.5; ctx.shadowBlur=8; ctx.shadowColor='#2fbf6f'; ctx.beginPath(); ctx.moveTo(AX(target),top); ctx.lineTo(AX(target),baseY); ctx.stroke(); ctx.shadowBlur=0; ctx.fillStyle='#2fbf6f'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('target',AX(target),top-8);
+      // policy bell
+      var mx=1/(sigma*Math.sqrt(2*Math.PI));
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor='#ffd24d'; ctx.beginPath(); var first=true; for(var a=-3;a<=3;a+=0.02){ var y=baseY-bellY(a)/Math.max(mx,0.5)*h*0.85; if(first){ctx.moveTo(AX(a),y);first=false;}else ctx.lineTo(AX(a),y); } ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(255,210,77,.08)'; ctx.beginPath(); ctx.moveTo(AX(-3),baseY); for(var a=-3;a<=3;a+=0.03)ctx.lineTo(AX(a),baseY-bellY(a)/Math.max(mx,0.5)*h*0.85); ctx.lineTo(AX(3),baseY); ctx.closePath(); ctx.fill();
+      // shots
+      for(var i=0;i<lastShots.length;i++){ var s=lastShots[i]; var al=0.3+s.r*0.7; ctx.strokeStyle='rgba(127,224,255,'+al+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(AX(s.a),baseY); ctx.lineTo(AX(s.a),baseY-14-s.r*40); ctx.stroke(); }
+      // mu marker
+      ctx.strokeStyle='#ffa24d'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(AX(mu),top); ctx.lineTo(AX(mu),baseY); ctx.stroke(); ctx.setLineDash([]);
+      document.getElementById('pgMu').textContent=mu.toFixed(2)+'  /  '+target.toFixed(2); document.getElementById('pgR').textContent=avgR.toFixed(3);
+      document.getElementById('pgread').textContent = round===0? 'The policy starts aiming at '+mu.toFixed(1)+', far from the target. Press Learn.' : (Math.abs(mu-target)<0.12? 'Locked on after '+round+' rounds: the policy aims at '+mu.toFixed(2)+' (target '+target.toFixed(2)+') and has sharpened — it learned purely from trial-and-error reward.' : 'Round '+round+': high-reward shots pulled the mean to '+mu.toFixed(2)+' (avg reward '+avgR.toFixed(2)+'). Closing in.'); }
+    function stop(){ if(window._praf){clearTimeout(window._praf);window._praf=null;} document.getElementById('pgAuto').textContent='⏩ Auto'; }
+    function loop(){ learn(); draw(); if(Math.abs(mu-target)<0.08&&sigma<0.3){ stop(); return; } window._praf=setTimeout(loop,300); }
+    document.getElementById('pgStep').addEventListener('click',function(){ learn(); draw(); });
+    document.getElementById('pgAuto').addEventListener('click',function(){ if(window._praf){stop();return;} document.getElementById('pgAuto').textContent='⏸ Pause'; loop(); });
+    document.getElementById('pgReset').addEventListener('click',reset);
+    reset();
+  })();
+  </script></body></html>
