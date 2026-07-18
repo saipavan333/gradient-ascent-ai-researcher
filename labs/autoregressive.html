@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Autoregressive Generation · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Autoregressive Generation</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Autoregressive Generation</h1>
+        <p>Every GPT writes the same way: one token at a time, each new token chosen from a probability distribution conditioned on everything written so far, then fed back in as input. Here's that loop laid bare with a tiny character model you can watch think.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Generate</b> (or <b>Auto</b>). Each step shows the model's next-character distribution; one is sampled and appended. Try changing the <b>temperature</b>.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The text grows character by character, each conditioned on the last few. Low temperature = safe and repetitive; high temperature = adventurous and messier. The output feeds back as the next input — that's "autoregressive".</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="arGen">▶ Generate</button>
+        <button class="lab-btn" id="arAuto">⏩ Auto</button>
+        <label class="lab-ctl">temperature <input type="range" id="arT" min="0.3" max="1.6" step="0.05" value="0.8"><span id="arTv" class="lab-tag">0.80</span></label>
+        <button class="lab-btn ghost" id="arReset">↺ reset</button>
+      </div>
+      <div class="lab-stage"><span class="badge">top: generated text so far · bottom: next-character probabilities, sampled one highlighted</span><canvas id="arcv" width="820" height="440" aria-label="autoregressive generation"></canvas></div>
+      <div class="lab-readout" id="arread">Press Generate to grow the text one character at a time.</div>
+      <div class="lab-explain"><b>What's happening:</b> we trained a tiny <b>character-level model</b> (it just counts, for each pair of recent characters, which character tends to come next) on a fixed passage. To generate, it looks at the last couple of characters, produces a probability for every possible next character, divides the log-probabilities by the <b>temperature</b> and samples one, appends it, and repeats — feeding its own output back as input. That feedback loop is what "autoregressive" means, and it's exactly how large language models generate, only with a giant neural network instead of a lookup table. Because this model is tiny it soon rambles — which is the whole reason scale and better architectures matter. This is <a href="../lessons/track-10-large-language-models/02-generation.html">Autoregressive generation</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('arcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var corpus="the quick brown fox jumps over the lazy dog. a neural network learns patterns from data, one small step at a time. attention lets a model focus on the most relevant words. deep learning stacks many simple layers into something powerful. the model predicts the next token, then feeds it back to predict the following one. gradient descent rolls downhill toward a lower loss. transformers changed how machines read and write language. ";
+    var order=2, model={}; function train(){ for(var i=order;i<corpus.length;i++){ var ctxs=corpus.slice(i-order,i), ch=corpus[i]; if(!model[ctxs])model[ctxs]={}; model[ctxs][ch]=(model[ctxs][ch]||0)+1; } }
+    train();
+    var text="the ", T=0.8, playing=false, raf=null, fc=0, lastDist=null, lastCh='';
+    function nextDist(){ var ctxs=text.slice(-order); var counts=model[ctxs]; if(!counts){ ctxs=text.slice(-1); counts=null; for(var k in model){ if(k[k.length-1]===text[text.length-1]){ counts=counts||{}; for(var c in model[k])counts[c]=(counts[c]||0)+model[k][c]; } } } if(!counts)counts={' ':1};
+      var chars=Object.keys(counts); var logits=chars.map(function(c){ return Math.log(counts[c]); }); var mxL=Math.max.apply(null,logits);
+      var ex=logits.map(function(l){ return Math.exp((l-mxL)/T); }); var Z=ex.reduce(function(a,b){return a+b;},0); var probs=ex.map(function(e){return e/Z;});
+      return {chars:chars,probs:probs}; }
+    function stepGen(){ var d=nextDist(); var r=Math.random(),acc=0,pick=d.chars[0]; for(var i=0;i<d.chars.length;i++){ acc+=d.probs[i]; if(r<=acc){ pick=d.chars[i]; break; } } text+=pick; lastDist=d; lastCh=pick; if(text.length>240)text=text.slice(-240); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // text area
+      ctx.fillStyle='#eaf0ff'; ctx.font='16px ui-monospace, monospace'; ctx.textAlign='left'; ctx.textBaseline='top';
+      var words=text.split(''); var x=40,y=40, lineH=24, maxW=Wd-80;
+      var line=''; ctx.fillStyle='rgba(234,240,255,.9)';
+      // wrap
+      var cur=''; var yy=40; var buf='';
+      for(var i=0;i<text.length;i++){ buf+=text[i]; if(ctx.measureText(buf).width>maxW || text[i]==='\n'){ ctx.fillText(buf,40,yy); yy+=lineH; buf=''; } }
+      if(buf){ // draw last line with caret
+        ctx.fillText(buf,40,yy); var cw=ctx.measureText(buf).width; ctx.fillStyle='#ffd24d'; ctx.fillRect(40+cw+2,yy,9,18); }
+      // distribution panel
+      var py=Ht-190, ph=150, px=40, pw=Wd-80;
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.fillText('next-character probability (context: "'+text.slice(-order)+'")',px,py-20);
+      if(lastDist){ var d=lastDist; var order2=d.chars.map(function(c,i){return i;}).sort(function(a,b){return d.probs[b]-d.probs[a];}).slice(0,16); var bw=pw/order2.length;
+        for(var k=0;k<order2.length;k++){ var idx=order2[k]; var p=d.probs[idx]; var bh=p*ph; var x2=px+k*bw; var isPick=d.chars[idx]===lastCh; ctx.fillStyle=isPick?'#ffd24d':'#4fd6b5'; if(isPick){ctx.shadowBlur=8;ctx.shadowColor='#ffd24d';} ctx.fillRect(x2,py+ph-bh,bw*0.8,bh); ctx.shadowBlur=0; ctx.fillStyle='#9fb0cc'; ctx.font='12px ui-monospace,monospace'; ctx.textAlign='center'; var lbl=d.chars[idx]===' '?'␣':d.chars[idx]; ctx.fillText(lbl,x2+bw*0.4,py+ph+14); } }
+      document.getElementById('arread').textContent = text.length<=6? 'Seed: "the ". Press Generate — the model samples the next character from its distribution and appends it.' : 'Generated '+text.length+' chars. The highlighted bar is the character just sampled from the distribution over the context "'+text.slice(-order)+'".'; }
+    function stop(){ playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} document.getElementById('arAuto').textContent='⏩ Auto'; }
+    function loop(){ if(!playing)return; fc++; if(fc%6===0){ stepGen(); draw(); } raf=requestAnimationFrame(loop); }
+    document.getElementById('arGen').addEventListener('click',function(){ stepGen(); draw(); });
+    document.getElementById('arAuto').addEventListener('click',function(){ if(playing){stop();return;} playing=true; this.textContent='⏸ Pause'; if(!raf)loop(); });
+    document.getElementById('arT').addEventListener('input',function(){ T=+this.value; document.getElementById('arTv').textContent=T.toFixed(2); });
+    document.getElementById('arReset').addEventListener('click',function(){ stop(); text='the '; lastDist=null; draw(); });
+    draw();
+  })();
+  </script></body></html>
