@@ -668,9 +668,11 @@
       outwrap.style.display = "block";
       var oh = outwrap.querySelector(".code-outh");
       oh.className = "code-outh busy"; out.className = "code-out";
-      out.textContent = "Loading Python… the first run downloads it once (~10 MB), then it is instant.";
+      out.textContent = "Loading Python… the first run downloads it once (~10 MB, about 10–15 seconds) — the page may pause briefly. After that it is instant.";
       btn.disabled = true; var label = btn.textContent; btn.textContent = "… running";
-      __loadPy().then(function (py) {
+      // yield twice so the browser PAINTS the loading message before Pyodide's WASM init blocks the main thread
+      new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(function () { setTimeout(r, 0); }); }); })
+        .then(function () { return __loadPy(); }).then(function (py) {
         var buf = "";
         py.setStdout({ batched: function (s) { buf += s + "\n"; } });
         py.setStderr({ batched: function (s) { buf += s + "\n"; } });
