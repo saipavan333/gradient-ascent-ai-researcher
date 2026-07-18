@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this track’s sandbox — train one shared model while every client keeps its raw data: <a href="../../labs/federated.html">Federated Learning</a></p>
+      </div>
 
       <p class="lead prose">
         Federated learning keeps raw data on your device, but the <em>results</em> it shares — model updates, statistics, aggregates — can still leak private facts. A model can memorize a training example verbatim; a released average can reveal an individual if you know the others; famously, "anonymized" datasets have been re-identified again and again. <span class="newterm">Differential privacy</span> (DP) is the rigorous answer, and it's one of the most important ideas in modern data protection. It makes a precise, provable promise: any published result should be <em>almost exactly as likely</em> whether or not any single person's data was included. If the output distribution barely changes when you're added or removed, then no attacker — no matter how clever or how much side information they have — can confidently tell whether you were in the data. Your participation is deniable. DP achieves this by adding carefully calibrated random noise, and it comes with a tunable dial, \(\varepsilon\) (epsilon), that trades privacy against accuracy. This lesson builds the core mechanism and shows the trade-off in action; the next applies it to training whole models.

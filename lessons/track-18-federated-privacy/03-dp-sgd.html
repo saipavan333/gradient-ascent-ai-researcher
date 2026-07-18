@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this track’s sandbox — train one shared model while every client keeps its raw data: <a href="../../labs/federated.html">Federated Learning</a></p>
+      </div>
 
       <p class="lead prose">
         Lesson&nbsp;2 made a single released number private. But a trained model is the product of <em>millions</em> of computations on the data, and it can memorize individual training examples — large language models have been shown to regurgitate verbatim training text, including private information. <span class="newterm">DP-SGD</span> (Differentially Private Stochastic Gradient Descent) makes the whole training process differentially private, so the final model provably reveals almost nothing about any single training example. The genius is how little it changes: ordinary SGD computes gradients from a batch and steps; DP-SGD adds exactly two operations. First, <span class="newterm">clip</span> each individual example's gradient to a maximum length — so no single example can push the model very far. Second, add <span class="newterm">Gaussian noise</span> to the summed gradient before the step — blurring the exact contribution. Clipping bounds how much one person can influence each update (the sensitivity from Lesson&nbsp;2); noise hides that bounded influence. Together they give a formal privacy guarantee for the trained model, at a modest cost in accuracy. This is the workhorse of private deep learning, and combined with federated learning it's how models get trained on sensitive data responsibly.

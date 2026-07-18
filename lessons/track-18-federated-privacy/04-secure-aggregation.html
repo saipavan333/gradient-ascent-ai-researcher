@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this track’s sandbox — see what actually gets sent to the server (updates, never data): <a href="../../labs/federated.html">Federated Learning</a></p>
+      </div>
 
       <p class="lead prose">
         Federated averaging (Lesson&nbsp;0) has a quiet weakness: the server receives each client's individual model update. Even though raw data never moves, a single update can leak a lot — researchers have reconstructed training images from one gradient. FedAvg only ever <em>needs</em> the average of the updates, so why should the server see them individually at all? <span class="newterm">Secure aggregation</span> is the elegant fix: it lets the server compute the exact <em>sum</em> (and hence average) of all clients' updates while learning <em>nothing</em> about any individual update. The trick is a cryptographic one, and it's almost magical in its simplicity. Every <em>pair</em> of clients agrees on a shared random mask: one adds it, the other subtracts it. Each client adds up all its masks and tacks the total onto its real update before sending. Because every mask appears once as \(+s\) and once as \(-s\), when the server sums all the messages, <em>every mask cancels</em> — leaving exactly the sum of the true updates. But any single masked message, on its own, is drowned in random masks and reveals nothing. This is how federated learning gets a real privacy guarantee against the server itself, and it's a gem of applied cryptography that you can fully understand from scratch.
