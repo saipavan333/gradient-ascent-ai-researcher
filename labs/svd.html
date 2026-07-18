@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SVD Image Compression · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; SVD Image Compression</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>SVD &amp; Low-Rank Compression</h1>
+        <p>Any matrix — including an image — can be rebuilt as a sum of simple layers, ordered from most important to least. The singular value decomposition finds those layers. Keep only the top few and you've compressed the image, keeping almost all of what your eye cares about.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag <b>rank k</b> from 1 upward and watch the reconstruction (right) rebuild from the most important layers first.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Just a handful of the 32 layers already make the picture recognizable — and you're storing a fraction of the numbers. The tall gold bars are the layers that carry the most.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">rank k <input type="range" id="svK" min="1" max="32" step="1" value="4"><span id="svKv" class="lab-tag">4</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="svErr">—</b><span>reconstruction error</span></div><div class="s"><b id="svComp">—</b><span>data stored vs original</span></div></div>
+      <div class="lab-stage"><span class="badge">left = original 32×32 · right = rebuilt from top-k layers · bottom = singular values (gold = kept)</span><canvas id="svcv" width="820" height="470" aria-label="svd compression"></canvas></div>
+      <div class="lab-readout" id="svread">Slide rank k and watch the picture reappear.</div>
+      <div class="lab-explain"><b>What's happening:</b> the SVD writes a matrix A as A = Σ σ<sub>i</sub> u<sub>i</sub> v<sub>i</sub>ᵀ — a weighted stack of rank-1 layers, where the singular value σ<sub>i</sub> is that layer's importance (they come out sorted, largest first). Keeping the top k layers is the <em>best possible</em> rank-k approximation of the image (the Eckart–Young theorem). For a 32×32 image, k layers store k·(32+32+1) numbers instead of 32·32 = 1024 — real compression, and the error is exactly the energy in the σ's you dropped. Same idea powers PCA, latent factors, and model weight compression. This is <a href="../lessons/track-01-linear-algebra-probability/03-eigen.html">SVD &amp; PCA</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('svcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var N=32; var img=new Array(N*N);
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){ var x=c-15.5, y=r-15.5, d=Math.hypot(x,y); var v=0.20;
+      if(d<13.6) v=0.62;
+      if(Math.hypot(x+5,y+4)<2.1 || Math.hypot(x-5,y+4)<2.1) v=0.04;
+      var dm=Math.hypot(x,y-1); if(Math.abs(dm-8)<1.2 && (y-1)>2.0) v=0.04;
+      if(d>=13.6){ v=0.20+0.06*Math.sin(c/3.0); }
+      img[r*N+c]=v; }
+    function svd(Ain,m,n){ var A=Ain.slice(); var V=new Array(n*n).fill(0); for(var i=0;i<n;i++)V[i*n+i]=1;
+      for(var sw=0;sw<80;sw++){ var off=0; for(var p=0;p<n-1;p++)for(var q=p+1;q<n;q++){ var al=0,be=0,ga=0; for(var r=0;r<m;r++){var ap=A[r*n+p],aq=A[r*n+q]; al+=ap*ap; be+=aq*aq; ga+=ap*aq;} off+=Math.abs(ga); if(Math.abs(ga)<1e-15)continue; var z=(be-al)/(2*ga); var t=(z>0?1:-1)/(Math.abs(z)+Math.sqrt(1+z*z)); var cc=1/Math.sqrt(1+t*t),s=cc*t; for(var r=0;r<m;r++){var ap=A[r*n+p],aq=A[r*n+q]; A[r*n+p]=cc*ap-s*aq; A[r*n+q]=s*ap+cc*aq;} for(var r=0;r<n;r++){var vp=V[r*n+p],vq=V[r*n+q]; V[r*n+p]=cc*vp-s*vq; V[r*n+q]=s*vp+cc*vq;} } if(off<1e-11)break; }
+      var sig=[],U=new Array(m*n).fill(0); for(var j=0;j<n;j++){var nr=0; for(var r=0;r<m;r++)nr+=A[r*n+j]*A[r*n+j]; nr=Math.sqrt(nr); sig.push(nr); for(var r=0;r<m;r++)U[r*n+j]=nr>1e-12?A[r*n+j]/nr:0;}
+      var idx=sig.map(function(v,i){return i;}).sort(function(a,b){return sig[b]-sig[a];}); var S=idx.map(function(i){return sig[i];}); var U2=new Array(m*n),V2=new Array(n*n);
+      for(var k=0;k<n;k++){var i=idx[k]; for(var r=0;r<m;r++)U2[r*n+k]=U[r*n+i]; for(var r=0;r<n;r++)V2[r*n+k]=V[r*n+i];} return {U:U2,S:S,V:V2}; }
+    var R=svd(img,N,N); var K=4;
+    function recon(k){ var out=new Array(N*N).fill(0); for(var r=0;r<N;r++)for(var c=0;c<N;c++){ var s=0; for(var t=0;t<k;t++)s+=R.S[t]*R.U[r*N+t]*R.V[c*N+t]; out[r*N+c]=s; } return out; }
+    function drawImg(data,px,py,size){ var cell=size/N; for(var r=0;r<N;r++)for(var c=0;c<N;c++){ var v=Math.max(0,Math.min(1,data[r*N+c])); var g=Math.round(v*235+8); ctx.fillStyle='rgb('+g+','+(g+4)+','+Math.round(g*1.03)+')'; ctx.fillRect(px+c*cell,py+r*cell,Math.ceil(cell),Math.ceil(cell)); } ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.strokeRect(px,py,size,size); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var sz=190, py=26; drawImg(img,120,py,sz); var rc=recon(K); drawImg(rc,Wd-120-sz,py,sz);
+      ctx.fillStyle='#9fb0cc'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.fillText('original',120+sz/2,py-8); ctx.fillStyle='#4fd6b5'; ctx.fillText('rank '+K+' reconstruction',Wd-120-sz/2,py-8);
+      // singular spectrum
+      var bx=120, bw=Wd-240, by=Ht-70, bh=110; var mx=R.S[0];
+      ctx.fillStyle='#9fb0cc'; ctx.textAlign='left'; ctx.fillText('singular values (importance of each layer)',bx,by-bh-8);
+      for(var i=0;i<N;i++){ var x=bx+i/N*bw, h=R.S[i]/mx*bh, w=bw/N*0.7; var kept=i<K; ctx.fillStyle=kept?'#ffd24d':'#33415e'; if(kept){ctx.shadowBlur=8;ctx.shadowColor='#ffd24d';} ctx.fillRect(x,by-h,w,h); ctx.shadowBlur=0; }
+      var rc2=recon(K); var e=0,en=0; for(var i=0;i<N*N;i++){ e+=(rc2[i]-img[i])*(rc2[i]-img[i]); en+=img[i]*img[i]; } var rel=Math.sqrt(e/en)*100;
+      document.getElementById('svErr').textContent=rel.toFixed(1)+'%';
+      var stored=K*(N+N+1), pct=stored/(N*N)*100; document.getElementById('svComp').textContent=pct.toFixed(0)+'%  ('+stored+' vs '+(N*N)+')';
+      document.getElementById('svread').textContent = K<=2?'Rank '+K+': just the broadest strokes — but you already see a face, storing only '+pct.toFixed(0)+'% of the numbers.':(K>=20?'Rank '+K+': near-perfect, but you’re storing '+pct.toFixed(0)+'% — most of these extra layers barely matter.':'Rank '+K+': crisp and recognizable at '+rel.toFixed(0)+'% error, storing '+pct.toFixed(0)+'% of the data. The dropped (grey) layers were nearly empty.'); }
+    document.getElementById('svK').addEventListener('input',function(){ K=+this.value; document.getElementById('svKv').textContent=K; draw(); });
+    draw();
+  })();
+  </script></body></html>

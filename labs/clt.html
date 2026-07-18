@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Central Limit Theorem · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Central Limit Theorem</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>The Central Limit Theorem</h1>
+        <p>Here's one of the most surprising facts in all of math: average together enough independent random things — <em>no matter how weird each one's distribution is</em> — and the average always follows the same bell-shaped curve. That's why the normal distribution is everywhere.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Pick a base distribution (even the lopsided one), set how many you average with <b>N</b>, then <b>Draw</b> thousands of samples.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">At N=1 the histogram copies the base shape. Crank N up and — whatever you started with — it tightens into the smooth normal curve (white).</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn ghost" data-b="dice">🎲 Dice (flat)</button>
+        <button class="lab-btn ghost" data-b="exp">📉 Lopsided</button>
+        <button class="lab-btn ghost" data-b="bimodal">⛰️ Two-peaked</button>
+        <label class="lab-ctl">average N <input type="range" id="clN" min="1" max="30" step="1" value="1"><span id="clNv" class="lab-tag">1</span></label>
+        <button class="lab-btn" id="clDraw">▶ Draw ×4000</button>
+        <button class="lab-btn ghost" id="clReset">↺ clear</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="clMu">—</b><span>sample mean</span></div><div class="s"><b id="clSd">—</b><span>spread (σ/√N shrinks it)</span></div></div>
+      <div class="lab-stage"><span class="badge">orange = histogram of the averages · white = the normal curve it's converging to</span><canvas id="clcv" width="820" height="440" aria-label="central limit theorem"></canvas></div>
+      <div class="lab-readout" id="clread">Pick a base shape, set N, and press Draw.</div>
+      <div class="lab-explain"><b>What's happening:</b> each "sample" here draws N values from the base distribution and records their <b>average</b>. The <b>central limit theorem</b> says that as N grows, the distribution of that average approaches a normal (bell) curve centered on the true mean μ, with spread σ/√N — regardless of the base distribution's own shape (as long as it has finite variance). Two consequences you can see: the bell emerges from flat, lopsided, even two-peaked bases; and the spread shrinks like 1/√N, which is exactly why bigger samples give more reliable estimates. This underlies confidence intervals, error bars, and why Gaussian noise is the default assumption. This is <a href="../lessons/track-01-linear-algebra-probability/02-probability.html">Probability &amp; Distributions</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('clcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var bases={ dice:{s:function(){return 1+Math.floor(Math.random()*6);}, mu:3.5, sd:Math.sqrt(35/12), lo:1, hi:6, name:'a flat dice roll'},
+      exp:{s:function(){return -Math.log(1-Math.random());}, mu:1, sd:1, lo:0, hi:4, name:'a lopsided (exponential) draw'},
+      bimodal:{s:function(){return Math.random()<0.5? (0.15+Math.random()*0.2) : (0.65+Math.random()*0.2);}, mu:0.5, sd:Math.sqrt(0.25*0.0033+0.25*0.0033+0.25), lo:0, hi:1, name:'a two-peaked draw'} };
+    // fix bimodal sd empirically
+    (function(){ var b=bases.bimodal, n=20000,s=0,s2=0; for(var i=0;i<n;i++){var x=b.s(); s+=x; s2+=x*x;} b.mu=s/n; b.sd=Math.sqrt(s2/n-(s/n)*(s/n)); })();
+    var base=bases.dice, N=1, B=46, bins=new Array(B).fill(0), total=0;
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var lo=base.lo, hi=base.hi, pad=54, w=Wd-pad*2, baseY=Ht-56, maxh=baseY-40;
+      var mx=Math.max.apply(null,bins)||1;
+      // axis
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(Wd-pad,baseY); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='11px system-ui'; ctx.textAlign='center';
+      for(var t=0;t<=4;t++){ var xv=lo+(hi-lo)*t/4; ctx.fillText(xv.toFixed(1),pad+w*t/4,baseY+18); }
+      // histogram (density)
+      var bw=w/B; var binWidth=(hi-lo)/B;
+      for(var i=0;i<B;i++){ var dens=total>0? bins[i]/total : 0; var h=(bins[i]/mx)*maxh; var x=pad+i*bw; var grd=ctx.createLinearGradient(0,baseY-h,0,baseY); grd.addColorStop(0,'#ffa24d'); grd.addColorStop(1,'rgba(10,15,31,.15)'); ctx.fillStyle=grd; ctx.shadowBlur=6; ctx.shadowColor='#ffa24d'; ctx.fillRect(x,baseY-h,bw*0.92,h); ctx.shadowBlur=0; }
+      // normal curve overlay (scaled to same peak as a normal would have vs histogram)
+      var mu=base.mu, sig=base.sd/Math.sqrt(N);
+      // peak density of normal:
+      var peakDens=1/(sig*Math.sqrt(2*Math.PI));
+      // histogram peak density:
+      var histPeakDens = total>0? (mx/total)/binWidth : peakDens;
+      var scale = total>0? (maxh/mx) : 0; // px per count
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.shadowBlur=12; ctx.shadowColor='rgba(255,255,255,.6)'; ctx.beginPath();
+      for(var px=0;px<=w;px+=3){ var xv=lo+(px/w)*(hi-lo); var d=Math.exp(-(xv-mu)*(xv-mu)/(2*sig*sig))/(sig*Math.sqrt(2*Math.PI)); var count= d*binWidth*total; var y=baseY - count*scale; if(px===0)ctx.moveTo(pad+px,y); else ctx.lineTo(pad+px,y); } ctx.stroke(); ctx.shadowBlur=0;
+      document.getElementById('clMu').textContent = total>0? mu.toFixed(2):'—';
+      document.getElementById('clSd').textContent = total>0? sig.toFixed(3):'—';
+      document.getElementById('clread').textContent = total===0? 'Press Draw to sample the average of N='+N+' values from '+base.name+'.' : (N===1? 'N=1: the histogram is just the base shape ('+base.name+') — no averaging yet.' : 'Averaging N='+N+' draws from '+base.name+': the shape has pulled toward the white bell, spread σ/√N = '+sig.toFixed(3)+'.'); }
+    function sampleMany(){ for(var s=0;s<4000;s++){ var sum=0; for(var i=0;i<N;i++)sum+=base.s(); var avg=sum/N; var b=Math.floor((avg-base.lo)/(base.hi-base.lo)*B); if(b>=0&&b<B){ bins[b]++; total++; } } draw(); }
+    function clear(){ bins=new Array(B).fill(0); total=0; draw(); }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-b]'),function(btn){ btn.addEventListener('click',function(){ base=bases[btn.getAttribute('data-b')]; clear(); }); });
+    document.getElementById('clN').addEventListener('input',function(){ N=+this.value; document.getElementById('clNv').textContent=N; clear(); });
+    document.getElementById('clDraw').addEventListener('click',sampleMany);
+    document.getElementById('clReset').addEventListener('click',clear);
+    draw();
+  })();
+  </script></body></html>
