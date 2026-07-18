@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Random Forest · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Random Forest</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Random Forest: Wisdom of the Trees</h1>
+        <p>A single decision tree is powerful but twitchy — it carves the space into hard, jagged rectangles and overfits. A <b>random forest</b> grows many different trees on random slices of the data and lets them vote. The disagreements cancel out, leaving a smooth, robust boundary.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the number of <b>trees</b> from 1 upward and watch the decision region change.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">One tree gives a blocky, over-confident boundary. As trees are added and averaged, the region softens into a smooth, sensible split — and the noisy islands vanish.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">trees <input type="range" id="rfT" min="1" max="40" step="1" value="1"><span id="rfTv" class="lab-tag">1</span></label>
+        <button class="lab-btn ghost" id="rfData">🎲 new data</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rfT2">1</b><span>trees voting</span></div><div class="s"><b id="rfAcc">—</b><span>training accuracy</span></div></div>
+      <div class="lab-stage"><span class="badge">shaded = forest vote (deeper colour = more confident) · dots = the two classes</span><canvas id="rfcv" width="820" height="470" aria-label="random forest"></canvas></div>
+      <div class="lab-readout" id="rfread">Slide the number of trees.</div>
+      <div class="lab-explain"><b>What's happening:</b> each tree is trained on a <b>bootstrap sample</b> (the data resampled with replacement) and splits on a <b>random subset of features</b>, so every tree is different and makes different mistakes. To classify a point, all trees vote and we take the fraction — that averaging is <b>bagging</b> (bootstrap aggregating). A lone tree has low bias but high variance (jagged, overfit); averaging many decorrelated trees keeps the low bias while slashing the variance, which is why the boundary smooths out and generalizes better as you add trees. This is <a href="../lessons/track-05-classical-ml/05-ensembles.html">Random Forests &amp; ensembles</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rfcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=150, ox=Wd/2, oy=Ht/2, TMAX=40; var data=[], trees=[], T=1;
+    function PX(x){return ox+x*S;} function PY(y){return oy-y*S;}
+    function randn(){ return (Math.random()+Math.random()+Math.random()-1.5)/0.7; }
+    function gen(){ data=[]; // two interleaved blobs per class (so single tree overfits)
+      function blob(cx,cy,lab,n){ for(var i=0;i<n;i++)data.push({x:cx+randn()*0.33,y:cy+randn()*0.33,c:lab}); }
+      blob(-0.7,0.5,0,26); blob(0.6,-0.5,0,26); blob(0.7,0.6,1,26); blob(-0.6,-0.55,1,26);
+      buildForest(); }
+    function gini(idx){ var c0=0,c1=0; for(var i=0;i<idx.length;i++){ if(data[idx[i]].c===0)c0++; else c1++; } var n=idx.length; if(n===0)return 0; var p0=c0/n,p1=c1/n; return 1-p0*p0-p1*p1; }
+    function build(idx,depth){ var c0=0; for(var i=0;i<idx.length;i++)if(data[idx[i]].c===0)c0++; var maj=c0>=idx.length-c0?0:1;
+      if(depth>=6||idx.length<5||c0===0||c0===idx.length) return {leaf:maj};
+      var f=Math.random()<0.5?'x':'y'; var best=null,bestG=1e9;
+      for(var tr=0;tr<8;tr++){ var thr=data[idx[Math.floor(Math.random()*idx.length)]][f]; var L=[],R=[]; for(var i=0;i<idx.length;i++){ if(data[idx[i]][f]<thr)L.push(idx[i]); else R.push(idx[i]); } if(L.length===0||R.length===0)continue; var g=(L.length*gini(L)+R.length*gini(R))/idx.length; if(g<bestG){bestG=g;best={f:f,thr:thr,L:L,R:R};} }
+      if(!best) return {leaf:maj};
+      return {f:best.f,thr:best.thr,L:build(best.L,depth+1),R:build(best.R,depth+1)}; }
+    function buildForest(){ trees=[]; for(var t=0;t<TMAX;t++){ var idx=[]; for(var i=0;i<data.length;i++)idx.push(Math.floor(Math.random()*data.length)); trees.push(build(idx,0)); } }
+    function predTree(node,x,y){ while(!('leaf' in node)){ node = ((node.f==='x'?x:y)<node.thr)? node.L: node.R; } return node.leaf; }
+    function vote(x,y,T){ var s=0; for(var t=0;t<T;t++)s+=predTree(trees[t],x,y); return s/T; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var step=8; for(var px=0;px<Wd;px+=step)for(var py=0;py<Ht;py+=step){ var x=(px-ox)/S,y=(oy-py)/S; var v=vote(x,y,T); var a=Math.abs(v-0.5)*2*0.32+0.05; ctx.fillStyle= v<0.5?'rgba(91,155,255,'+a+')':'rgba(255,162,77,'+a+')'; ctx.fillRect(px,py,step,step); }
+      var correct=0; for(var i=0;i<data.length;i++){ var v=vote(data[i].x,data[i].y,T); var pred=v<0.5?0:1; if(pred===data[i].c)correct++; ctx.fillStyle=data[i].c===0?'#5b9bff':'#ffa24d'; ctx.shadowBlur=5; ctx.shadowColor=ctx.fillStyle; ctx.beginPath(); ctx.arc(PX(data[i].x),PY(data[i].y),4,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      document.getElementById('rfT2').textContent=T; document.getElementById('rfAcc').textContent=(correct/data.length*100).toFixed(0)+'%';
+      document.getElementById('rfread').textContent = T===1? 'One tree: a blocky, jagged boundary that overfits the noise — high variance.' : (T>=20? T+' trees voting: the boundary is smooth and stable — averaging has cancelled the individual trees’ errors.' : T+' trees voting: the region is smoothing out as more trees average together.'); }
+    document.getElementById('rfT').addEventListener('input',function(){ T=+this.value; document.getElementById('rfTv').textContent=T; draw(); });
+    document.getElementById('rfData').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>

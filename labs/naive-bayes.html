@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Naive Bayes · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Naive Bayes</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Naive Bayes: Voting with Probabilities</h1>
+        <p>Naive Bayes classifies by asking, for each class, "how likely is this point if it belonged to you?" — then picks the winner. Its one bold simplification (pretend the features are independent) makes the math trivially fast, and it works shockingly well.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag the <b>test point</b> around. Each class scores it with its own bell curves; the higher combined score wins.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The background shows the predicted class everywhere; the curved boundary is where the two classes' probabilities tie. The ellipses are each class's fitted Gaussian.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn ghost" id="nbData">🎲 new data</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="nbBlue">—</b><span>score · blue class</span></div><div class="s"><b id="nbOr">—</b><span>score · orange class</span></div></div>
+      <div class="lab-stage"><span class="badge">shaded = predicted class · ellipses = per-class Gaussians · white dot = draggable test point</span><canvas id="nbcv" width="820" height="470" aria-label="naive bayes"></canvas></div>
+      <div class="lab-readout" id="nbread">Drag the white test point to classify it.</div>
+      <div class="lab-explain"><b>What's happening:</b> for each class we fit a simple probability model — here a Gaussian per feature, using the class's mean and variance — and estimate the class prior from how common it is. To classify a point x we use <b>Bayes' rule</b>: score(class) = log P(class) + Σ log P(featureᵢ | class), <em>summing</em> the per-feature log-likelihoods (that sum is the "naive" independence assumption). Whichever class scores higher wins, and the tie line is the decision boundary. Because it just estimates a few means and variances, Naive Bayes trains in one pass and shrugs off high-dimensional data — which is why it's a classic baseline for spam filters and text. This is <a href="../lessons/track-05-classical-ml/04-naive-bayes.html">Naive Bayes</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('nbcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=120, ox=Wd/2, oy=Ht/2; var A=[], B=[], test={x:0.3,y:0.3}, drag=false; var mA,mB;
+    function PX(x){return ox+x*S;} function PY(y){return oy-y*S;}
+    function randn(){ return (Math.random()+Math.random()+Math.random()-1.5)/0.7; }
+    function gen(){ A=[];B=[]; var cA=[-0.9+Math.random()*0.3,-0.4+Math.random()*0.3], cB=[0.7+Math.random()*0.3,0.4+Math.random()*0.3];
+      for(var i=0;i<60;i++){ A.push({x:cA[0]+randn()*0.42,y:cA[1]+randn()*0.5}); B.push({x:cB[0]+randn()*0.5,y:cB[1]+randn()*0.4}); } fit(); }
+    function stats(P){ var mx=0,my=0; for(var i=0;i<P.length;i++){mx+=P[i].x;my+=P[i].y;} mx/=P.length;my/=P.length; var vx=0,vy=0; for(var i=0;i<P.length;i++){vx+=(P[i].x-mx)*(P[i].x-mx);vy+=(P[i].y-my)*(P[i].y-my);} return {mx:mx,my:my,vx:vx/P.length+1e-3,vy:vy/P.length+1e-3,pri:P.length}; }
+    function fit(){ mA=stats(A); mB=stats(B); var tot=A.length+B.length; mA.lp=Math.log(mA.pri/tot); mB.lp=Math.log(mB.pri/tot); }
+    function score(m,x,y){ return m.lp - 0.5*((x-m.mx)*(x-m.mx)/m.vx + (y-m.my)*(y-m.my)/m.vy) - 0.5*Math.log(m.vx*m.vy); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // region shading (coarse)
+      var step=10; for(var px=0;px<Wd;px+=step)for(var py=0;py<Ht;py+=step){ var x=(px-ox)/S, y=(oy-py)/S; var sa=score(mA,x,y), sb=score(mB,x,y); ctx.fillStyle= sa>sb?'rgba(91,155,255,.10)':'rgba(255,162,77,.10)'; ctx.fillRect(px,py,step,step); }
+      // boundary via sign change on fine grid
+      ctx.strokeStyle='rgba(200,139,255,.9)'; ctx.lineWidth=2.5;
+      for(var px=0;px<Wd;px+=6){ for(var py=0;py<Ht;py+=6){ var x=(px-ox)/S,y=(oy-py)/S; var d=score(mA,x,y)-score(mB,x,y); var x2=(px+6-ox)/S; var d2=score(mA,x2,y)-score(mB,x2,y); if(d*d2<0){ ctx.fillStyle='rgba(200,139,255,.9)'; ctx.fillRect(px+3,py,2,6); } } }
+      // ellipses (1 std)
+      function ell(m,color){ ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath(); for(var t=0;t<=64;t++){ var th=t/64*6.2832; var x=m.mx+Math.sqrt(m.vx)*Math.cos(th), y=m.my+Math.sqrt(m.vy)*Math.sin(th); if(t===0)ctx.moveTo(PX(x),PY(y)); else ctx.lineTo(PX(x),PY(y)); } ctx.stroke(); }
+      ell(mA,'rgba(91,155,255,.8)'); ell(mB,'rgba(255,162,77,.8)');
+      for(var i=0;i<A.length;i++){ ctx.fillStyle='#5b9bff'; ctx.beginPath(); ctx.arc(PX(A[i].x),PY(A[i].y),3.5,0,6.2832); ctx.fill(); }
+      for(var i=0;i<B.length;i++){ ctx.fillStyle='#ffa24d'; ctx.beginPath(); ctx.arc(PX(B[i].x),PY(B[i].y),3.5,0,6.2832); ctx.fill(); }
+      var sa=score(mA,test.x,test.y), sb=score(mB,test.x,test.y);
+      ctx.fillStyle='#fff'; ctx.shadowBlur=14; ctx.shadowColor= sa>sb?'#5b9bff':'#ffa24d'; ctx.beginPath(); ctx.arc(PX(test.x),PY(test.y),9,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#0a0f1f'; ctx.lineWidth=2; ctx.stroke();
+      document.getElementById('nbBlue').textContent=sa.toFixed(2); document.getElementById('nbOr').textContent=sb.toFixed(2);
+      document.getElementById('nbread').textContent = 'Test point scores '+sa.toFixed(2)+' (blue) vs '+sb.toFixed(2)+' (orange) → classified '+(sa>sb?'BLUE':'ORANGE')+'. Drag it across the purple boundary to flip the winner.'; }
+    function pos(e){ var r=cv.getBoundingClientRect(); var cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left, cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return [cx*(cv.width/r.width),cy*(cv.height/r.height)]; }
+    cv.addEventListener('mousedown',function(e){ var p=pos(e); if(Math.hypot(p[0]-PX(test.x),p[1]-PY(test.y))<24)drag=true; });
+    cv.addEventListener('mousemove',function(e){ if(!drag)return; var p=pos(e); test.x=(p[0]-ox)/S; test.y=(oy-p[1])/S; draw(); });
+    window.addEventListener('mouseup',function(){ drag=false; });
+    document.getElementById('nbData').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
