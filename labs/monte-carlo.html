@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monte-Carlo Estimation · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Monte-Carlo Estimation</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Monte-Carlo: Estimating π by Chance</h1>
+        <p>Some numbers are hard to compute directly but easy to <em>estimate by throwing darts</em>. Sprinkle random points in a square, count how many land inside a circle, and out pops π. This "guess with randomness" trick powers physics, finance, and reinforcement learning.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Throw</b> (or <b>Auto</b>) to rain random points into the square. Watch the running estimate.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The fraction of points inside the quarter-circle, times 4, homes in on π ≈ 3.14159. More darts → less wobble (error shrinks like 1/√n).</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="mcThrow">🎯 Throw ×500</button>
+        <button class="lab-btn" id="mcAuto">⏩ Auto</button>
+        <button class="lab-btn ghost" id="mcReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="mcEst">—</b><span>π estimate (inside/total × 4)</span></div><div class="s"><b id="mcErr">—</b><span>error vs true π</span></div></div>
+      <div class="lab-stage"><span class="badge">teal = inside the circle · orange = outside · total darts thrown top-right</span><canvas id="mccv" width="820" height="470" aria-label="monte carlo pi"></canvas></div>
+      <div class="lab-readout" id="mcread">Throw some darts to estimate π.</div>
+      <div class="lab-explain"><b>What's happening:</b> the quarter-circle of radius 1 has area π/4; the unit square has area 1. So a random point lands inside the circle with probability exactly π/4. Throw n points, and (inside ÷ n) estimates π/4 — multiply by 4 for π. This is <b>Monte-Carlo estimation</b>: replace a hard calculation with an average over random samples. Its error falls like 1/√n, so each extra digit of accuracy costs ~100× more darts — slow, but it works in any number of dimensions where exact math is hopeless (which is why it's everywhere in simulation and RL). This is <a href="../lessons/track-01-linear-algebra-probability/02-probability.html">Probability</a> in action.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('mccv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var sz=Math.min(Wd,Ht)-70, ox=40, oy=Ht-35; // square from (ox,oy-sz) to (ox+sz,oy)
+    var inside=0, total=0, pts=[];
+    function PX(x){return ox+x*sz;} function PY(y){return oy-y*sz;}
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // square + quarter circle
+      ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=2; ctx.strokeRect(ox,oy-sz,sz,sz);
+      ctx.strokeStyle='rgba(127,224,255,.7)'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(ox,oy,sz,-Math.PI/2,0,false); ctx.stroke();
+      // points (cap drawn to last 3000 for perf)
+      var start=Math.max(0,pts.length-3000);
+      for(var i=start;i<pts.length;i++){ var p=pts[i]; ctx.fillStyle=p.in?'rgba(79,214,181,.85)':'rgba(255,162,77,.8)'; ctx.fillRect(PX(p.x),PY(p.y),2,2); }
+      var est= total>0? (inside/total*4):0;
+      ctx.fillStyle='#eaf0ff'; ctx.font='bold 14px system-ui'; ctx.textAlign='right'; ctx.fillText('darts: '+total,Wd-20,32);
+      // running estimate bar on right
+      var gx=Wd-260, gy=70, gw=230, gh=Ht-160;
+      ctx.fillStyle='rgba(255,255,255,.04)'; ctx.fillRect(gx,gy,gw,gh);
+      ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.setLineDash([4,4]);
+      var piY=gy+gh-( (Math.PI-2.6)/(3.7-2.6) )*gh; ctx.beginPath(); ctx.moveTo(gx,piY); ctx.lineTo(gx+gw,piY); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='11px system-ui'; ctx.textAlign='left'; ctx.fillText('π = 3.14159',gx+6,piY-6);
+      if(hist.length>1){ ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2; ctx.beginPath(); for(var i=0;i<hist.length;i++){ var x=gx+ i/(hist.length-1)*gw; var y=gy+gh-((hist[i]-2.6)/(3.7-2.6))*gh; y=Math.max(gy,Math.min(gy+gh,y)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
+      ctx.fillStyle='#9fb0cc'; ctx.font='11px system-ui'; ctx.fillText('estimate over time →',gx+6,gy+gh+18);
+      document.getElementById('mcEst').textContent= total>0? est.toFixed(4):'—';
+      document.getElementById('mcErr').textContent= total>0? (Math.abs(est-Math.PI)).toFixed(4):'—';
+      document.getElementById('mcread').textContent= total===0?'No darts yet. Press Throw.':'After '+total+' darts: '+inside+' landed inside → π ≈ '+est.toFixed(4)+' (off by '+(Math.abs(est-Math.PI)).toFixed(4)+'). Throw more to sharpen it.'; }
+    var hist=[];
+    function throwN(k){ for(var i=0;i<k;i++){ var x=Math.random(), y=Math.random(); var isin=(x*x+y*y)<=1; if(isin)inside++; total++; pts.push({x:x,y:y,in:isin}); } hist.push(inside/total*4); if(hist.length>240)hist.shift(); draw(); }
+    var raf=null,playing=false; function loop(){ if(!playing)return; throwN(120); raf=requestAnimationFrame(loop); }
+    document.getElementById('mcThrow').addEventListener('click',function(){ throwN(500); });
+    document.getElementById('mcAuto').addEventListener('click',function(){ playing=!playing; this.textContent=playing?'⏸ Pause':'⏩ Auto'; if(playing){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} });
+    document.getElementById('mcReset').addEventListener('click',function(){ inside=0;total=0;pts=[];hist=[]; draw(); });
+    draw();
+  })();
+  </script></body></html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Escaping Local Minima · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Escaping Local Minima</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Local Minima &amp; Momentum</h1>
+        <p>Gradient descent always walks downhill — but "downhill" can trap you in a shallow dip while a much deeper valley sits just past the next ridge. <b>Momentum</b> gives the ball inertia, so it can roll <em>through</em> the ridge and find the better minimum.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Release the ball from up the left slope, set a <b>momentum</b>, then press <b>Drop</b>. Two balls fall: plain gradient descent (grey) and momentum (gold).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Plain descent stops in the shallow left dip. With enough momentum, the gold ball carries its speed over the central ridge into the deep global valley on the right.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">start x <input type="range" id="lmX" min="-5.2" max="4" step="0.1" value="-5"><span id="lmXv" class="lab-tag">-5.0</span></label>
+        <label class="lab-ctl">momentum β <input type="range" id="lmB" min="0" max="0.95" step="0.01" value="0.9"><span id="lmBv" class="lab-tag">0.90</span></label>
+        <button class="lab-btn" id="lmDrop">▶ Drop</button>
+        <button class="lab-btn ghost" id="lmReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="lmG">—</b><span>plain GD — final height (lower is better)</span></div><div class="s"><b id="lmM">—</b><span>momentum — final height</span></div></div>
+      <div class="lab-stage"><span class="badge">grey ball = plain gradient descent · gold ball = with momentum · deeper valley wins</span><canvas id="lmcv" width="820" height="470" aria-label="local minima"></canvas></div>
+      <div class="lab-readout" id="lmread">Set a start and press Drop.</div>
+      <div class="lab-explain"><b>What's happening:</b> the landscape has two valleys — a <b>shallow</b> one on the left and the <b>deep global</b> one on the right — separated by a ridge. Plain gradient descent updates x ← x − η f′(x): it only moves downhill and halts the instant the slope is zero, so from the left slope it settles in the shallow dip. <b>Momentum</b> keeps a running velocity v ← β v − η f′(x), then x ← x + v, so it arrives at the ridge still moving and coasts over into the deep valley. This is why momentum (and Adam) train deep nets faster and escape bad flat spots — and why too little momentum leaves you stuck, too much overshoots. This is <a href="../lessons/track-02-optimization/02-momentum.html">Momentum &amp; optimizers</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('lmcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    function f(x){ return ((x*x-9)*(x*x-9))/40 - 0.6*x; }
+    function df(x){ return (x*(x*x-9))/10 - 0.6; }
+    var XMIN=-5.2, XMAX=4.6; var ymin=1e9,ymax=-1e9; for(var x=XMIN;x<=XMAX;x+=0.02){ var y=f(x); if(y<ymin)ymin=y; if(y>ymax)ymax=y; }
+    function PX(x){ return 40+ (x-XMIN)/(XMAX-XMIN)*(Wd-80); }
+    function PY(y){ return 40+ (ymax-y)/(ymax-ymin)*(Ht-115); }   // peaks up, valleys down
+    var startX=-5.0, beta=0.9, lr=0.045; var gd={x:-5,done:false}, mo={x:-5,v:0,done:false}, raf=null, playing=false;
+    function reset(){ gd={x:startX,done:false}; mo={x:startX,v:0,done:false}; playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} document.getElementById('lmDrop').textContent='▶ Drop'; draw(); }
+    function step(){ if(!gd.done){ var g=df(gd.x); gd.x-=lr*g; gd.x=Math.max(XMIN,Math.min(XMAX,gd.x)); if(Math.abs(g)<0.004)gd.done=true; }
+      if(!mo.done){ var g2=df(mo.x); mo.v=beta*mo.v-lr*g2; mo.x+=mo.v; mo.x=Math.max(XMIN,Math.min(XMAX,mo.x)); if(Math.abs(g2)<0.004&&Math.abs(mo.v)<0.004)mo.done=true; } }
+    function ball(x,color){ var y=f(x); ctx.fillStyle=color; ctx.shadowBlur=16; ctx.shadowColor=color; ctx.beginPath(); ctx.arc(PX(x),PY(y)-9,9,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1; ctx.stroke(); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.beginPath(); ctx.moveTo(PX(XMIN),PY(f(XMIN))); for(var x=XMIN;x<=XMAX;x+=0.02)ctx.lineTo(PX(x),PY(f(x))); ctx.lineTo(PX(XMAX),Ht); ctx.lineTo(PX(XMIN),Ht); ctx.closePath(); var grd=ctx.createLinearGradient(0,40,0,Ht); grd.addColorStop(0,'rgba(91,155,255,.12)'); grd.addColorStop(1,'rgba(91,155,255,.02)'); ctx.fillStyle=grd; ctx.fill();
+      ctx.strokeStyle='#5b9bff'; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor='#5b9bff'; ctx.beginPath(); for(var x=XMIN;x<=XMAX;x+=0.02){ var px=PX(x),py=PY(f(x)); if(x===XMIN)ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke(); ctx.shadowBlur=0;
+      ball(gd.x,'#9fb0cc'); ball(mo.x,'#ffd24d');
+      document.getElementById('lmG').textContent=f(gd.x).toFixed(2); document.getElementById('lmM').textContent=f(mo.x).toFixed(2);
+      var better = f(mo.x) < f(gd.x)-0.1;
+      document.getElementById('lmread').textContent = (!gd.done&&!mo.done&&!playing)?'Two balls ready at x='+startX.toFixed(1)+'. Press Drop.':(better?'Momentum won: the gold ball coasted over the ridge into the deep valley ('+f(mo.x).toFixed(2)+') while plain GD stalled in the shallow dip ('+f(gd.x).toFixed(2)+').':(Math.abs(f(mo.x)-f(gd.x))<0.1?'Both ended in the same valley — try releasing from higher up the left slope, or raise the momentum.':'Plain GD is stuck in the shallow dip; nudge momentum higher to escape it.')); }
+    function loop(){ if(!playing)return; step(); draw(); if(gd.done&&mo.done){ playing=false; document.getElementById('lmDrop').textContent='▶ Drop'; return; } raf=requestAnimationFrame(loop); }
+    document.getElementById('lmX').addEventListener('input',function(){ startX=+this.value; document.getElementById('lmXv').textContent=startX.toFixed(1); reset(); });
+    document.getElementById('lmB').addEventListener('input',function(){ beta=+this.value; document.getElementById('lmBv').textContent=beta.toFixed(2); reset(); });
+    document.getElementById('lmDrop').addEventListener('click',function(){ if(playing){playing=false;this.textContent='▶ Drop';return;} if(gd.done&&mo.done)reset(); playing=true; this.textContent='⏸ Pause'; if(!raf)loop(); });
+    document.getElementById('lmReset').addEventListener('click',reset);
+    reset();
+  })();
+  </script></body></html>
