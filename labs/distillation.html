@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Knowledge Distillation · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Knowledge Distillation</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Knowledge Distillation</h1>
+        <p>A hard label says "this is a dog." A big <b>teacher</b> model says "92% dog, 7% wolf, 1% cat" — and those extra numbers encode real knowledge about how classes relate. Distillation trains a small <b>student</b> to copy the teacher's full soft answer, so it learns far more than the one-word truth.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Train student</b> (or <b>Auto</b>). The student learns to match the teacher's soft distribution. Adjust the <b>temperature</b> that softens it.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The student's bars morph to match the teacher's — including the small "dog is a bit like wolf" mass the hard label throws away. That "dark knowledge" is what makes the student punch above its size.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="kdStep">▶ Train student</button>
+        <button class="lab-btn" id="kdAuto">⏩ Auto</button>
+        <label class="lab-ctl">temperature <input type="range" id="kdT" min="1" max="6" step="0.5" value="3"><span id="kdTv" class="lab-tag">3.0</span></label>
+        <button class="lab-btn ghost" id="kdReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="kdIt">0</b><span>training steps</span></div><div class="s"><b id="kdKl">—</b><span>mismatch with teacher</span></div></div>
+      <div class="lab-stage"><span class="badge">grey = hard label · white = teacher (soft) · gold = student learning to match</span><canvas id="kdcv" width="820" height="450" aria-label="distillation"></canvas></div>
+      <div class="lab-readout" id="kdread">Train the student to match the teacher.</div>
+      <div class="lab-explain"><b>What's happening:</b> the teacher's raw scores are softened with a <b>temperature</b> T (dividing logits by T before softmax) to reveal the small probabilities the hard label flattens to zero — the relative similarities between classes, sometimes called "dark knowledge". The student minimizes the difference (a KL divergence) between its own softened output and the teacher's, instead of (or alongside) the one-hot label. Learning the full distribution gives the student a much richer training signal, so a small network can approach the accuracy of a big one — the trick behind compact deployable models like DistilBERT. Here the teacher is fixed and the student's logits are trained by gradient descent. This is <a href="../lessons/track-11-efficient-scalable-ml/04-distillation.html">Knowledge distillation</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('kdcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var labels=['dog','wolf','cat','fox','car'], teacherLogits=[4.2,2.6,1.3,1.9,-1.5], T=3, studentLogits=[0.2,-0.1,0.3,0,-0.2], iter=0;
+    function soft(logits,temp){ var m=Math.max.apply(null,logits.map(function(l){return l/temp;})); var ex=logits.map(function(l){return Math.exp(l/temp-m);}); var Z=ex.reduce(function(a,b){return a+b;},0); return ex.map(function(e){return e/Z;}); }
+    function reset(){ studentLogits=[0.2,-0.1,0.3,0,-0.2]; iter=0; stop(); draw(); }
+    function train(){ var tp=soft(teacherLogits,T), sp=soft(studentLogits,T); // grad of KL(teacher||student) wrt student logits (softmax CE): sp - tp (times 1/T factors)
+      for(var i=0;i<studentLogits.length;i++){ studentLogits[i]-= 2.5*(sp[i]-tp[i]); } iter++; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var tp=soft(teacherLogits,T), sp=soft(studentLogits,T); var hard=[1,0,0,0,0];
+      var n=labels.length, pad=70, w=Wd-pad*2, baseY=Ht-70, top=60, h=baseY-top, gw=w/n;
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(Wd-pad,baseY); ctx.stroke();
+      for(var i=0;i<n;i++){ var cx=pad+gw*i+gw/2;
+        // hard label bar (grey, thin)
+        var hb=hard[i]*h; ctx.fillStyle='rgba(120,130,150,.4)'; ctx.fillRect(cx-40,baseY-hb,20,hb);
+        // teacher
+        var tb=tp[i]*h; ctx.fillStyle='rgba(255,255,255,.5)'; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.fillRect(cx-16,baseY-tb,32,tb); ctx.strokeRect(cx-16,baseY-tb,32,tb);
+        // student
+        var sb=sp[i]*h; ctx.fillStyle='rgba(255,210,77,.85)'; ctx.shadowBlur=6; ctx.shadowColor='#ffd24d'; ctx.fillRect(cx+20,baseY-sb,20,sb); ctx.shadowBlur=0;
+        ctx.fillStyle='#9fb0cc'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.fillText(labels[i],cx,baseY+20);
+      }
+      // legend
+      ctx.font='12px system-ui'; ctx.textAlign='left';
+      ctx.fillStyle='rgba(120,130,150,.7)'; ctx.fillRect(pad,28,12,12); ctx.fillStyle='#9fb0cc'; ctx.fillText('hard label',pad+16,38);
+      ctx.fillStyle='rgba(255,255,255,.6)'; ctx.fillRect(pad+110,28,12,12); ctx.fillStyle='#9fb0cc'; ctx.fillText('teacher (soft)',pad+126,38);
+      ctx.fillStyle='#ffd24d'; ctx.fillRect(pad+250,28,12,12); ctx.fillStyle='#9fb0cc'; ctx.fillText('student',pad+266,38);
+      var kl=0; for(var i=0;i<n;i++)if(tp[i]>1e-9)kl+=tp[i]*Math.log(tp[i]/Math.max(1e-9,sp[i]));
+      document.getElementById('kdIt').textContent=iter; document.getElementById('kdKl').textContent=kl.toFixed(3);
+      document.getElementById('kdread').textContent = iter===0? 'The student starts near-flat. Notice the teacher gives “wolf” and “fox” real probability — a hard label would zero them out.' : (kl<0.01? 'Matched after '+iter+' steps: the student now reproduces the teacher’s full distribution, including that dog≈wolf≈fox similarity — knowledge a one-hot label can’t convey.' : 'Step '+iter+': student is converging on the teacher (mismatch '+kl.toFixed(3)+'), picking up the soft similarities, not just “dog”.'); }
+    function stop(){ if(window._kraf){cancelAnimationFrame(window._kraf);window._kraf=null;} document.getElementById('kdAuto').textContent='⏩ Auto'; }
+    function loop(){ train(); draw(); if(iter>=120){stop();return;} window._kraf=requestAnimationFrame(loop); }
+    document.getElementById('kdStep').addEventListener('click',function(){ for(var k=0;k<5;k++)train(); draw(); });
+    document.getElementById('kdAuto').addEventListener('click',function(){ if(window._kraf){stop();return;} document.getElementById('kdAuto').textContent='⏸ Pause'; loop(); });
+    document.getElementById('kdT').addEventListener('input',function(){ T=+this.value; document.getElementById('kdTv').textContent=T.toFixed(1); draw(); });
+    document.getElementById('kdReset').addEventListener('click',reset);
+    draw();
+  })();
+  </script></body></html>

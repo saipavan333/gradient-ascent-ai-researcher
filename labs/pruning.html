@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pruning · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Pruning</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Pruning: Cutting the Dead Weight</h1>
+        <p>Trained networks are mostly redundant — a large share of their connections carry almost no signal. Pruning deletes the smallest-magnitude weights, and the model keeps working. You can often remove most of a network before accuracy finally cracks.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Raise the <b>prune threshold</b>. Connections whose weight is smaller than it are cut (faded out).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The output barely changes while you remove the weak links — accuracy holds as sparsity climbs. Push too far and it finally collapses. There's a lot of slack to cut first.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">prune threshold <input type="range" id="prT" min="0" max="1" step="0.02" value="0.2"><span id="prTv" class="lab-tag">0.20</span></label>
+        <button class="lab-btn ghost" id="prNew">🎲 new weights</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="prSp">—</b><span>sparsity (weights removed)</span></div><div class="s"><b id="prFid">—</b><span>output fidelity kept</span></div></div>
+      <div class="lab-stage"><span class="badge">lines = connections (thickness = |weight|) · faded = pruned · brightness of output = response</span><canvas id="prcv" width="820" height="470" aria-label="pruning"></canvas></div>
+      <div class="lab-readout" id="prread">Raise the threshold and watch weak links vanish.</div>
+      <div class="lab-explain"><b>What's happening:</b> after training, we rank connections by the absolute value of their weight and delete every one below the threshold (magnitude pruning), leaving a <b>sparse</b> network. Because most of a network's weights are tiny and near-redundant, removing them changes the output very little at first — <b>fidelity</b> (how close the pruned output stays to the original) holds near 100% even at high sparsity, then drops sharply once you start cutting weights that actually matter. Sparse models use less memory and, with the right hardware, run faster; often you prune, then briefly re-train to recover the last bit of accuracy. This is <a href="../lessons/track-11-efficient-scalable-ml/02-pruning.html">Pruning &amp; sparsity</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('prcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var nin=6, nh=9, nout=4, W1=[], W2=[], xin=[], thr=0.2;
+    function randn(){ return (Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3)/0.7071; }
+    function gen(){ W1=[];W2=[];xin=[]; for(var h=0;h<nh;h++){ W1.push([]); for(var i=0;i<nin;i++)W1[h].push(randn()); } for(var o=0;o<nout;o++){ W2.push([]); for(var h=0;h<nh;h++)W2[o].push(randn()); } for(var i=0;i<nin;i++)xin.push(Math.random()*2-1); }
+    function fwd(prune){ var h=[]; for(var j=0;j<nh;j++){ var s=0; for(var i=0;i<nin;i++){ var w=W1[j][i]; if(prune&&Math.abs(w)<thr)w=0; s+=w*xin[i]; } h.push(Math.max(0,s)); } var o=[]; for(var k=0;k<nout;k++){ var s=0; for(var j=0;j<nh;j++){ var w=W2[k][j]; if(prune&&Math.abs(w)<thr)w=0; s+=w*h[j]; } o.push(s); } return o; }
+    function stats(){ var tot=nh*nin+nout*nh, cut=0; for(var h=0;h<nh;h++)for(var i=0;i<nin;i++)if(Math.abs(W1[h][i])<thr)cut++; for(var o=0;o<nout;o++)for(var h=0;h<nh;h++)if(Math.abs(W2[o][h])<thr)cut++; var of=fwd(false), op=fwd(true); var e=0,en=0; for(var k=0;k<nout;k++){e+=(of[k]-op[k])*(of[k]-op[k]);en+=of[k]*of[k];} var fid=Math.max(0,1-Math.sqrt(e/(en||1))); return {sp:cut/tot,fid:fid,of:of,op:op}; }
+    function col(x,y){return [x,y];}
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var x0=120,x1=Wd/2,x2=Wd-160; var top=50,bot=Ht-60;
+      function ny(n,cnt){ return top+(bot-top)*n/(cnt-1); }
+      // W1 edges
+      for(var h=0;h<nh;h++)for(var i=0;i<nin;i++){ var w=W1[h][i]; var pruned=Math.abs(w)<thr; ctx.strokeStyle= pruned?'rgba(255,255,255,.04)': (w>0?'rgba(91,155,255,':'rgba(255,162,77,')+(0.2+Math.min(0.6,Math.abs(w)*0.4))+')'; ctx.lineWidth=pruned?0.6:0.6+Math.min(3,Math.abs(w)*1.6); ctx.beginPath(); ctx.moveTo(x0,ny(i,nin)); ctx.lineTo(x1,ny(h,nh)); ctx.stroke(); }
+      for(var o=0;o<nout;o++)for(var h=0;h<nh;h++){ var w=W2[o][h]; var pruned=Math.abs(w)<thr; ctx.strokeStyle= pruned?'rgba(255,255,255,.04)': (w>0?'rgba(91,155,255,':'rgba(255,162,77,')+(0.2+Math.min(0.6,Math.abs(w)*0.4))+')'; ctx.lineWidth=pruned?0.6:0.6+Math.min(3,Math.abs(w)*1.6); ctx.beginPath(); ctx.moveTo(x1,ny(h,nh)); ctx.lineTo(x2,ny(o,nout)); ctx.stroke(); }
+      var st=stats();
+      for(var i=0;i<nin;i++){ ctx.fillStyle='#5b9bff'; ctx.beginPath(); ctx.arc(x0,ny(i,nin),9,0,6.2832); ctx.fill(); }
+      for(var h=0;h<nh;h++){ ctx.fillStyle='#7ee0ff'; ctx.beginPath(); ctx.arc(x1,ny(h,nh),8,0,6.2832); ctx.fill(); }
+      var omx=1; for(var k=0;k<nout;k++)omx=Math.max(omx,Math.abs(st.op[k])); for(var o=0;o<nout;o++){ var a=Math.min(1,Math.abs(st.op[o])/omx); ctx.fillStyle='rgba(255,210,77,'+(0.3+a*0.7)+')'; ctx.shadowBlur=a*14; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(x2,ny(o,nout),12,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('inputs',x0,bot+28); ctx.fillText('hidden',x1,bot+28); ctx.fillText('outputs',x2,bot+28);
+      document.getElementById('prSp').textContent=(st.sp*100).toFixed(0)+'%'; document.getElementById('prFid').textContent=(st.fid*100).toFixed(0)+'%';
+      document.getElementById('prread').textContent = st.sp<0.05? 'Nothing pruned yet — full network. Raise the threshold to cut weak links.' : (st.fid>0.9? (st.sp*100).toFixed(0)+'% of weights removed and the output is still '+(st.fid*100).toFixed(0)+'% faithful — that redundancy was free to cut.' : (st.sp*100).toFixed(0)+'% pruned: fidelity has dropped to '+(st.fid*100).toFixed(0)+'% — you’re now cutting weights that matter. Time to stop (or re-train).'); }
+    document.getElementById('prT').addEventListener('input',function(){ thr=+this.value; document.getElementById('prTv').textContent=thr.toFixed(2); draw(); });
+    document.getElementById('prNew').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
