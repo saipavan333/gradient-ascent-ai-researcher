@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Softmax Temperature · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Softmax Temperature</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Softmax Temperature</h1>
+        <p>When a language model picks the next word, one dial controls its whole personality: <b>temperature</b>. Turn it down and the model plays it safe and repetitive; turn it up and it gets wild and creative. Same scores, completely different behaviour.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag <b>temperature</b> and watch the word probabilities. Hit <b>Sample ×20</b> to actually draw words at that setting.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Low T → almost all the probability piles onto the top word (safe, deterministic). High T → the bars flatten toward equal (surprising, risky). The scores never changed — only the temperature.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">temperature <input type="range" id="tpT" min="0.1" max="2.5" step="0.05" value="1"><span id="tpTv" class="lab-tag">1.00</span></label>
+        <button class="lab-btn" id="tpSample">🎲 Sample ×20</button>
+        <button class="lab-btn ghost" id="tpClear">clear samples</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="tpEnt">—</b><span>entropy (bits) — the model's uncertainty</span></div><div class="s"><b id="tpTop">—</b><span>top word probability</span></div></div>
+      <div class="lab-stage"><span class="badge">bar height = probability of that word · ticks under a bar = words actually sampled</span><canvas id="tpcv" width="820" height="430" aria-label="softmax temperature"></canvas></div>
+      <div class="lab-readout" id="tpread">Slide the temperature and watch the distribution breathe.</div>
+      <div class="lab-explain"><b>What's happening:</b> the model outputs a raw score (logit) per word. Softmax turns scores into probabilities as <span style="white-space:nowrap">p<sub>i</sub> = e<sup>score<sub>i</sub>/T</sup> ⁄ Σ e<sup>score/T</sup></span>. Dividing by temperature <b>T</b> before exponentiating rescales the gaps: small T magnifies differences (→ near one-hot, greedy), large T shrinks them (→ uniform, random). At T→0 you get argmax; at T→∞ you get a coin flip. This is the sampling knob behind every <a href="../lessons/track-10-large-language-models/03-decoding.html">LLM decoder</a>. Scores here are fixed so you can isolate T's effect.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('tpcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var words=['the','a','cat','dog','runs','sky','quantum'], logits=[3.1,2.6,2.0,1.6,1.0,0.4,-0.6], T=1, counts=new Array(words.length).fill(0);
+    var COL=['#5b9bff','#4fd6b5','#ffa24d','#c58bff','#ff7a9c','#ffd24d','#7ee0ff'];
+    function probs(){ var m=Math.max.apply(null,logits.map(function(l){return l/T;})); var ex=logits.map(function(l){return Math.exp(l/T-m);}); var s=ex.reduce(function(a,b){return a+b;},0); return ex.map(function(e){return e/s;}); }
+    function entropy(p){ var h=0; for(var i=0;i<p.length;i++) if(p[i]>1e-9) h-=p[i]*Math.log2(p[i]); return h; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var p=probs(); var n=words.length; var pad=60, bw=(Wd-pad*2)/n*0.62, gap=(Wd-pad*2)/n; var base=Ht-70, maxh=base-40;
+      // gridlines
+      ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='11px system-ui'; ctx.textAlign='right';
+      for(var g=0;g<=1;g+=0.25){ var y=base-g*maxh; ctx.beginPath(); ctx.moveTo(pad-8,y); ctx.lineTo(Wd-pad,y); ctx.stroke(); ctx.fillText((g).toFixed(2),pad-12,y+3); }
+      for(var i=0;i<n;i++){ var x=pad+gap*i+(gap-bw)/2; var h=p[i]*maxh; var c=COL[i%COL.length];
+        var grd=ctx.createLinearGradient(0,base-h,0,base); grd.addColorStop(0,c); grd.addColorStop(1,'rgba(10,15,31,.2)');
+        ctx.fillStyle=grd; ctx.shadowBlur=14; ctx.shadowColor=c; ctx.fillRect(x,base-h,bw,h); ctx.shadowBlur=0;
+        ctx.fillStyle='#eaf0ff'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.fillText((p[i]*100).toFixed(0)+'%',x+bw/2,base-h-8);
+        ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.fillText(words[i],x+bw/2,base+18);
+        // sample ticks
+        var cnt=counts[i]; for(var k=0;k<cnt&&k<20;k++){ ctx.fillStyle=c; ctx.fillRect(x+ (k%10)*(bw/10), base+26+Math.floor(k/10)*7, bw/10-1.5,5); }
+      }
+      var H=entropy(p); document.getElementById('tpEnt').textContent=H.toFixed(2); document.getElementById('tpTop').textContent=(Math.max.apply(null,p)*100).toFixed(0)+'%';
+      document.getElementById('tpread').textContent = T<0.5?'Cold (T='+T.toFixed(2)+'): the model is almost certain — it will keep choosing “'+words[p.indexOf(Math.max.apply(null,p))]+'”. Safe but repetitive.':(T>1.6?'Hot (T='+T.toFixed(2)+'): the bars have flattened — even “quantum” has a real chance. Creative, but it may go off the rails.':'Balanced (T='+T.toFixed(2)+'): a clear favourite, but room for variety.'); }
+    function sample(){ var p=probs(); for(var s=0;s<20;s++){ var r=Math.random(),acc=0; for(var i=0;i<p.length;i++){ acc+=p[i]; if(r<=acc){ counts[i]=Math.min(20,counts[i]+1); break; } } } draw(); }
+    document.getElementById('tpT').addEventListener('input',function(){ T=+this.value; document.getElementById('tpTv').textContent=T.toFixed(2); counts=new Array(words.length).fill(0); draw(); });
+    document.getElementById('tpSample').addEventListener('click',sample);
+    document.getElementById('tpClear').addEventListener('click',function(){ counts=new Array(words.length).fill(0); draw(); });
+    draw();
+  })();
+  </script></body></html>

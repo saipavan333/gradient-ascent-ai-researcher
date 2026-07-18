@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Batch Normalization · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Batch Normalization</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Batch Normalization</h1>
+        <p>Deep networks train badly when the numbers flowing through them drift too big, too small, or off-centre. Batch normalization is a simple fix applied at each layer: <b>recentre and rescale</b> the activations so every layer receives a clean, stable distribution — then let the network stretch it back if it wants.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Shift the raw activations off-centre with <b>drift</b> and <b>spread</b>, then toggle <b>Apply BatchNorm</b> and tune the learnable <b>γ</b> (scale) and <b>β</b> (shift).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">However messy the raw histogram (left) gets, after BatchNorm (right) it snaps to mean ≈ 0, std ≈ 1 — then γ and β reshape it on purpose, not by accident.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">drift (μ) <input type="range" id="bnMu" min="-4" max="4" step="0.1" value="2.4"><span id="bnMuv" class="lab-tag">2.4</span></label>
+        <label class="lab-ctl">spread (σ) <input type="range" id="bnSd" min="0.4" max="3" step="0.1" value="1.8"><span id="bnSdv" class="lab-tag">1.8</span></label>
+        <label class="lab-ctl">γ scale <input type="range" id="bnG" min="0.2" max="2.5" step="0.05" value="1"><span id="bnGv" class="lab-tag">1.00</span></label>
+        <label class="lab-ctl">β shift <input type="range" id="bnB" min="-2" max="2" step="0.1" value="0"><span id="bnBv" class="lab-tag">0.0</span></label>
+        <button class="lab-btn" id="bnOn">Apply BatchNorm: ON</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="bnRaw">—</b><span>raw mean / std</span></div><div class="s"><b id="bnOut">—</b><span>output mean / std</span></div></div>
+      <div class="lab-stage"><span class="badge">left = raw activations · right = after BatchNorm · dashed = zero</span><canvas id="bncv" width="820" height="440" aria-label="batch normalization"></canvas></div>
+      <div class="lab-readout" id="bnread">Drift the raw activations, then toggle BatchNorm and watch them re-centre.</div>
+      <div class="lab-explain"><b>What's happening:</b> for a batch of activations x, BatchNorm computes the batch mean μ and std σ, normalizes x̂ = (x − μ)/σ (giving mean 0, variance 1), then outputs y = γ·x̂ + β with <b>learnable</b> γ and β. The normalization keeps every layer's inputs in a predictable range (faster, more stable training and a mild regularizing effect); γ and β hand control back to the network so it can undo the normalization when that's actually useful. This is <a href="../lessons/track-04-deep-learning/04-normalization.html">Batch Normalization</a>. Same fixed sample each time so you can isolate each knob.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('bncv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var mu=2.4,sd=1.8,gamma=1,beta=0,on=true;
+    // fixed standard-normal-ish base sample (deterministic)
+    var base=[]; (function(){ var seed=12345; function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; } for(var i=0;i<240;i++){ base.push((rnd()+rnd()+rnd()+rnd()+rnd()+rnd()-3)/0.7071); } })();
+    function raw(){ return base.map(function(z){ return mu+sd*z; }); }
+    function stats(a){ var m=a.reduce(function(x,y){return x+y;},0)/a.length; var v=a.reduce(function(x,y){return x+(y-m)*(y-m);},0)/a.length; return [m,Math.sqrt(v)]; }
+    function bn(a){ var s=stats(a); return a.map(function(x){ return gamma*((x-s[0])/(s[1]+1e-6))+beta; }); }
+    function hist(a,x0,x1,color,label){ var lo=-6,hi=6,B=24, bins=new Array(B).fill(0); for(var i=0;i<a.length;i++){ var b=Math.floor((a[i]-lo)/(hi-lo)*B); if(b>=0&&b<B)bins[b]++; } var mx=Math.max.apply(null,bins)||1;
+      var w=x1-x0, base=Ht-60, maxh=base-70;
+      // zero line
+      var zx=x0+(0-lo)/(hi-lo)*w; ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(zx,60); ctx.lineTo(zx,base); ctx.stroke(); ctx.setLineDash([]);
+      for(var b=0;b<B;b++){ var h=bins[b]/mx*maxh; var x=x0+ b/B*w; var bw=w/B*0.86; var grd=ctx.createLinearGradient(0,base-h,0,base); grd.addColorStop(0,color); grd.addColorStop(1,'rgba(10,15,31,.15)'); ctx.fillStyle=grd; ctx.shadowBlur=10; ctx.shadowColor=color; ctx.fillRect(x,base-h,bw,h); ctx.shadowBlur=0; }
+      var s=stats(a); ctx.fillStyle='#eaf0ff'; ctx.font='bold 13px system-ui'; ctx.textAlign='center'; ctx.fillText(label,(x0+x1)/2,44);
+      ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.fillText('mean '+s[0].toFixed(2)+'   std '+s[1].toFixed(2),(x0+x1)/2,base+22);
+      // axis ticks
+      ctx.fillStyle='rgba(255,255,255,.3)'; ctx.font='10px system-ui'; for(var t=-6;t<=6;t+=3){ var tx=x0+(t-lo)/(hi-lo)*w; ctx.fillText(t,tx,base+38); } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var r=raw(); var out= on? bn(r) : r.slice();
+      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.beginPath(); ctx.moveTo(Wd/2,30); ctx.lineTo(Wd/2,Ht-30); ctx.stroke();
+      hist(r, 40, Wd/2-20, '#ffa24d', 'RAW activations');
+      hist(out, Wd/2+20, Wd-40, on?'#4fd6b5':'#ff7a9c', on?'AFTER BatchNorm':'BatchNorm OFF');
+      var sr=stats(r), so=stats(out);
+      document.getElementById('bnRaw').textContent=sr[0].toFixed(2)+' / '+sr[1].toFixed(2);
+      document.getElementById('bnOut').textContent=so[0].toFixed(2)+' / '+so[1].toFixed(2);
+      document.getElementById('bnread').textContent = !on?'BatchNorm OFF: the layer sees the raw, off-centre distribution (mean '+sr[0].toFixed(1)+'). Deep stacks of this drift and destabilise.':(Math.abs(gamma-1)<0.06&&Math.abs(beta)<0.06?'BatchNorm ON: whatever the raw drift, the output is re-centred to mean ≈0, std ≈1 — a clean input for the next layer.':'BatchNorm ON with γ='+gamma.toFixed(2)+', β='+beta.toFixed(1)+': normalized first, then deliberately rescaled/shifted by the learnable knobs.'); }
+    function bind(id,vid,set,fmt){ document.getElementById(id).addEventListener('input',function(){ set(+this.value); document.getElementById(vid).textContent=fmt(+this.value); draw(); }); }
+    bind('bnMu','bnMuv',function(v){mu=v;},function(v){return v.toFixed(1);});
+    bind('bnSd','bnSdv',function(v){sd=v;},function(v){return v.toFixed(1);});
+    bind('bnG','bnGv',function(v){gamma=v;},function(v){return v.toFixed(2);});
+    bind('bnB','bnBv',function(v){beta=v;},function(v){return v.toFixed(1);});
+    document.getElementById('bnOn').addEventListener('click',function(){ on=!on; this.textContent='Apply BatchNorm: '+(on?'ON':'OFF'); draw(); });
+    draw();
+  })();
+  </script></body></html>
