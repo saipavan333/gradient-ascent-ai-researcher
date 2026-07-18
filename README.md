@@ -24,7 +24,7 @@ New to all this? The site has a full beginner on-ramp and built-in retention too
 - **Math & Notation primer** (`math-primer.html`) — every symbol in the course decoded in plain English.
 - **Run Python in your browser** — a **▶ Run** button on every code block (Pyodide/WASM, numpy included); edit and re-run in place, no install.
 - **Progress dashboard** (`progress.html`) — completion %, per-track bars, a day streak, your next lesson, and a certificate at 100% (stored privately in your browser).
-- **Interactive Labs** (`labs.html`) — 34 flagship, standalone sandboxes (train a neural net, race optimizers, attention, diffusion, GANs, Bayes, and more) plus a full index of every in-lesson interactive.
+- **Interactive Labs** (`labs.html`) — 70 flagship, standalone sandboxes (train a neural net, race optimizers, attention, diffusion, GANs, Bayes, and more) plus a full index of every in-lesson interactive.
 - **Glossary** (`glossary.html`) — 82 key terms, searchable · **Flashcards** (`flashcards.html`) — spaced-repetition review of every concept.
 
 ## The curriculum (24 tracks, in learning order)
