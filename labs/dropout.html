@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dropout · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Dropout</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Dropout: Training a Crowd of Networks</h1>
+        <p>Dropout randomly switches off neurons on every training pass, so the network can never lean on any single unit — it's forced to build redundant, robust features. Cleverly, it's also training an exponential ensemble of sub-networks at once, and at test time their votes average back together.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Set the <b>drop rate</b> and press <b>Sample passes</b>. Each pass keeps a random subset of hidden units (lit) and drops the rest (dim).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Every pass gives a slightly different masked output (gold dots), but their running average (gold line) homes in on the full network's answer (white). Dropout ≈ averaging a huge ensemble of sub-networks.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">drop rate p <input type="range" id="doP" min="0" max="0.8" step="0.05" value="0.4"><span id="doPv" class="lab-tag">0.40</span></label>
+        <button class="lab-btn" id="doRun">▶ Sample passes</button>
+        <button class="lab-btn ghost" id="doReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="doN">0</b><span>masked passes averaged</span></div><div class="s"><b id="doErr">—</b><span>average vs full-network output</span></div></div>
+      <div class="lab-stage"><span class="badge">lit = kept unit · dim = dropped · white = full network · gold = running average of masked passes</span><canvas id="docv" width="820" height="470" aria-label="dropout"></canvas></div>
+      <div class="lab-readout" id="doread">Press Sample passes and watch the average converge.</div>
+      <div class="lab-explain"><b>What's happening:</b> during training each hidden unit is kept with probability 1−p and zeroed otherwise, so every pass runs a random <em>sub-network</em>. To keep the scale right, kept units are divided by (1−p) — "inverted dropout" — so the expected output is unchanged. That's exactly what you see: the noisy masked outputs (gold dots) scatter around, but their average converges to the full deterministic network (white line). Because there are 2ⁿ possible masks, dropout trains an astronomically large ensemble that shares weights, which fights overfitting and co-adaptation. At test time you simply use the full network (no dropping). This is <a href="../lessons/track-04-deep-learning/04-regularization.html">Dropout</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('docv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var K=12; var a=[],bb=[],v=[]; (function(){ var s=42; function r(){ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; } for(var j=0;j<K;j++){ a.push(r()*2-1); bb.push(r()*1.4-0.7); v.push(r()*2-1); } })();
+    var xin=0.6; function h(j){ return Math.tanh(a[j]*xin+bb[j]); }
+    var full=0; for(var j=0;j<K;j++)full+=v[j]*h(j);
+    var p=0.4, mask=new Array(K).fill(1), sum=0, n=0, hist=[], playing=false, raf=null, fc=0;
+    function onePass(){ var out=0; mask=new Array(K).fill(0); for(var j=0;j<K;j++){ if(Math.random()>p){ mask[j]=1; out+=v[j]*h(j)/(1-p); } } sum+=out; n++; hist.push(sum/n); if(hist.length>260)hist.shift(); return out; }
+    function draw(lastOut){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // network: input node left, hidden column mid, output right
+      var ix=90, iy=Ht/2, hx=Wd*0.42, ox=Wd*0.68; var hy0=60, hy1=Ht-60;
+      for(var j=0;j<K;j++){ var hy=hy0+(hy1-hy0)*j/(K-1); var on=mask[j]===1;
+        ctx.strokeStyle=on?'rgba(127,224,255,.5)':'rgba(255,255,255,.06)'; ctx.lineWidth=on?1.6:0.8; ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(hx,hy); ctx.stroke();
+        ctx.strokeStyle=on?'rgba(255,210,77,.5)':'rgba(255,255,255,.05)'; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(ox,iy); ctx.stroke();
+        ctx.fillStyle=on?'#7ee0ff':'#26324a'; if(on){ctx.shadowBlur=12;ctx.shadowColor='#7ee0ff';} ctx.beginPath(); ctx.arc(hx,hy,11,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      ctx.fillStyle='#5b9bff'; ctx.shadowBlur=10; ctx.shadowColor='#5b9bff'; ctx.beginPath(); ctx.arc(ix,iy,15,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#eaf0ff'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('input',ix,iy+30);
+      ctx.fillStyle='#ffd24d'; ctx.shadowBlur=12; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(ox,iy,15,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#eaf0ff'; ctx.fillText('output',ox,iy+32);
+      // convergence plot on right
+      var gx=Wd-230, gy=50, gw=200, gh=Ht-120;
+      ctx.fillStyle='rgba(255,255,255,.04)'; ctx.fillRect(gx,gy,gw,gh);
+      var lo=full-2.2, hi=full+2.2; function Y(val){ return gy+gh-(val-lo)/(hi-lo)*gh; }
+      ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(gx,Y(full)); ctx.lineTo(gx+gw,Y(full)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='11px system-ui'; ctx.textAlign='left'; ctx.fillText('full network',gx+6,Y(full)-6);
+      if(typeof lastOut==='number'){ ctx.fillStyle='rgba(255,210,77,.5)'; ctx.beginPath(); ctx.arc(gx+gw-10,Y(Math.max(lo,Math.min(hi,lastOut))),4,0,6.2832); ctx.fill(); }
+      if(hist.length>1){ ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.5; ctx.beginPath(); for(var i=0;i<hist.length;i++){ var x=gx+i/(hist.length-1)*gw, y=Y(Math.max(lo,Math.min(hi,hist[i]))); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
+      ctx.fillStyle='#9fb0cc'; ctx.fillText('running average of masked passes →',gx+6,gy+gh+18);
+      document.getElementById('doN').textContent=n; document.getElementById('doErr').textContent = n>0? (Math.abs(sum/n-full)).toFixed(3):'—';
+      document.getElementById('doread').textContent = n===0? 'Full network output = '+full.toFixed(3)+'. Sample masked passes to see them average back to it.' : 'After '+n+' masked passes: average = '+(sum/n).toFixed(3)+' vs full '+full.toFixed(3)+' (off by '+Math.abs(sum/n-full).toFixed(3)+'). Dropout is averaging sub-networks.'; }
+    function loop(){ if(!playing)return; fc++; if(fc%4===0){ var o=onePass(); draw(o); } raf=requestAnimationFrame(loop); }
+    document.getElementById('doP').addEventListener('input',function(){ p=+this.value; document.getElementById('doPv').textContent=p.toFixed(2); sum=0;n=0;hist=[]; draw(); });
+    document.getElementById('doRun').addEventListener('click',function(){ playing=!playing; this.textContent=playing?'⏸ Pause':'▶ Sample passes'; if(playing){if(!raf)loop();}else if(raf){cancelAnimationFrame(raf);raf=null;} });
+    document.getElementById('doReset').addEventListener('click',function(){ sum=0;n=0;hist=[]; mask=new Array(K).fill(1); draw(); });
+    draw();
+  })();
+  </script></body></html>

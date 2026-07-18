@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Weight Initialization · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Weight Initialization</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Weight Initialization &amp; Signal Flow</h1>
+        <p>Before a deep net learns anything, the random numbers you fill it with decide whether a signal survives the journey through its layers. Too small and it fades to nothing; too big and it blows up. The right scale keeps every layer's activations healthy — the whole idea behind He and Xavier initialization.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>init gain</b> (how big the random weights are) and watch a signal's strength as it passes through 10 ReLU layers.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Below the He scale (√2) the bars shrink toward zero — the signal <b>vanishes</b>. Above it they grow without bound — it <b>explodes</b>. Right at √2 they stay level: signal preserved, deep training possible.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn ghost" data-g="0.8">Too small</button>
+        <button class="lab-btn" data-g="1.41">He (√2, just right)</button>
+        <button class="lab-btn ghost" data-g="2.5">Too big</button>
+        <label class="lab-ctl">init gain <input type="range" id="wiG" min="0.5" max="3" step="0.03" value="1.41"><span id="wiGv" class="lab-tag">1.41</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="wiFirst">—</b><span>signal strength · layer 1</span></div><div class="s"><b id="wiLast">—</b><span>signal strength · layer 10</span></div></div>
+      <div class="lab-stage"><span class="badge">each bar = signal strength (RMS activation) at that layer · healthy = stays near the dashed line</span><canvas id="wicv" width="820" height="460" aria-label="weight initialization"></canvas></div>
+      <div class="lab-readout" id="wiread">Slide the init gain and watch the signal.</div>
+      <div class="lab-explain"><b>What's happening:</b> we push a random input (strength 1) through 10 fully-connected <b>ReLU</b> layers of width n, where each weight is drawn from a normal with standard deviation gain⁄√n, and we measure the signal strength (root-mean-square activation) at every layer. Each layer multiplies the signal's variance by roughly gain²⁄2 (the ÷2 because ReLU zeroes the negative half). So if gain &lt; √2 the strength shrinks every layer until it <b>vanishes</b> (and gradients die); if gain &gt; √2 it <b>explodes</b>; exactly at gain = √2 — <b>He initialization</b> — the variance is preserved layer to layer. (The tanh version of this is <b>Xavier</b>, gain ≈ 1.) This is why nets aren't just filled with small random numbers. This is <a href="../lessons/track-04-deep-learning/04-regularization.html">initialization &amp; signal propagation</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('wicv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var n=96, L=10, gain=1.41;
+    function randn(){ return (Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3)/0.7071; }
+    function rms(a){ var s=0; for(var i=0;i<a.length;i++)s+=a[i]*a[i]; return Math.sqrt(s/a.length); }
+    function run(){ var xv=[]; for(var i=0;i<n;i++)xv.push(randn()); var rmss=[]; var sigma=gain/Math.sqrt(n);
+      for(var l=0;l<L;l++){ var out=new Array(n).fill(0); for(var i=0;i<n;i++){ var s=0; for(var j=0;j<n;j++)s+=randn()*sigma*xv[j]; out[i]=Math.max(0,s); } xv=out; rmss.push(rms(xv)); }
+      return rmss; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var st=run(); var pad=56, baseY=Ht-56, top=50, w=Wd-pad*2, h=baseY-top;
+      var ref=1.0; var maxv=Math.max(1.6, Math.max.apply(null,st)*1.12);
+      function Y(v){ return baseY - Math.min(v,maxv)/maxv*h; }
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(pad+w,baseY); ctx.stroke();
+      ctx.strokeStyle='rgba(127,224,255,.45)'; ctx.setLineDash([6,5]); ctx.beginPath(); ctx.moveTo(pad,Y(ref)); ctx.lineTo(pad+w,Y(ref)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='rgba(127,224,255,.7)'; ctx.font='11px system-ui'; ctx.textAlign='left'; ctx.fillText('healthy (≈1)',pad+4,Y(ref)-6);
+      var bw=w/L;
+      for(var l=0;l<L;l++){ var v=st[l]; var yv=Y(v); var bh=baseY-yv; var x=pad+l*bw+bw*0.15; var col= v<0.2?'#ff7a9c':(v>1.6?'#ffa24d':'#4fd6b5');
+        var grd=ctx.createLinearGradient(0,yv,0,baseY); grd.addColorStop(0,col); grd.addColorStop(1,'rgba(10,15,31,.15)'); ctx.fillStyle=grd; ctx.shadowBlur=10; ctx.shadowColor=col; ctx.fillRect(x,yv,bw*0.7,bh); ctx.shadowBlur=0;
+        ctx.fillStyle='#9fb0cc'; ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText('L'+(l+1),x+bw*0.35,baseY+16); ctx.fillStyle='#eaf0ff'; ctx.fillText(v>=10?v.toFixed(0):v.toFixed(2),x+bw*0.35,yv-6); }
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.textAlign='center'; ctx.fillText('layer depth  →',pad+w/2,baseY+36);
+      document.getElementById('wiFirst').textContent=st[0].toFixed(3); document.getElementById('wiLast').textContent=st[L-1]>=10?st[L-1].toFixed(0):st[L-1].toFixed(3);
+      var last=st[L-1];
+      document.getElementById('wiread').textContent = last<0.2? 'Gain '+gain.toFixed(2)+' (< √2): the signal VANISHED — by layer 10 it is '+last.toFixed(3)+'. Gradients die; the net can’t learn.' : (last>2.2? 'Gain '+gain.toFixed(2)+' (> √2): the signal EXPLODED to '+ (last>=10?last.toFixed(0):last.toFixed(2)) +' — activations and gradients blow up.' : 'Gain '+gain.toFixed(2)+' (≈ √2 = He): healthy — the strength holds near 1 across all 10 layers. Deep training can begin.'); }
+    function setGain(g){ gain=g; document.getElementById('wiG').value=g; document.getElementById('wiGv').textContent=g.toFixed(2); draw(); }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-g]'),function(btn){ btn.addEventListener('click',function(){ setGain(+btn.getAttribute('data-g')); }); });
+    document.getElementById('wiG').addEventListener('input',function(){ gain=+this.value; document.getElementById('wiGv').textContent=gain.toFixed(2); draw(); });
+    draw();
+  })();
+  </script></body></html>
