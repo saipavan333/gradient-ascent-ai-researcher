@@ -19,6 +19,10 @@
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/rnn.html">RNN Memory: Vanishing &amp; Exploding</a></p>
+      </div>
 
       <p class="lead prose">
         Here's a problem the networks so far can't handle. How do you feed both a 5-word sentence and a 50-word sentence to the <em>same</em> model? You can't just flatten them into one fixed list of numbers — you'd lose the order, and the two are different lengths anyway. A <span class="newterm">recurrent neural network</span> (RNN) solves this by reading the sequence <em>one item at a time</em> and keeping a running summary of everything it has seen so far. That running summary is called the <span class="newterm">hidden state</span>, and it is the network's memory. The same small set of weights is reused at every step — just as a CNN reused one kernel across space, an RNN reuses one "cell" across time.

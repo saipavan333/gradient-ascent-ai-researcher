@@ -19,6 +19,10 @@
         <span class="chip">~20 min</span>
         <span class="chip">Builds on: Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/kl-divergence.html">KL Divergence: Distance That Isn't Symmetric</a> · <a href="../../labs/vae.html">VAE: Walking the Latent Space</a></p>
+      </div>
 
       <p class="lead prose">
         MCMC (Lesson&nbsp;1) is beautiful and, given enough time, exact — but "enough time" can mean hours or days for a big model, and it doesn't scale to the millions of parameters in a neural network. <span class="newterm">Variational inference</span> (VI) makes a pragmatic trade. Instead of sampling the true posterior, it picks a <em>family</em> of simple distributions — most often a Gaussian — and searches within that family for the member that best matches the posterior. That "search for the best match" is an <em>optimization</em> problem, so we can attack it with the same gradient descent that trains everything else (Track&nbsp;2). The result is an approximate posterior you can compute in a fraction of the time. You give up some accuracy — a single Gaussian can't capture every twist of a complicated posterior — but you gain the speed and scalability that make Bayesian methods usable on large models. VI is how uncertainty gets bolted onto deep learning.

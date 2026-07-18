@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Track 9, Lesson 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/quantization.html">Quantization: Fewer Bits, Almost the Same Model</a> · <a href="../../labs/nucleus-sampling.html">Top-k &amp; Nucleus (Top-p) Sampling</a></p>
+      </div>
 
       <p class="lead prose">
         A deployed LLM answers millions of requests; shaving its inference cost matters more than almost anything else in production. Generation is <em>autoregressive</em> (Track&nbsp;5) — one token at a time — which is both the source of its cost and the key to optimizing it. We’ll implement the <span class="newterm">KV-cache</span>, which turns quadratic work into linear, and <span class="newterm">quantization</span>, which shrinks the model in memory.

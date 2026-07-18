@@ -19,6 +19,10 @@
         <span class="chip">~21 min</span>
         <span class="chip">Builds on: Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gnn.html">Graph Neural Networks: Message Passing</a></p>
+      </div>
 
       <p class="lead prose">
         Message passing (Lesson&nbsp;1) spread a signal, but it could only shuffle the numbers it was given — it had no way to <em>learn</em>. The <span class="newterm">Graph Convolutional Network</span> (GCN) fixes that with one small addition: after mixing each node with its neighbours, multiply by a learnable weight matrix and pass the result through a nonlinearity. That turns "average your neighbours" into "learn a useful transformation of your neighbourhood." Stack two such layers, attach a classifier, and train by ordinary gradient descent — the same backpropagation you've used since Track&nbsp;4. The payoff is striking: because each layer pulls in information from further out on the graph, a GCN can be trained on just a <em>few</em> labelled nodes and still classify every node correctly, using the graph's structure to carry the labels where they need to go. It's the "hello world" of graph deep learning, and it works.

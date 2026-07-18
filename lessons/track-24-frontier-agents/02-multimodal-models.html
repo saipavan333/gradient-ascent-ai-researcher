@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Track 13</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/embeddings.html">Word Embeddings &amp; Analogies</a></p>
+      </div>
 
       <p class="lead prose">
         So far our models handled one kind of data at a time — images, or text, or sequences. But the world is <span class="newterm">multimodal</span>: meaning lives across pictures, words, sound, and video together. The breakthrough model here is <span class="newterm">CLIP</span> (Contrastive Language–Image Pre-training), and its idea is beautifully simple: train two encoders — one for images, one for text — to map their inputs into a <em>single shared embedding space</em>, such that an image and its caption land close together while mismatched pairs land far apart. You've seen the machinery: it's contrastive learning (Track&nbsp;13) across two modalities, trained on hundreds of millions of image–caption pairs scraped from the web, with no manual labels. Once trained, this shared space is astonishingly useful. The headline capability is <span class="newterm">zero-shot classification</span>: to classify an image into categories it was never explicitly trained on, you simply write the category names as text ("a photo of a cat," "a photo of a dog"), embed them, and pick whichever text embedding the image is closest to — no task-specific training at all. The same shared space is the backbone of text-to-image generation (models like DALL·E and Stable Diffusion use CLIP-style text embeddings to steer image generation) and of image search. This lesson builds the shared space and shows zero-shot classification working.

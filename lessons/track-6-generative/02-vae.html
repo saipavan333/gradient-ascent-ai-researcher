@@ -19,6 +19,10 @@
         <span class="chip">~30 min</span>
         <span class="chip">Builds on: Lessons 0–1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/vae.html">VAE: Walking the Latent Space</a></p>
+      </div>
 
       <p class="lead prose">
         An autoregressive model gives exact likelihood but no compact "meaning" for a sample, and it generates slowly, one coordinate at a time. The <span class="newterm">variational autoencoder</span> takes the opposite bet: learn a small <em>latent code</em> — a handful of numbers that summarize an example — arranged so neatly that you can pick a random code and decode it into a brand-new, plausible sample in a single shot. The price is that likelihood becomes approximate. The reward is a smooth, navigable map of the data.

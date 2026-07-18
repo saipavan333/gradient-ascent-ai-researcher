@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Lessons 0–1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/policy-gradient.html">Policy Gradient: Learning by Trying</a></p>
+      </div>
 
       <p class="lead prose">
         Q-learning learns values and reads a policy off them with a \(\max\). That \(\max\) is fine over a handful of discrete actions, but hopeless when actions are continuous (a robot's joint angles) or when we genuinely want a <em>random</em> policy. <span class="newterm">Policy gradient</span> methods skip the value detour: they write the policy as a differentiable function \(\pi_\theta\) with tunable parameters \(\theta\), and climb the reward directly by gradient ascent. The simplest one, <span class="newterm">REINFORCE</span>, is just three words — "reward good actions" — turned into calculus. It is also, remarkably, the exact machinery used to fine-tune language models from human feedback in Lesson&nbsp;4.

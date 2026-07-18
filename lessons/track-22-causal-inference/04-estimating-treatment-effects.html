@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/causal.html">Simpson's Paradox &amp; Confounding</a></p>
+      </div>
 
       <p class="lead prose">
         Backdoor adjustment (Lesson&nbsp;3) worked by summing over the values of a confounder — fine when the confounder is a handful of categories, but real confounders are continuous (age, income, blood pressure, a whole vector of features), and you can't stratify a continuous variable into groups with enough units in each. This final lesson builds the general-purpose tools practitioners actually use to estimate the <span class="newterm">average treatment effect</span> (ATE) — the population-level \(E[Y\mid do(T{=}1)] - E[Y\mid do(T{=}0)]\) — from confounded observational data. The key device is the <span class="newterm">propensity score</span>: each unit's probability of receiving the treatment given its confounders, \(e(z) = P(T{=}1\mid Z{=}z)\). It compresses all the confounding into a single number, and a beautiful result says that adjusting for the propensity score alone removes the confounding as well as adjusting for all the confounders. The most direct method, <span class="newterm">inverse propensity weighting</span> (IPW), then reweights the data so that confounded groups become balanced — up-weighting the units that were <em>unlikely</em> to get the treatment they got, to simulate a population where treatment was assigned randomly. The result is a "pseudo-experiment" from observational data, and its effect estimate matches the true causal effect. This lesson closes the track by turning the theory of the do-operator and backdoor into a working estimator.

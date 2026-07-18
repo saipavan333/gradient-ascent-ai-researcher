@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lessons 0–1, Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/attention.html">Attention Visualizer</a></p>
+      </div>
 
       <p class="lead prose">
         A single attention head, like the one you built last lesson, has to answer only <em>one</em> question per token: given my query, who do I look at? But a word plays many roles at once. In "The cat that ran was fast," the word "was" needs its subject (cat), its neighbors (the local grammar), and the thing being described (fast) — three different relationships, impossible to capture with one set of query and key matrices. The transformer's answer is disarmingly simple: run several attention heads side by side, let each learn a different relationship, then combine their findings. Wrap that in two stabilizing tricks and you have the exact building block that, stacked a few dozen times, becomes GPT.

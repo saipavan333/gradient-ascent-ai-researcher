@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Lesson 3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gnn.html">Graph Neural Networks: Message Passing</a></p>
+      </div>
 
       <p class="lead prose">
         Node classification (Lessons 2–3) answers "what is this node?" But many of the most valuable graph problems ask about the <em>whole graph</em>: Is this molecule toxic or therapeutic? Does this circuit of bank transfers form a money-laundering ring? Is this protein likely to bind that target? Each input is an entire graph, and the output is a single label. The challenge: a GNN produces one embedding <em>per node</em>, but graphs have different numbers of nodes, so you can't just concatenate them into a fixed vector. The solution is a <span class="newterm">readout</span> (also called graph pooling): after message passing gives every node an embedding, combine all of them — usually by averaging or summing — into one fixed-length vector that represents the whole graph, then classify that. Because a mean or a sum ignores node order and works for any node count, the readout gives you the permutation-invariance and size-flexibility that Lesson&nbsp;0 said a graph model must have. This lesson builds a graph classifier and then steps back to see where GNNs are changing the world.

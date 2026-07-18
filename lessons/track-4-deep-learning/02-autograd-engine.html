@@ -20,6 +20,10 @@
         <span class="chip">~32 min</span>
         <span class="chip">Builds on: Lessons 4.0–4.1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/backprop.html">Backprop: the Chain Rule, Alive</a></p>
+      </div>
 
       <p class="lead prose">
         Last lesson we ran backprop by hand. That doesn't scale — a real network has millions of operations, and no one is chaining local derivatives by hand a million times. So we automate it. We'll build a <code>Value</code> object that wraps a single number, <em>records how it was computed</em> as we go, and knows how to run the backward pass over the whole graph by itself. This is <span class="newterm">automatic differentiation</span> (autograd), and building your own is the moment deep learning clicks.

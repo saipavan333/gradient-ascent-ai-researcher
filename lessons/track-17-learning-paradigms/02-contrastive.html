@@ -19,6 +19,10 @@
         <span class="chip">~21 min</span>
         <span class="chip">Builds on: Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/contrastive.html">Contrastive Learning</a></p>
+      </div>
 
       <p class="lead prose">
         The autoencoder in Lesson&nbsp;1 learned by <em>rebuilding</em> each input. <span class="newterm">Contrastive learning</span> takes a different and often more powerful route: it learns by <em>comparing</em>. The recipe is startlingly simple. Take one unlabelled example — say a photo. Make two altered copies of it (crop it differently, shift its colours, flip it): these are two <span class="newterm">views</span> of the same underlying thing, and they should <em>mean</em> the same. Now grab a bunch of <em>other</em> examples: these are <span class="newterm">negatives</span>, and they should mean something different. Train an encoder so that the two views of the same source land close together in representation space, while the negatives are pushed far away. That's it. No human ever said what any photo contains — the only supervision is the free fact "these two came from the same original." Yet from millions of such comparisons, the encoder builds a representation where similar things cluster and different things separate, which is exactly what makes it useful for downstream tasks.

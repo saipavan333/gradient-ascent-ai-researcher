@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Track 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/bayes.html">Bayes Explorer</a></p>
+      </div>
 
       <p class="lead prose">
         Every model so far handed you a point estimate — one number, one line, one prediction — with no sense of how sure it was. But real decisions need to know the difference between "0.7, and I'm certain" and "0.7, but it could easily be 0.4 or 0.9." <span class="newterm">Bayesian inference</span> is the framework that carries that uncertainty all the way through. Instead of committing to a single best value for an unknown, it maintains a <em>probability distribution</em> over all possible values — your <span class="newterm">belief</span> — and updates that belief every time new data arrives, using one rule (Bayes' theorem). You start with a <span class="newterm">prior</span> (what you believed before seeing data), you weigh it against the <span class="newterm">likelihood</span> (how well each possibility explains the data), and you get a <span class="newterm">posterior</span> (your updated belief). The beauty is that the posterior isn't just an answer — it's an answer <em>with honest error bars</em>. This lesson builds the whole idea on the simplest possible example: figuring out whether a coin is fair.

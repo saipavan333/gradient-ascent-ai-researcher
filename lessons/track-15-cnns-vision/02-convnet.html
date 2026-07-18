@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lessons 0–1, Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/receptive-field.html">The Growing Receptive Field</a></p>
+      </div>
 
       <p class="lead prose">
         You now have the two moving parts: convolution finds patterns (Lesson&nbsp;0), and pooling shrinks the result while forgiving small shifts (Lesson&nbsp;1). A <span class="newterm">convolutional network</span> — a <span class="newterm">ConvNet</span> or CNN — simply stacks them into a "feature extractor," flattens the result into a plain list of numbers, and finishes with a small classifier like the ones from Track&nbsp;4. The magic is that the filters are not designed by us; they are <em>learned</em> from data by gradient descent. In this lesson we build the whole thing by hand — forward pass and the backward (training) pass — teach it to tell vertical bars from horizontal bars, and then look inside at what it figured out.

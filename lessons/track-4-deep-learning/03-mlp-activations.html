@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Lessons 4.0–4.2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/activations.html">Activation Functions</a> · <a href="../../labs/universal-approximation.html">Universal Approximation</a> · <a href="../../labs/neural-playground.html">Neural Network Playground</a></p>
+      </div>
 
       <p class="lead prose">
         You've built a neuron, backprop, and an autograd engine. Now we assemble them into a real network — a <span class="newterm">multi-layer perceptron</span> (MLP), just layers of neurons stacked one after another — and confront a subtle trap. If each layer only does a linear operation (multiply by weights, add a bias), then stacking a hundred of them gives you… exactly one linear operation. Depth would be pointless. The fix is a small nonlinear function — an <span class="newterm">activation</span> — placed between layers. It's the "bend" that lets a network represent curves and, ultimately, anything. This lesson covers what activations are, which to choose, and why the starting values of the weights matter more than you'd expect.

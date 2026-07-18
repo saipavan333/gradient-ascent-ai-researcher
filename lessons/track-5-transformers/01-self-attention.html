@@ -19,6 +19,10 @@
         <span class="chip">~30 min</span>
         <span class="chip">Builds on: Lesson 0, Track 1 (dot product)</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/attention.html">Attention Visualizer</a></p>
+      </div>
 
       <p class="lead prose">
         Last lesson we said each token compares itself to every other token, softmaxes the scores, and blends the values. We left the two biggest questions hanging: where do the <em>scores</em> come from, and where do the <em>values</em> come from? The answer is beautifully small. Give each token three different views of itself — a <span class="newterm">query</span>, a <span class="newterm">key</span>, and a <span class="newterm">value</span> — each made by multiplying its vector by one learned matrix. Then attention is nothing but dot products between queries and keys, a softmax, and a weighted sum of values. That is the entire mechanism running inside GPT, and by the end of this page you will have computed it by hand.

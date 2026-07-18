@@ -19,6 +19,10 @@
         <span class="chip">~21 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/maml.html">Few-Shot Meta-Learning (MAML)</a></p>
+      </div>
 
       <p class="lead prose">
         Few-shot learning (Lesson&nbsp;0) leaned on a good representation and hoped it was suited to the comparison. <span class="newterm">Meta-learning</span> — "learning to learn" — is more ambitious: it explicitly trains a model to be good at <em>learning new tasks</em>. The most famous method, <span class="newterm">MAML</span> (Model-Agnostic Meta-Learning), has a beautifully simple goal: find a single network <em>initialization</em> — one set of starting weights — from which <em>any</em> new task from your family can be mastered in just a few gradient steps. Rather than a set of weights that solves one problem, MAML seeks a launch point that's a short hop away from the solution to every problem. You train it by simulating the whole "adapt to a new task" process thousands of times — take a task, adapt from the current init, measure how well the adapted model does, and nudge the init so that adaptation would have gone better. The result is weights that aren't good at any one task out of the box, but are superbly positioned to <em>become</em> good at a new one almost instantly. This lesson builds MAML on the classic sine-wave benchmark and shows the meta-init adapting three times faster than a random start.

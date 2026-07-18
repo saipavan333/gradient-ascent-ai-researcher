@@ -19,6 +19,10 @@
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Lessons 0–2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/positional-encoding.html">Positional Encoding</a></p>
+      </div>
 
       <p class="lead prose">
         We have quietly ignored something huge. Everything attention does — dot products, softmax, weighted sums — works on a <em>set</em> of tokens, not a sequence. Shuffle the words and you get exactly the same computation, just reordered. That means a raw transformer literally cannot tell "dog bites man" from "man bites dog," even though those sentences mean opposite things. For a model of <em>language</em>, that is fatal. This lesson adds the missing ingredient — a way to tell each token where it stands — using nothing more exotic than sine and cosine waves.

@@ -19,6 +19,10 @@
         <span class="chip">~20 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/mcmc.html">MCMC: Sampling by Wandering</a></p>
+      </div>
 
       <p class="lead prose">
         Bayes' rule (Lesson&nbsp;0) told us posterior \(\propto\) prior \(\times\) likelihood — but that \(\propto\) hides a problem. To turn "proportional to" into a real distribution you must divide by \(p(D)\), an integral over <em>all</em> possible parameter values, which for any interesting model is impossible to compute. So we can evaluate the posterior's <em>shape</em> (the un-normalised height at any point) but not the distribution itself. <span class="newterm">Markov Chain Monte Carlo</span> (MCMC) is the brilliant escape: it produces <em>samples</em> from the posterior using only that un-normalised shape, and from samples you can compute anything you want — means, intervals, predictions. The trick is to build a random walk that lingers in high-probability regions and rushes through low-probability ones, so that where the walker <em>spends its time</em> traces out the distribution. The simplest version — <span class="newterm">Metropolis–Hastings</span> — is just "propose a step, accept it if things look better, sometimes accept even if worse." That one rule samples distributions no formula can touch.

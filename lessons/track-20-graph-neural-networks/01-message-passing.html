@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gnn.html">Graph Neural Networks: Message Passing</a></p>
+      </div>
 
       <p class="lead prose">
         Now that a graph is numbers, how does a node <em>learn</em> from where it sits? The answer — the single operation that defines this whole field — is <span class="newterm">message passing</span>. Each node looks at its neighbours, collects a "message" from each (for now, just their current feature values), and combines those messages into an updated version of itself. That's one round. The magic is in repetition: after one round a node reflects its immediate neighbours; after two rounds it reflects neighbours-of-neighbours; after \(k\) rounds it has pooled information from everything within \(k\) hops. Stacking rounds is how a signal — a label, a feature, a rumour — flows outward across the graph. Remarkably, you don't even need training to see it work: in this lesson, planting one labelled node in each of two communities and just letting messages pass will colour in the entire graph correctly. Message passing is to graphs what convolution is to images: the fundamental, reusable local operation you stack into a deep model.

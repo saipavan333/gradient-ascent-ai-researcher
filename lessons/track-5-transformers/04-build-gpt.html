@@ -19,6 +19,10 @@
         <span class="chip">~34 min</span>
         <span class="chip">Builds on: all of Track 9</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/autoregressive.html">Autoregressive Generation</a> · <a href="../../labs/softmax-temperature.html">Softmax Temperature</a> · <a href="../../labs/nucleus-sampling.html">Top-k &amp; Nucleus (Top-p) Sampling</a> · <a href="../../labs/beam-search.html">Beam Search Decoding</a></p>
+      </div>
 
       <p class="lead prose">
         You have built every part. Embeddings turn tokens into vectors; positional encodings stamp them with order; self-attention lets them share context; multi-head attention gives them several relationships at once; residuals and LayerNorm let the blocks stack deep. What remains is to wire them into one machine with a single, almost laughably simple job — <strong>guess the next token</strong> — and to notice that this one job, done well enough on enough text, is all that a GPT ever learns. By the end you will see how the model behind ChatGPT is, at heart, an autocomplete engine you now understand end to end.

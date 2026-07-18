@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Track 8</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/rnn.html">RNN Memory: Vanishing &amp; Exploding</a></p>
+      </div>
 
       <p class="lead prose">
         The Transformer (Track&nbsp;9) conquered sequence modeling with attention — every position looking at every other — but that superpower has a cost: comparing all pairs of positions is \(O(n^2)\) in the sequence length \(n\). Double the length and attention costs quadruple; for very long sequences (a whole book, a genome, high-resolution audio) it becomes prohibitive. <span class="newterm">State-space models</span> (SSMs), and especially the <span class="newterm">Mamba</span> architecture, are a leading challenger that attacks this wall. The idea is old and elegant: process the sequence like a recurrent network, carrying a compact running <span class="newterm">state</span> forward one step at a time — \(h_t = a\,h_{t-1} + b\,x_t\), \(y_t = c\,h_t\) — which is \(O(n)\) time and uses \(O(1)\) memory per step, no matter how long the sequence. You saw this recurrence in Track&nbsp;8's RNNs, which had two problems: they forgot quickly (vanishing gradients) and couldn't be parallelized. Modern SSMs fix both. They keep long memory by choosing the decay \(a\) very close to 1 (the state barely fades), and they can be computed in parallel with a clever "scan." Mamba's key addition is <span class="newterm">selectivity</span>: it lets \(a\) and \(b\) <em>depend on the input</em>, so the model can choose what to remember and what to ignore — recovering much of attention's flexibility at linear cost. This lesson builds the core recurrence and shows it carrying information across a very long sequence.

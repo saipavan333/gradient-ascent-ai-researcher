@@ -19,6 +19,10 @@
         <span class="chip">~20 min</span>
         <span class="chip">Builds on: Lesson 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/rnn.html">RNN Memory: Vanishing &amp; Exploding</a></p>
+      </div>
 
       <p class="lead prose">
         The LSTM works, but it carries a lot of machinery: three gates, a separate candidate, and two separate states. The <span class="newterm">Gated Recurrent Unit</span> (GRU), introduced by Cho and colleagues in 2014, asks a good engineering question: is all of that necessary? It merges the two states into one and collapses the forget and input gates into a single <span class="newterm">update gate</span>. The result is a smaller, faster cell that, on many tasks, matches the LSTM — a clean example of simplifying a design without losing what makes it work.

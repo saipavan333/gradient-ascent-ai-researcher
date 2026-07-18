@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/causal.html">Simpson's Paradox &amp; Confounding</a></p>
+      </div>
 
       <p class="lead prose">
         The previous lessons showed the danger; now we get the language to reason precisely. Ordinary probability has a glaring blind spot: it can only talk about <em>observing</em>. \(P(Y \mid X=x)\) means "among cases where \(X\) happens to equal \(x\), how is \(Y\) distributed?" — pure observation, and it's contaminated by any confounder that made \(X\) take that value. But the questions we care about are about <em>acting</em>: "if I <em>set</em> \(X=x\), what will \(Y\) be?" These are genuinely different, and standard notation couldn't distinguish them — which is why causation was a philosophical muddle for so long. Judea Pearl's breakthrough was the <span class="newterm">do-operator</span>, written \(P(Y \mid do(X=x))\): the distribution of \(Y\) when we <em>intervene</em> to force \(X=x\), overriding whatever would normally have set it. Seeing a barometer drop tells you a storm is coming (\(P(\text{storm} \mid \text{barometer low})\) is high); but <em>forcing</em> the barometer down with your hand does nothing (\(P(\text{storm} \mid do(\text{barometer low}))\) is unchanged). Same variable, opposite answers. The do-operator is defined by a beautifully concrete operation — a "surgery" on the causal graph — and it turns causal questions into something you can actually compute. This lesson builds it.

@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/pagerank.html">PageRank: Importance by Random Walk</a></p>
+      </div>
 
       <p class="lead prose">
         Every model so far assumed a tidy, fixed shape for its input: a CNN wants a grid of pixels, an RNN wants a line of tokens. But a huge amount of the world's most valuable data has no such shape. A <span class="newterm">graph</span> is a set of <span class="newterm">nodes</span> (also called vertices — the "things") joined by <span class="newterm">edges</span> (the "relationships between things"). Your friends and who-knows-whom is a graph; a molecule's atoms and their bonds is a graph; web pages and their links, the power grid, a citation network, a recommendation system of users and products — all graphs. What makes them special is that there is no natural order to the nodes and each node can have a different number of neighbours, so you can't just flatten them into a fixed list. This track builds neural networks that operate directly on graphs. Step one, this lesson: how do you turn a web of connections into numbers? The answer is the <span class="newterm">adjacency matrix</span>, and everything else follows from it.

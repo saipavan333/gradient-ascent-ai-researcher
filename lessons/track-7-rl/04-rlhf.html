@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Lesson 3 (PPO)</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/reward-hacking.html">Reward Hacking &amp; Goodhart's Law</a></p>
+      </div>
 
       <p class="lead prose">
         Everything so far assumed a reward function fell from the sky. But the goals we actually care about for a language model — be helpful, tell the truth, refuse harmful requests, write clearly — have no clean numerical definition. <span class="newterm">Reinforcement Learning from Human Feedback</span> (RLHF) is the trick that made this tractable, and it is what turned raw GPT-style predictors into ChatGPT, Claude, and their kin. The insight is disarmingly simple: people struggle to <em>score</em> a response, but find it easy to say which of two is <em>better</em>. Collect those comparisons, distil them into a learned reward model, and optimise the language model against it with PPO. This lesson is where the whole track pays off — the same policy gradient that reinforced a slot machine now aligns a hundred-billion-parameter model.

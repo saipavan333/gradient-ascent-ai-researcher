@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lessons 0–1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/rnn.html">RNN Memory: Vanishing &amp; Exploding</a></p>
+      </div>
 
       <p class="lead prose">
         Vanishing gradients doomed the plain RNN on long sequences. The <span class="newterm">Long Short-Term Memory</span> cell — LSTM, from Hochreiter &amp; Schmidhuber in 1997 — fixes it with a second memory called the <span class="newterm">cell state</span>. Unlike the ordinary hidden state, the cell state is changed only by gentle, mostly-additive edits as it flows through time, instead of being run through a fresh multiplication-and-squash every step. That additive path is a "highway" the gradient can travel without shrinking, and it's what finally let recurrent networks remember things hundreds of steps back.

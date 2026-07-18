@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/causal.html">Simpson's Paradox &amp; Confounding</a></p>
+      </div>
 
       <p class="lead prose">
         Lesson&nbsp;0 showed a confounder faking a correlation between unrelated things. Now the twist that makes causal inference genuinely urgent: a confounder can <em>reverse</em> the direction of a real effect. A drug can improve recovery for sick patients <em>and</em> for healthy patients — helping every single subgroup — yet the overall "treated vs untreated" comparison shows it makes things <em>worse</em>. This is <span class="newterm">Simpson's paradox</span>, and it is not a mathematical curiosity; it has appeared in real drug trials, university admissions discrimination cases, and hospital mortality statistics, leading to exactly the wrong conclusions. The mechanism is confounding: when a <span class="newterm">confounder</span> — a variable that influences both who gets the treatment and what outcome they have — is unevenly distributed, the naive comparison mixes up the treatment's effect with the confounder's. Here, sicker patients both get the drug more often <em>and</em> have worse baseline outcomes, so the treated group looks bad not because the drug hurts but because it's full of sicker people. This lesson makes the paradox concrete, names the confounder precisely, and shows the only cure: compare like with like by accounting for the confounder.

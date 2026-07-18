@@ -20,6 +20,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lesson 4.0, Track 2 chain rule</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/backprop.html">Backprop: the Chain Rule, Alive</a></p>
+      </div>
 
       <p class="lead prose">
         "Backpropagation" is a big word for a small idea you already own. To train a network we need to know, for every weight, "if I nudge this one knob a hair, how much does the final loss move?" That number is the gradient. Backprop is just the <strong>chain rule</strong> from Track&nbsp;2, run <em>backward</em> through the graph from Lesson&nbsp;0 — and its magic is that one backward pass hands you that answer for every single weight at once. No calculus heroics. Just multiply and pass along.

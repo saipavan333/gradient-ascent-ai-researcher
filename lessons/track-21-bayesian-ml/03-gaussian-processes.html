@@ -19,6 +19,10 @@
         <span class="chip">~20 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gp.html">Gaussian Process: Honest Uncertainty</a></p>
+      </div>
 
       <p class="lead prose">
         So far we put distributions over a handful of parameters — a coin's bias, a weight. A <span class="newterm">Gaussian process</span> (GP) makes a bolder move: it puts a distribution over <em>whole functions</em>. Instead of assuming a fixed form (a line, a polynomial) and inferring its coefficients, a GP considers <em>all</em> smooth functions at once and asks which ones are consistent with your data. Feed it a few observed points and it returns not a single curve but a <em>distribution</em> of curves — summarized by a mean prediction and, at every input, an honest measure of uncertainty. Near your data the plausible curves all agree, so the uncertainty is tiny; far from your data they fan out wildly, so the uncertainty is large. This "knows what it doesn't know" behaviour is the GP's superpower, and it makes GPs the tool of choice whenever you must act on predictions <em>and</em> account for their reliability — from tuning expensive experiments to modelling noisy sensors. The whole model rests on one idea: define how similar two inputs are (a kernel), and let similar inputs have similar outputs.

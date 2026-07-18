@@ -19,6 +19,10 @@
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/convolution.html">Convolution &amp; Filters</a> · <a href="../../labs/receptive-field.html">The Growing Receptive Field</a></p>
+      </div>
 
       <p class="lead prose">
         After a convolution you have a feature map — a grid of numbers where each number says "how strongly my pattern showed up here." For deciding <em>what</em> is in a picture, you almost never need to know a feature's location down to the exact pixel. Knowing an edge appears <em>somewhere in this little region</em> is plenty. <span class="newterm">Pooling</span> takes advantage of that: it <span class="newterm">downsamples</span> the map — that just means "makes the grid smaller by summarizing each small patch with one number." The map gets smaller (less to compute), and the network stops caring about tiny shifts in position. This lesson builds pooling from scratch and lets you watch it work.

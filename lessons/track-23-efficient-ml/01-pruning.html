@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/pruning.html">Pruning: Cutting the Dead Weight</a></p>
+      </div>
 
       <p class="lead prose">
         Neural networks are trained with far more weights than they end up needing — the over-parameterization actually helps them train (Track&nbsp;3's double descent), but once trained, a huge fraction of the weights are near zero and contribute almost nothing. <span class="newterm">Pruning</span> is the technique of finding and deleting those useless weights to shrink the model. The simplest and most effective version, <span class="newterm">magnitude pruning</span>, is almost embarrassingly straightforward: rank all the weights by absolute value and set the smallest ones to zero. A weight of 0.0003 is doing essentially nothing, so removing it costs almost no accuracy — and if you remove enough of them, the model becomes <span class="newterm">sparse</span>, which means less memory to store and potentially much faster to run. The remarkable empirical fact is <em>how much</em> you can remove: real networks routinely tolerate 70–90% of their weights being deleted with only a slight accuracy drop, especially if you fine-tune afterward. That's a model an order of magnitude smaller for almost free. This lesson builds magnitude pruning and shows accuracy holding steady as the network is hollowed out.

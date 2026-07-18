@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Track 9</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/moe.html">Mixture of Experts</a></p>
+      </div>
 
       <p class="lead prose">
         Welcome to the frontier. This final track surveys the architectures and systems pushing AI forward right now, and it opens with the idea behind many of the largest models ever built: <span class="newterm">Mixture of Experts</span> (MoE). There's a fundamental tension in scaling models: more parameters means more capability, but a normal ("dense") network runs <em>every</em> parameter on <em>every</em> input, so a bigger model is proportionally more expensive to run. MoE breaks that link. Instead of one big network, you build many smaller <span class="newterm">expert</span> sub-networks plus a small <span class="newterm">gating</span> (router) network that, for each input, picks just a few experts to actually run. The model's <em>total</em> capacity is the sum of all experts (which can be enormous), but the <em>compute per input</em> is only the few that fire. This is <span class="newterm">sparse activation</span>: a trillion-parameter model might use only tens of billions per token. The experts specialize — one becomes good at code, another at math, another at a certain topic — and the router learns to send each input to the right specialists. It's how models like Mixtral and the largest frontier LLMs get their scale affordably. This lesson builds a working MoE and watches the router learn to specialize.

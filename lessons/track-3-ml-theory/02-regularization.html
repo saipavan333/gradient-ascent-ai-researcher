@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lessons 3.0–3.1, Tracks 1, 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/regularization.html">Regularization: Why L1 Makes Things Sparse</a> · <a href="../../labs/dropout.html">Dropout: Training a Crowd of Networks</a></p>
+      </div>
 
       <p class="lead prose">
         Lesson 1 named the enemy: variance — a model so flexible it fits the noise. Now we fight back, on purpose. The idea is almost cheeky: add a term to the loss that <em>punishes the model for having large weights</em>, so the optimizer has to <em>earn</em> every bit of complexity by paying for it. That single move tames overfitting across nearly all of ML. And there’s a beautiful surprise in the details: two penalties that look almost identical on paper — squared weights versus absolute weights — behave completely differently, and one of them quietly performs <em>automatic feature selection</em>, deleting useless inputs by driving their weights to <strong>exactly</strong> zero. The reason is pure geometry, and once you see it you never forget it.

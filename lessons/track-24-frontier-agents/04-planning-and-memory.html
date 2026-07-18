@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/mcts.html">Monte Carlo Tree Search</a></p>
+      </div>
 
       <p class="lead prose">
         The tool-using agent of Lesson&nbsp;3 reacts step by step — great for tasks a few actions long. But ask an agent to write a whole program, plan a research project, or complete a task with dozens of interdependent steps, and pure step-by-step reaction breaks down: it makes a locally-sensible move that turns out to be a dead end, or it forgets what it decided ten steps ago. Two capabilities fix this, and they're the finale of the course. <span class="newterm">Planning</span> is the ability to <em>think ahead</em> — to consider possible sequences of actions and find one that reaches the goal, rather than greedily grabbing whatever looks best right now. <span class="newterm">Memory</span> is the ability to <em>retain and recall</em> information across the whole task — what's been tried, what was learned, what the current state is — beyond what fits in the model's immediate context window. Together, planning and memory let an agent handle long-horizon, complex tasks: decompose a big goal into sub-goals, search for a workable strategy, remember progress and intermediate results, and recover from mistakes. This is the current frontier of agent research, and building it — even in miniature — is a fitting capstone. This lesson shows planning solving what greedy reaction cannot, backed by memory of where it's been.

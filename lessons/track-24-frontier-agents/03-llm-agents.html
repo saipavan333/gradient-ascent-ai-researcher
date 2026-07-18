@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Track 10</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/mcts.html">Monte Carlo Tree Search</a></p>
+      </div>
 
       <p class="lead prose">
         A large language model is, at its core, a next-word predictor (Track&nbsp;10) — extraordinary at generating fluent text, but with real limitations. Ask it for \(47823 \times 918\) and it will confidently produce a plausible-looking number that's usually wrong, because it's pattern-matching, not calculating. Ask about today's news and it can't know — its knowledge is frozen at training time. It can't check a database, run a program, or take an action in the world. An <span class="newterm">LLM agent</span> overcomes these limits by wrapping the model in a loop that lets it <em>use tools</em>. Instead of forcing the model to answer everything from memory, you give it access to a calculator, a search engine, a code interpreter, an API — and the model learns to decide <em>when</em> to call which tool, read the result, and continue. The dominant pattern is <span class="newterm">ReAct</span> (Reason + Act): the model <em>reasons</em> about what to do, takes an <em>action</em> (calls a tool), <em>observes</em> the result, and repeats until it can answer. This transforms the LLM from a thing that <em>talks</em> into a thing that <em>does</em> — the foundation of AI agents that book flights, write and run code, browse the web, and complete multi-step tasks. This lesson builds a working tool-using agent and shows it solving problems the model alone gets wrong.

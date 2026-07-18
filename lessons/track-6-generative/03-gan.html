@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lessons 0–2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gan.html">GAN: The Forger's Game</a></p>
+      </div>
 
       <p class="lead prose">
         The VAE paid for a tidy latent space with blur, because it optimized a likelihood under a Gaussian decoder that averages over possibilities. <span class="newterm">Generative adversarial networks</span> make a radical move: they never write down \(p(x)\) at all. Instead of asking "how likely is this data?", a GAN sets up a contest — a forger trying to fool a detective — and learns to <em>sample</em> convincingly by winning that contest. No likelihood, no blur-inducing average; just two networks locked in a game.

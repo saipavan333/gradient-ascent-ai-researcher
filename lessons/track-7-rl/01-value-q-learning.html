@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/qlearning.html">Q-Learning Gridworld</a> · <a href="../../labs/value-iteration.html">Value Iteration: Planning with the Bellman Equation</a> · <a href="../../labs/bandit.html">The Multi-Armed Bandit</a></p>
+      </div>
 
       <p class="lead prose">
         Lesson&nbsp;0 defined what we want — an optimal policy — but not how to get one. The key realisation is that we don't have to search over policies directly. If we can compute the <span class="newterm">value</span> of every state or state–action pair, the best policy falls out for free: in each state, pick the action with the highest value. So the whole problem reduces to <em>estimating values well</em>. We'll do it first with a model of the world (value iteration), then without one, learning purely from experience (Q-learning) — the algorithm that, scaled up with neural networks, learned to play Atari from raw pixels.

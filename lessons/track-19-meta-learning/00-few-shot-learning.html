@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/maml.html">Few-Shot Meta-Learning (MAML)</a></p>
+      </div>
 
       <p class="lead prose">
         Deep learning's dirty secret is its appetite for data: to learn a new category it typically wants hundreds or thousands of labelled examples. Yet humans routinely learn from one or two. Show a toddler a single picture of a platypus and they'll spot the next one instantly. <span class="newterm">Few-shot learning</span> is the effort to give machines this ability — to learn a new class from just a handful (often 1 to 5) of labelled examples. The key realization is that you can't learn a rich new concept from scratch on five images; instead, you lean on a <em>representation</em> learned from lots of other data (Track&nbsp;13's self-supervised and transfer ideas), and then do something simple in that representation — like "which known example is this new thing closest to?" This lesson sets up the standard way few-shot problems are posed (the "episode"), and builds the simplest method that works: compare a new example to the average of each class's few examples, and pick the nearest. It's the foundation for the meta-learning methods in the rest of the track.

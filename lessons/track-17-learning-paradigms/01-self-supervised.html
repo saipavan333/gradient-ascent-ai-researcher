@@ -19,6 +19,10 @@
         <span class="chip">~20 min</span>
         <span class="chip">Builds on: Lesson 0, Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/contrastive.html">Contrastive Learning</a></p>
+      </div>
 
       <p class="lead prose">
         Here is the idea that quietly rewired the field. Supervised learning needs a human to write down the answer \(y\) for every input \(x\). <span class="newterm">Self-supervised learning</span> refuses to pay that bill. It takes an ordinary unlabelled input and manufactures a prediction task out of it — cover up a word and predict it, cut an image in half and predict the missing half, delete a number from a sequence and fill it in. The "answer" is just the part you hid, so it costs nothing. You then train a perfectly normal supervised model on this made-up task. The point is not the task itself — nobody cares whether the model can un-hide a word. The point is that to succeed, the model must build a genuine internal understanding of the data, and <em>that</em> understanding, called a <span class="newterm">representation</span>, is what you keep and reuse. This lesson builds the cleanest example — an <span class="newterm">autoencoder</span> — and shows the representation falling out for free.

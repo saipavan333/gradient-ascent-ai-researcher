@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/distillation.html">Knowledge Distillation</a></p>
+      </div>
 
       <p class="lead prose">
         The best-performing models — huge neural networks, giant language models — are wonderful in the lab but painful in the real world: too big for a phone, too slow for real-time, too costly to serve to millions. This track is about making models efficient without throwing away what makes them good, and the first technique is one of the most elegant: <span class="newterm">knowledge distillation</span>. The idea is to train a small, fast <span class="newterm">student</span> model to imitate a large, accurate <span class="newterm">teacher</span> model. The twist that makes it work is <em>what</em> the student imitates. A normal training label is a single hard answer — "this image is a cat" — one bit of information. But the teacher, when it looks at that cat, outputs a whole distribution: "80% cat, 15% dog, 5% fox." That distribution is far richer — it reveals that this cat looks a bit dog-like and not at all like a car, encoding the teacher's learned sense of how classes relate. Hinton called this the <span class="newterm">dark knowledge</span>. By training the student to match these soft probabilities (not just the hard label), you transfer the teacher's nuanced understanding, and the small student learns far better than it could from the raw labels alone. This lesson builds distillation and shows the student closing the gap to its teacher.

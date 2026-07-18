@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Lessons 1–2, Track 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/gradient-boosting.html">Gradient Boosting: Fixing Your Own Mistakes</a></p>
+      </div>
 
       <p class="lead prose">
         Bagging (Lesson&nbsp;2) reduces variance by averaging independent trees. <span class="newterm">Boosting</span> takes the opposite tack: build trees <em>sequentially</em>, each one trained to correct the errors the ensemble has made so far. The remarkable insight is that “correct the errors” means “follow the negative gradient of the loss” — so boosting is literally gradient descent, but stepping in the space of functions. XGBoost, LightGBM, and CatBoost — the tools that win most tabular competitions — are all gradient boosting.

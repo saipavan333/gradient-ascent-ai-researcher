@@ -19,6 +19,10 @@
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Lessons 0–3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/attention.html">Attention Visualizer</a></p>
+      </div>
 
       <p class="lead prose">
         So far our RNNs read a sequence and produce <em>one</em> answer — a label, a yes/no. But the most valuable sequence tasks produce a whole new sequence: give it an English sentence, get back the French; give it an article, get back a summary. These are <span class="newterm">sequence-to-sequence</span> (seq2seq) problems. The classic solution has two RNNs. An <span class="newterm">encoder</span> reads the entire input and boils it down into a single fixed-length summary — the <span class="newterm">context vector</span>. A <span class="newterm">decoder</span> then starts from that summary and generates the output one item at a time, feeding each thing it produces back in as the next input.

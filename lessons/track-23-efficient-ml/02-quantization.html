@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/quantization.html">Quantization: Fewer Bits, Almost the Same Model</a></p>
+      </div>
 
       <p class="lead prose">
         Pruning removed weights; <span class="newterm">quantization</span> shrinks the ones that remain. By default a weight is a 32-bit floating-point number, able to represent values to about seven decimal digits of precision. For a neural network, that's absurd overkill — the network's behavior barely changes if you round each weight to a much coarser grid. Quantization exploits this by storing each weight with far fewer bits: <span class="newterm">8-bit</span> quantization uses just 256 possible levels instead of billions, immediately cutting memory by 4× (32→8 bits). And it's not only about storage: 8-bit <em>integer</em> arithmetic runs much faster and uses far less energy than 32-bit float on modern hardware, so quantized models are both smaller <em>and</em> quicker. The astonishing part is how little accuracy you lose — 8-bit quantization is often indistinguishable from full precision, and even 4-bit (16 levels!) frequently works well. This is why the large language models you can run on a laptop are quantized: a model that needs 28&nbsp;GB in 16-bit fits in 7&nbsp;GB at 4-bit. This lesson builds quantization and shows precision was there to be traded away.

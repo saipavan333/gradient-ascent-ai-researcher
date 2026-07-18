@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Lesson 3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/roc-curve.html">ROC Curves &amp; the Threshold Dial</a></p>
+      </div>
 
       <p class="lead prose">
         The Bayesian methods in this track give uncertainty <em>by construction</em>. But most deployed models — a neural network's softmax, a random forest's vote share — also output numbers that look like probabilities ("this is a cat with 97% confidence"), and it's dangerously tempting to trust them. <span class="newterm">Calibration</span> asks the blunt question: when a model says 97%, is it actually right 97% of the time? A <span class="newterm">calibrated</span> model's confidence matches its accuracy; an <span class="newterm">overconfident</span> one says 97% but is right only 80% of the time. This matters enormously the moment a model informs a real decision — a medical screen, a loan approval, a self-driving car deciding whether it's sure enough to brake. A famous finding is that modern deep networks are systematically overconfident, so their raw probabilities can't be taken at face value. The good news: you can <em>measure</em> miscalibration with a simple score, and often <em>fix</em> it with a one-parameter adjustment that changes no predictions — only the confidence attached to them. This closes the track: uncertainty is only useful if it's honest.

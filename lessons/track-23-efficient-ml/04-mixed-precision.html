@@ -19,6 +19,10 @@
         <span class="chip">~17 min</span>
         <span class="chip">Builds on: Lesson 3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/quantization.html">Quantization: Fewer Bits, Almost the Same Model</a></p>
+      </div>
 
       <p class="lead prose">
         Quantization (Lesson&nbsp;2) reduced precision for a <em>deployed</em> model; <span class="newterm">mixed precision</span> reduces precision during <em>training</em> itself. The default is 32-bit floating point (fp32), but modern GPUs have special hardware that does 16-bit float (fp16) math roughly twice as fast, and fp16 numbers take half the memory. Training in 16 bits would therefore be a huge win — faster and letting you fit bigger models and batches. The catch is fp16's tiny range: it can only represent numbers down to about \(6\times10^{-5}\); anything smaller rounds to zero (<span class="newterm">underflow</span>). Neural network gradients are often exactly that small, so in naive fp16 they silently vanish, and training stalls or diverges. The elegant fix is <span class="newterm">loss scaling</span>: before backpropagation, multiply the loss by a large constant \(S\) (say 1024). By the chain rule, this multiplies <em>every</em> gradient by \(S\) too, lifting the tiny ones up out of the underflow zone so they survive in fp16. Then, just before applying the update, you divide the gradients back by \(S\) — recovering their true values. The name "mixed" precision is because you keep a master copy of the weights in fp32 for the update (precision where it matters) while doing the heavy matrix math in fp16 (speed where it matters). This lesson builds loss scaling and closes the efficiency track.

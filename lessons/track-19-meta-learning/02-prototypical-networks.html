@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/knn.html">k-Nearest Neighbours</a></p>
+      </div>
 
       <p class="lead prose">
         Lesson&nbsp;0 classified by nearest centroid but relied on whatever embedding you happened to have. Lesson&nbsp;1's MAML learned to adapt with gradient steps, which is powerful but fiddly. <span class="newterm">Prototypical networks</span> (protonets) find a sweet spot between them: keep the dead-simple nearest-centroid rule, but <em>meta-learn the embedding itself</em> so that the rule works beautifully. The whole model is one idea — represent each class by a single <span class="newterm">prototype</span>, the mean of its few examples in the embedding space, and classify a new example by which prototype it's closest to, turning the distances into class probabilities with a softmax. There's no per-task inner loop, no second derivatives — just embed, average, compare. And by training the embedding across thousands of few-shot episodes to make nearest-prototype classification succeed, protonets often match or beat the far more complex MAML. This lesson shows why such a simple recipe is so effective, and what "meta-learning the embedding" really buys you.

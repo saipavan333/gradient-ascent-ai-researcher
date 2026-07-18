@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Track 6</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/federated.html">Federated Learning</a></p>
+      </div>
 
       <p class="lead prose">
         Almost everything you've built assumed the data sits in one place where a model can see all of it. But some of the most valuable data can never be pooled: the messages on your phone, the patient records in a hospital, the transactions at a bank — privacy laws, trust, and sheer volume forbid shipping it all to one server. <span class="newterm">Federated learning</span> is the breakthrough that trains a shared model <em>without</em> the data ever leaving its owner. The recipe, called <span class="newterm">Federated Averaging</span> (FedAvg), is elegantly simple: the server sends the current model to each client (phone, hospital, bank); each client trains it a little on its <em>own private data</em>; each sends back only the updated <em>weights</em> (never the data); and the server <em>averages</em> those weights into a new global model. Repeat, and the shared model learns from everyone's data collectively while every raw example stays home. This flips the usual "bring the data to the model" into "bring the model to the data," and it's how Google trains your keyboard, how hospitals collaborate on medical AI without sharing records, and a foundation of privacy-preserving machine learning. This lesson builds FedAvg and shows it matching a model trained on all the pooled data.

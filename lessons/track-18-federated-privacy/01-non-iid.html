@@ -19,6 +19,10 @@
         <span class="chip">~18 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/federated.html">Federated Learning</a></p>
+      </div>
 
       <p class="lead prose">
         The FedAvg success in Lesson&nbsp;0 hid an assumption: every client's data was a random, representative sample of the whole — statisticians call this <span class="newterm">IID</span> (independent and identically distributed). Reality is the opposite. Your phone's photos are mostly of your life; a rural clinic sees different diseases than an urban hospital; one bank's customers differ from another's. Client data is <span class="newterm">non-IID</span> — skewed, personal, unrepresentative. And this breaks the clean averaging trick. When each client trains on its own lopsided slice, its local model specializes to <em>that</em> slice, drifting toward a different solution than its peers. Average these divergent models and you get something that satisfies none of them — a blurry compromise far worse than what centralized training would achieve. This <span class="newterm">client drift</span> is <em>the</em> defining challenge of federated learning: the messier and more personal the data (which is exactly the data worth keeping private), the harder federation becomes. This lesson makes the failure concrete and surveys the fixes.

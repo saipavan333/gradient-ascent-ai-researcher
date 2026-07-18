@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/causal.html">Simpson's Paradox &amp; Confounding</a></p>
+      </div>
 
       <p class="lead prose">
         The do-operator (Lesson&nbsp;2) told us <em>what</em> we want — \(P(Y \mid do(T))\), the effect of intervening — but computing it seemed to require an experiment we often can't run (too costly, too slow, unethical). The remarkable result of causal inference is that, under the right conditions, you can compute the interventional \(do\) answer from purely <em>observational</em> data. The recipe is <span class="newterm">backdoor adjustment</span>, and it makes precise the "compare within subgroups" intuition from the confounding lesson. A confounder creates a <span class="newterm">backdoor path</span> — a non-causal route from treatment \(T\) to outcome \(Y\) that runs backward through the confounder (\(T \leftarrow Z \to Y\)). This path lets \(Z\)'s influence leak into the naive comparison. Backdoor adjustment <em>blocks</em> that path by conditioning on \(Z\): compute the treatment effect <em>within</em> each value of \(Z\), then average those effects weighted by how common each \(Z\) is. Blocking the backdoor leaves only the genuine causal path \(T \to Y\), so the adjusted estimate equals the true \(do\) effect. The subtlety — and the reason you need a causal graph, not just data — is knowing <em>which</em> variables to adjust for: adjust for confounders (good), but adjusting for the wrong variables can <em>create</em> bias. This lesson builds the recipe and its crucial caveat.

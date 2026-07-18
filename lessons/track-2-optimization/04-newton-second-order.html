@@ -19,6 +19,10 @@
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Lessons 2.1–2.3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/newtons-method.html">Newton's Method vs Gradient Descent</a></p>
+      </div>
 
       <p class="lead prose">
         Gradient descent uses one piece of information at each point: the slope, which says which way is downhill. But the slope alone doesn't tell you <em>how far</em> to step — that's why you had to tune the learning rate so carefully, and why a step that's perfect in a gently-curving valley overshoots wildly in a sharply-curving one. There is a second piece of information sitting right there: the <span class="newterm">curvature</span> — how quickly the slope itself is changing. A method that uses curvature can figure out the right step size automatically. That method is <span class="newterm">Newton's method</span>, and understanding it explains what the fancy optimizers (Adam and friends) are really approximating.

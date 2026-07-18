@@ -19,6 +19,10 @@
         <span class="chip">~19 min</span>
         <span class="chip">Builds on: Lesson 0</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/kmeans.html">K-Means Clustering</a></p>
+      </div>
 
       <p class="lead prose">
         Real projects almost never sit at the extremes. You seldom have a label for every example (too expensive), and you seldom have none at all (you can usually afford a few). The common situation is lopsided: maybe 50 labelled examples and 50,000 unlabelled ones. <span class="newterm">Semi-supervised learning</span> is built for exactly this. Its insight is that the unlabelled data, though it carries no answers, reveals the <em>shape</em> of the data — where the clumps are, where the empty gaps are. And that shape is enormously informative: if two points sit in the same dense clump, they almost certainly share a label, even if only one of them is labelled. So you can let a few labels "flow" through the unlabelled structure and light up the whole dataset. This lesson builds the cleanest version of that idea — <span class="newterm">label propagation</span> — where six labels correctly classify three hundred points.

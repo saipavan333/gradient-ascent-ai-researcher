@@ -19,6 +19,10 @@
         <span class="chip">~24 min</span>
         <span class="chip">Builds on: Track 9</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/tokenization.html">Tokenization: Byte-Pair Encoding</a></p>
+      </div>
 
       <p class="lead prose">
         Before a Transformer can read a sentence, the sentence has to become numbers. The step that does this is <span class="newterm">tokenization</span>: cutting text into <span class="newterm">tokens</span> — a token is a chunk of text, often a word-piece, that the model reads as a single unit — and swapping each chunk for an integer ID. You could tokenize by whole words, but then every rare word, typo, or new name would be an "unknown." You could tokenize by single characters, but then sequences get painfully long. <span class="newterm">Byte-Pair Encoding</span> threads the needle: it learns a vocabulary of sub-word chunks, so frequent words become one token while rare words gracefully fall back to a few pieces. Almost every modern LLM — GPT, Llama, Mistral — reads the world through a BPE-style tokenizer, and its quirks quietly shape everything from cost to why models miscount letters.

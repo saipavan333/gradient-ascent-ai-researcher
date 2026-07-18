@@ -19,6 +19,10 @@
         <span class="chip">~30 min</span>
         <span class="chip">Builds on: Lessons 0–3</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/diffusion.html">Diffusion: Noise ⇄ Data</a></p>
+      </div>
 
       <p class="lead prose">
         GANs are sharp but temperamental — one adversarial game is hard to balance. <span class="newterm">Diffusion models</span> replace the game with something almost boringly stable. Take a clean image and drown it in noise over many tiny steps until nothing is left; that direction is fixed and requires no learning at all. Then train one network to undo a single step of that noising. To generate, start from pure static and run the learned "undo" over and over — and a picture emerges from nothing. Stable training, sharp and diverse samples: the combination that made diffusion the dominant image generator.

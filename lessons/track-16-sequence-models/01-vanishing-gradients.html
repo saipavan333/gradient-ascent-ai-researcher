@@ -19,6 +19,10 @@
         <span class="chip">~22 min</span>
         <span class="chip">Builds on: Lesson 0, Track 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/rnn.html">RNN Memory: Vanishing &amp; Exploding</a></p>
+      </div>
 
       <p class="lead prose">
         In the last lesson you watched a memory fade a little each step. Here's why that fade is fatal — and it's one of the most important diagnoses in all of deep learning. For the network to learn that something at step 0 matters for a decision at step 30, the learning signal (the gradient) has to travel back 30 steps. On the way it gets multiplied by the same number again and again — and repeated multiplication is an <em>exponential</em>. If that number is a little less than 1, the signal <span class="newterm">vanishes</span> to nothing; if it's a little more than 1, it <span class="newterm">explodes</span> to infinity. Either way, learning long-range connections breaks.

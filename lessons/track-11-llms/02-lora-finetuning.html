@@ -19,6 +19,10 @@
         <span class="chip">~26 min</span>
         <span class="chip">Builds on: Tracks 1, 6, Lesson 1</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/lora.html">LoRA: Fine-Tuning on a Budget</a></p>
+      </div>
 
       <p class="lead prose">
         Pretraining builds a general model; <span class="newterm">fine-tuning</span> adapts it to a specific task or style. But full fine-tuning updates every weight — impossible on consumer hardware for large models, and it produces a full-size copy per task. <span class="newterm">LoRA</span> (Low-Rank Adaptation) makes adaptation cheap by exploiting a simple fact: fine-tuning updates are approximately low-rank. You’ll build it from scratch and watch it match full fine-tuning.

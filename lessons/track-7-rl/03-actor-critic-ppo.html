@@ -19,6 +19,10 @@
         <span class="chip">~28 min</span>
         <span class="chip">Builds on: Lesson 2</span>
       </div>
+      <div class="callout example" style="margin:1.1rem 0">
+        <div class="co-h">🔬 Try it hands-on</div>
+        <p style="margin:0">Play with this idea in a live sandbox — best done <em>before</em> you read, to build intuition: <a href="../../labs/policy-gradient.html">Policy Gradient: Learning by Trying</a></p>
+      </div>
 
       <p class="lead prose">
         Last lesson ended on a nagging problem: policy gradients are unbiased but <em>high variance</em>. Waiting until the end of an episode to score every action, using the full random return, gives a jittery signal that needs many samples to average out. The fix is elegant — pair the policy (the <span class="newterm">actor</span>) with a value estimator (the <span class="newterm">critic</span>) that provides an instant, learned baseline. Then we harden the update with <span class="newterm">PPO</span>, whose one clever clip keeps each step inside a safe "trust region." The result is the algorithm behind OpenAI Five, dexterous robot hands, and the RL step of ChatGPT.
