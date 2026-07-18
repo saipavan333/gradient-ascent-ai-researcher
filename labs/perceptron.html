@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perceptron · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Perceptron</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>The Perceptron Learning Rule</h1>
+        <p>The perceptron (1958) is the ancestor of every neural network — a single neuron that learns to separate two classes with one astonishingly simple rule: whenever it gets a point wrong, nudge the boundary toward that point. Watch a line teach itself.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Train</b> (or <b>Step</b>). Each update grabs one misclassified point and rotates the boundary to fix it.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The boundary swings around and — because the data is separable — settles into a line with zero mistakes. The convergence theorem guarantees it stops in finite steps.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="pcTrain">▶ Train</button>
+        <button class="lab-btn" id="pcStep">↦ Step</button>
+        <button class="lab-btn ghost" id="pcData">🎲 new data</button>
+        <button class="lab-btn ghost" id="pcReset">↺ reset line</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="pcMis">—</b><span>points misclassified</span></div><div class="s"><b id="pcUpd">0</b><span>weight updates</span></div></div>
+      <div class="lab-stage"><span class="badge">blue vs orange = the two classes · white line = current boundary · ringed = the point being fixed</span><canvas id="pccv" width="820" height="470" aria-label="perceptron"></canvas></div>
+      <div class="lab-readout" id="pcread">Press Train to run the learning rule.</div>
+      <div class="lab-explain"><b>What's happening:</b> the neuron predicts sign(w·x + b). The <b>perceptron rule</b>: for a misclassified point x with true label y (±1), update w ← w + η·y·x and b ← b + η·y — literally shifting the boundary toward getting that point right. Rosenblatt's <b>convergence theorem</b> proves that if the two classes can be separated by a line, this rule finds a separating line in a finite number of updates. Its one famous limitation — it can't solve XOR or anything not linearly separable — is what motivated multi-layer networks and, eventually, deep learning. This is <a href="../lessons/track-04-deep-learning/00-perceptron.html">the Perceptron</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('pccv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=190, ox=Wd/2, oy=Ht/2; var pts=[], w=[0.4,-0.2], b=0.0, updates=0, playing=false, raf=null, fc=0, lastMis=-1;
+    function PX(x){return ox+x*S;} function PY(y){return oy-y*S;}
+    function newData(){ pts=[]; var ang=Math.random()*6.28, tw=[Math.cos(ang),Math.sin(ang)], tb=(Math.random()-0.5)*0.6;
+      var i=0, tries=0; while(pts.length<40 && tries<4000){ tries++; var x=(Math.random()*2-1)*1.6, y=(Math.random()*2-1)*1.6; var s=tw[0]*x+tw[1]*y+tb; if(Math.abs(s)<0.22)continue; pts.push({x:x,y:y,y1:s>0?1:-1}); }
+      w=[0.5,-0.3]; b=0; updates=0; lastMis=-1; }
+    function reset(){ w=[0.5,-0.3]; b=0; updates=0; lastMis=-1; stop(); draw(); }
+    function pr(p){ return (w[0]*p.x+w[1]*p.y+b)>0?1:-1; }
+    function firstMis(){ for(var i=0;i<pts.length;i++)if(pr(pts[i])!==pts[i].y1)return i; return -1; }
+    function step(){ var i=firstMis(); lastMis=i; if(i<0)return false; var p=pts[i], lr=0.3; w[0]+=lr*p.y1*p.x; w[1]+=lr*p.y1*p.y; b+=lr*p.y1; updates++; return true; }
+    function boundary(){ // w0 x + w1 y + b = 0 -> y = -(w0 x + b)/w1
+      var pt=[]; if(Math.abs(w[1])>1e-6){ for(var xx=-2;xx<=2;xx+=4){ pt.push([xx, -(w[0]*xx+b)/w[1]]); } } else { pt=[[-b/w[0],-2],[-b/w[0],2]]; } return pt; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(Wd,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,Ht); ctx.stroke();
+      // shade half-planes lightly
+      var bd=boundary();
+      // boundary line
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor='#fff'; ctx.beginPath(); ctx.moveTo(PX(bd[0][0]),PY(bd[0][1])); ctx.lineTo(PX(bd[1][0]),PY(bd[1][1])); ctx.stroke(); ctx.shadowBlur=0;
+      var mis=0;
+      for(var i=0;i<pts.length;i++){ var p=pts[i]; var wrong=pr(p)!==p.y1; if(wrong)mis++; var c=p.y1>0?'#5b9bff':'#ffa24d'; ctx.fillStyle=c; ctx.shadowBlur=wrong?4:8; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),6,0,6.2832); ctx.fill(); ctx.shadowBlur=0; if(wrong){ ctx.strokeStyle='rgba(255,80,80,.9)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),9,0,6.2832); ctx.stroke(); } if(i===lastMis){ ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),12,0,6.2832); ctx.stroke(); } }
+      document.getElementById('pcMis').textContent=mis; document.getElementById('pcUpd').textContent=updates;
+      document.getElementById('pcread').textContent = mis===0? 'Separated! Zero mistakes after '+updates+' updates — the perceptron found a dividing line, exactly as the convergence theorem promises.' : (updates===0?'Starting line misclassifies '+mis+' points. Press Train.':'Update '+updates+': fixing a misclassified point (gold ring). '+mis+' still wrong — the line keeps swinging.'); }
+    function stop(){ playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} document.getElementById('pcTrain').textContent='▶ Train'; }
+    function loop(){ if(!playing)return; fc++; if(fc%10===0){ if(!step()){ stop(); draw(); return; } } draw(); raf=requestAnimationFrame(loop); }
+    document.getElementById('pcTrain').addEventListener('click',function(){ if(playing){stop();return;} if(firstMis()<0)return; playing=true; this.textContent='⏸ Pause'; if(!raf)loop(); });
+    document.getElementById('pcStep').addEventListener('click',function(){ step(); draw(); });
+    document.getElementById('pcData').addEventListener('click',function(){ stop(); newData(); draw(); });
+    document.getElementById('pcReset').addEventListener('click',reset);
+    newData(); draw();
+  })();
+  </script></body></html>

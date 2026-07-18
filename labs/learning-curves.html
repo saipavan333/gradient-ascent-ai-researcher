@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Learning Curves · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Learning Curves</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Learning Curves: Bias vs Variance from Data</h1>
+        <p>When a model underperforms, should you gather more data or change the model? A <b>learning curve</b> — error plotted against how much training data you have — tells you which, by showing the tell-tale signatures of high bias versus high variance.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Toggle a <b>simple</b> vs a <b>flexible</b> model and adjust the <b>noise</b>. Watch the training-error and test-error curves as the dataset grows left → right.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv"><b>High bias</b> (simple): both curves meet at a <em>high</em> error — more data won't help. <b>High variance</b> (flexible): a big gap between them that <em>closes</em> as data grows — more data <em>will</em> help.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="lcSimple">Simple model (deg 1)</button>
+        <button class="lab-btn ghost" id="lcFlex">Flexible model (deg 8)</button>
+        <label class="lab-ctl">noise <input type="range" id="lcN" min="0" max="0.5" step="0.02" value="0.18"><span id="lcNv" class="lab-tag">0.18</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="lcGap">—</b><span>train–test gap at max data</span></div><div class="s"><b id="lcDiag">—</b><span>diagnosis</span></div></div>
+      <div class="lab-stage"><span class="badge">orange = training error · teal = test error · x-axis = number of training points</span><canvas id="lccv" width="820" height="450" aria-label="learning curves"></canvas></div>
+      <div class="lab-readout" id="lcread">Toggle the model and watch the two curves.</div>
+      <div class="lab-explain"><b>What's happening:</b> for each training-set size m we fit the model on m random points and measure error on the training set itself (orange) and on unseen data (teal), averaged over many draws. <b>Training error</b> starts near zero (easy to fit a few points) and rises as m grows; <b>test error</b> starts high and falls as the model sees more of the world; they converge. Where they converge tells you the problem: a <b>high-bias</b> model (too simple) converges to a high error and the gap is already small — adding data is futile, you need a richer model. A <b>high-variance</b> model (too flexible) leaves a wide gap that keeps closing — more data (or regularization) is exactly the fix. This is the practical face of the <a href="../lessons/track-03-ml-theory/00-bias-variance.html">bias–variance tradeoff</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('lccv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var deg=1, noise=0.18;
+    function target(x){ return Math.sin(2.6*x)+0.4*x; }
+    function seeded(s){ return function(){ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }; }
+    function solve(M,b){ var nn=b.length; var A=M.map(function(r,i){return r.concat([b[i]]);}); for(var c=0;c<nn;c++){ var piv=c; for(var r=c+1;r<nn;r++)if(Math.abs(A[r][c])>Math.abs(A[piv][c]))piv=r; var t=A[c];A[c]=A[piv];A[piv]=t; var d=A[c][c]; if(Math.abs(d)<1e-12)d=1e-12; for(var j=c;j<=nn;j++)A[c][j]/=d; for(var r=0;r<nn;r++)if(r!==c){var f=A[r][c];for(var j=c;j<=nn;j++)A[r][j]-=f*A[c][j];} } return A.map(function(r){return r[nn];}); }
+    function fitPoly(xs,ys,d){ var p=d+1; var G=[],rhs=[]; for(var a=0;a<p;a++){ G.push([]); for(var b2=0;b2<p;b2++){ var s=0; for(var i=0;i<xs.length;i++)s+=Math.pow(xs[i],a)*Math.pow(xs[i],b2); G[a].push(s+1e-6*(a===b2?1:0)); } var r2=0; for(var i=0;i<xs.length;i++)r2+=Math.pow(xs[i],a)*ys[i]; rhs.push(r2); } return solve(G,rhs); }
+    function pred(w,x){ var s=0; for(var a=0;a<w.length;a++)s+=w[a]*Math.pow(x,a); return s; }
+    // fixed test grid
+    var testX=[]; for(var i=0;i<120;i++)testX.push(-1+2*i/119);
+    function curves(){ var rnd=seeded(99); function gn(){return (rnd()+rnd()+rnd()+rnd()-2)/1.15;}
+      var Ms=[], TR=[], TE=[]; 
+      for(var m=deg+2;m<=70;m+=2){ var trAcc=0,teAcc=0,K=24;
+        for(var k=0;k<K;k++){ var xs=[],ys=[]; for(var i=0;i<m;i++){ var x=-1+2*rnd(); xs.push(x); ys.push(target(x)+noise*gn()); }
+          var w=fitPoly(xs,ys,deg);
+          var tr=0; for(var i=0;i<m;i++){ var e=pred(w,xs[i])-ys[i]; tr+=e*e; } trAcc+=tr/m;
+          var te=0; for(var i=0;i<testX.length;i++){ var e=pred(w,testX[i])-target(testX[i]); te+=e*e; } teAcc+=te/testX.length;
+        }
+        Ms.push(m); TR.push(trAcc/K); TE.push(Math.min(2.5,teAcc/K)); }
+      return {Ms:Ms,TR:TR,TE:TE}; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var C=curves(); var pad=56, baseY=Ht-52, top=40, w=Wd-pad*2, h=baseY-top;
+      var maxE=0; for(var i=0;i<C.TE.length;i++)maxE=Math.max(maxE,C.TE[i],C.TR[i]); maxE=Math.max(maxE,0.1)*1.1;
+      // axes
+      ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(pad+w,baseY); ctx.moveTo(pad,top); ctx.lineTo(pad,baseY); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('training-set size  m  →',pad+w/2,baseY+34);
+      ctx.save(); ctx.translate(pad-34,top+h/2); ctx.rotate(-Math.PI/2); ctx.fillText('error (MSE)',0,0); ctx.restore();
+      function X(i){ return pad + i/(C.Ms.length-1)*w; } function Y(e){ return baseY - e/maxE*h; }
+      function plot(arr,color){ ctx.strokeStyle=color; ctx.lineWidth=3; ctx.shadowBlur=8; ctx.shadowColor=color; ctx.beginPath(); for(var i=0;i<arr.length;i++){ if(i===0)ctx.moveTo(X(i),Y(arr[i])); else ctx.lineTo(X(i),Y(arr[i])); } ctx.stroke(); ctx.shadowBlur=0; }
+      // shade the gap
+      ctx.fillStyle='rgba(255,255,255,.05)'; ctx.beginPath(); for(var i=0;i<C.Ms.length;i++)ctx.lineTo(X(i),Y(C.TE[i])); for(var i=C.Ms.length-1;i>=0;i--)ctx.lineTo(X(i),Y(C.TR[i])); ctx.closePath(); ctx.fill();
+      plot(C.TE,'#4fd6b5'); plot(C.TR,'#ffa24d');
+      // legend
+      ctx.fillStyle='#ffa24d'; ctx.fillRect(pad+w-160,top,12,12); ctx.fillStyle='#9fb0cc'; ctx.textAlign='left'; ctx.fillText('training error',pad+w-144,top+11);
+      ctx.fillStyle='#4fd6b5'; ctx.fillRect(pad+w-160,top+20,12,12); ctx.fillStyle='#9fb0cc'; ctx.fillText('test error',pad+w-144,top+31);
+      var gap=C.TE[C.TE.length-1]-C.TR[C.TR.length-1]; var conv=(C.TE[C.TE.length-1]+C.TR[C.TR.length-1])/2;
+      document.getElementById('lcGap').textContent=gap.toFixed(3);
+      var highBias = deg<=1 && conv>0.12; var highVar = deg>=8 && gap>0.05;
+      document.getElementById('lcDiag').textContent = highBias?'high bias (underfit)':(highVar?'high variance (overfit)':'reasonable fit');
+      document.getElementById('lcread').textContent = deg<=1? 'Simple model: the curves meet at a HIGH error ('+conv.toFixed(2)+') with a small gap — this is high bias. More data won’t help; you need a more flexible model.' : 'Flexible model: a wide train–test gap ('+gap.toFixed(2)+') that narrows as m grows — this is high variance. More data (or regularization) closes it.'; }
+    function setDeg(d){ deg=d; document.getElementById('lcSimple').className='lab-btn'+(d<=1?'':' ghost'); document.getElementById('lcFlex').className='lab-btn'+(d>=8?'':' ghost'); draw(); }
+    document.getElementById('lcSimple').addEventListener('click',function(){ setDeg(1); });
+    document.getElementById('lcFlex').addEventListener('click',function(){ setDeg(8); });
+    document.getElementById('lcN').addEventListener('input',function(){ noise=+this.value; document.getElementById('lcNv').textContent=noise.toFixed(2); draw(); });
+    draw();
+  })();
+  </script></body></html>
