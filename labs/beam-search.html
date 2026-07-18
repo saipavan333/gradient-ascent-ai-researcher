@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Beam Search · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Beam Search</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Beam Search Decoding</h1>
+        <p>A language model gives a probability for every next word. Greedy decoding grabs the single best word each step and can paint itself into a corner. <b>Beam search</b> keeps the few most promising <em>whole sequences</em> alive at once — trading a little compute for much better sentences.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>beam width</b> and press <b>Step</b> to expand the search one level at a time (or <b>Auto</b>).</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Width 1 is greedy — it follows one path and can miss the best sentence. Widen the beam and a higher-scoring path (gold) survives that greedy would have thrown away.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">beam width <input type="range" id="bwW" min="1" max="4" step="1" value="2"><span id="bwWv" class="lab-tag">2</span></label>
+        <button class="lab-btn" id="bwStep">▶ Step</button>
+        <button class="lab-btn" id="bwAuto">⏩ Auto</button>
+        <button class="lab-btn ghost" id="bwReset">↺ Reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="bwBest">—</b><span>best sequence score (log-prob)</span></div><div class="s"><b id="bwSeq">—</b><span>best sequence so far</span></div></div>
+      <div class="lab-stage"><span class="badge">nodes = words · gold = the surviving beams · number = log-prob of the path</span><canvas id="bwcv" width="820" height="470" aria-label="beam search"></canvas></div>
+      <div class="lab-readout" id="bwread">Pick a beam width and press Step.</div>
+      <div class="lab-explain"><b>What's happening:</b> each path's score is the sum of the log-probabilities of its words (adding logs = multiplying probabilities). At every level we expand all live beams, then keep only the top-<i>k</i> by score — that <i>k</i> is the beam width. Greedy (k=1) commits to the locally-best word and can be trapped; a wider beam carries a slightly-worse first word that pays off later. This is exactly how <a href="../lessons/track-10-large-language-models/03-decoding.html">LLM decoding</a> balances quality against cost. This tree uses fixed, hand-set probabilities so you can see the trap.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('bwcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    // Hand-built tree: greedy trap. root -> level1 -> level2 -> level3. probs chosen so greedy first pick ("The") loses.
+    // node: {w, p (prob given parent), kids:[]}
+    var tree={w:'<start>',p:1,kids:[
+      {w:'The',p:0.5,kids:[ {w:'cat',p:0.4,kids:[{w:'sat',p:0.5,kids:[]},{w:'ran',p:0.5,kids:[]}]}, {w:'end',p:0.6,kids:[{w:'.',p:0.3,kids:[]},{w:'!',p:0.2,kids:[]}]} ]},
+      {w:'A',p:0.35,kids:[ {w:'dog',p:0.9,kids:[{w:'barks',p:0.95,kids:[]},{w:'naps',p:0.9,kids:[]}]}, {w:'bird',p:0.1,kids:[{w:'flies',p:0.5,kids:[]}]} ]},
+      {w:'It',p:0.15,kids:[ {w:'is',p:0.8,kids:[{w:'here',p:0.6,kids:[]},{w:'gone',p:0.5,kids:[]}]} ]}
+    ]};
+    var width=2, level=0, beams=[{path:[tree],score:0}], maxLevel=3, positions={}, autoT=null;
+    function reset(){ level=0; beams=[{path:[tree],score:0}]; layout(); draw(); }
+    function expand(){ if(level>=maxLevel) return; var cand=[]; for(var b=0;b<beams.length;b++){ var last=beams[b].path[beams[b].path.length-1]; var ks=last.kids; if(!ks.length){ cand.push(beams[b]); continue; } for(var i=0;i<ks.length;i++){ cand.push({path:beams[b].path.concat([ks[i]]), score:beams[b].score+Math.log(ks[i].p)}); } }
+      cand.sort(function(a,b){return b.score-a.score;}); beams=cand.slice(0,width); level++; }
+    // layout: assign x by DFS order of full tree, y by depth
+    var allNodes=[];
+    function layout(){ allNodes=[]; var leafX=0; function dfs(n,depth){ if(!n.kids.length){ n._x=leafX++; } else { var xs=[]; for(var i=0;i<n.kids.length;i++){ dfs(n.kids[i],depth+1); xs.push(n.kids[i]._x); } n._x=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2; } n._d=depth; allNodes.push(n); } dfs(tree,0); }
+    function NX(n){ var maxX=0; for(var i=0;i<allNodes.length;i++)maxX=Math.max(maxX,allNodes[i]._x); return 60+ n._x/(maxX||1) *(Wd-120); }
+    function NY(n){ return 45+ n._d/(maxLevel) *(Ht-110); }
+    function inBeam(n){ for(var b=0;b<beams.length;b++) if(beams[b].path.indexOf(n)>=0) return true; return false; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // edges
+      function edges(n){ for(var i=0;i<n.kids.length;i++){ var k=n.kids[i]; var live=inBeam(n)&&inBeam(k); ctx.strokeStyle=live?'rgba(255,210,77,.9)':'rgba(255,255,255,.12)'; ctx.lineWidth=live?2.5:1; ctx.beginPath(); ctx.moveTo(NX(n),NY(n)); ctx.lineTo(NX(k),NY(k)); ctx.stroke(); edges(k); } }
+      edges(tree);
+      for(var i=0;i<allNodes.length;i++){ var n=allNodes[i]; var live=inBeam(n); var x=NX(n),y=NY(n); ctx.fillStyle= live?'#ffd24d':'#22304e'; if(live){ctx.shadowBlur=12;ctx.shadowColor='#ffd24d';} ctx.beginPath(); ctx.arc(x,y,15,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle=live?'#1a1200':'#9fb0cc'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n.w,x,y); }
+      beams.sort(function(a,b){return b.score-a.score;});
+      var best=beams[0]; var seq=best.path.slice(1).map(function(n){return n.w;}).join(' ')||'—';
+      document.getElementById('bwBest').textContent=best.score.toFixed(2); document.getElementById('bwSeq').textContent=seq||'(start)';
+      var greedyTrapNote = (width===1)?' Greedy is committed to "The …" — the highest-scoring "A dog barks" is unreachable.':(seq.indexOf('dog')>=0?' The wider beam found "A dog barks" — the best sentence, which greedy missed!':'');
+      document.getElementById('bwread').textContent = (level>=maxLevel?'Search complete. Best: “'+seq+'”  (score '+best.score.toFixed(2)+').':'Level '+level+' of '+maxLevel+' — keeping the top '+width+' path'+(width>1?'s':'')+'.')+greedyTrapNote; }
+    function setW(v){ width=v; document.getElementById('bwWv').textContent=v; reset(); }
+    document.getElementById('bwW').addEventListener('input',function(){ setW(+this.value); });
+    document.getElementById('bwStep').addEventListener('click',function(){ expand(); draw(); });
+    document.getElementById('bwAuto').addEventListener('click',function(){ if(autoT){clearInterval(autoT);autoT=null;return;} autoT=setInterval(function(){ if(level>=maxLevel){clearInterval(autoT);autoT=null;return;} expand(); draw(); },700); });
+    document.getElementById('bwReset').addEventListener('click',function(){ if(autoT){clearInterval(autoT);autoT=null;} reset(); });
+    layout(); reset();
+  })();
+  </script></body></html>

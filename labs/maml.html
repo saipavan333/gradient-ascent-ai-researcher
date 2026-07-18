@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meta-Learning (MAML) · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Meta-Learning (MAML)</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Few-Shot Meta-Learning (MAML)</h1>
+        <p>Ordinary training finds weights that are good at <b>one</b> task. Meta-learning finds a <b>starting point</b> that can become good at <b>any new task</b> after just one or two steps. It's learning how to learn fast.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>New task</b> to sample a fresh sine wave (a new "task"), then <b>Adapt (1 step)</b> to fit it from the meta-start with just 5 example points.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">From the <b>meta-learned</b> start (violet), a single gradient step (teal) snaps close to the true curve — because the start was trained to be one step away from every task.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="mmTask">🎲 New task</button>
+        <button class="lab-btn" id="mmAdapt">➜ Adapt (1 step)</button>
+        <button class="lab-btn ghost" id="mmNaive">compare: random start</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="mmErr">—</b><span>fit error after adapt</span></div><div class="s"><b id="mmSteps">meta-trained</b><span>start point</span></div></div>
+      <div class="lab-stage"><span class="badge">violet = start · teal = after 1 step · dots = the 5 examples · grey = true task</span><canvas id="mmcv" width="820" height="440" aria-label="maml"></canvas></div>
+      <div class="lab-readout" id="mmread">Press New task, then Adapt — watch one step be enough.</div>
+      <div class="lab-explain"><b>What's happening:</b> every task here is a sine wave with a random amplitude and phase. <b>MAML</b> searches for one initial set of weights such that, for <em>any</em> task, a single gradient step on a few examples lands near the true curve. So the meta-start isn't good at any one task — it's <em>perfectly poised</em> to become good at all of them fast. Compare with a random start: one step barely moves it. This is the essence of <a href="../lessons/track-16-meta-few-shot-continual/01-maml.html">MAML / few-shot learning</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('mmcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    // model: y = a*sin(x) + b*cos(x)  (2 params). meta-start chosen near mean task (0,0) which is 1 step from any task.
+    var start=[0,0], amp=1, ph=0, examples=[], adapted=null, naive=false, naiveStart=[2.2,-1.8];
+    function truef(x){ return amp*Math.sin(x+ph); }
+    function feat(x){ return [Math.sin(x),Math.cos(x)]; }
+    function newTask(){ amp=0.6+Math.random()*1.6; ph=Math.random()*6.28; examples=[]; for(var i=0;i<5;i++){ var x=-3+Math.random()*6; examples.push([x,truef(x)]); } adapted=null; naive=false; draw(); }
+    function adaptStep(from){ var g=[0,0]; for(var i=0;i<examples.length;i++){ var f=feat(examples[i][0]); var pred=from[0]*f[0]+from[1]*f[1]; var e=pred-examples[i][1]; g[0]+=e*f[0]; g[1]+=e*f[1]; } g[0]=g[0]/examples.length*2; g[1]=g[1]/examples.length*2; var lr=0.9; return [from[0]-lr*g[0], from[1]-lr*g[1]]; }
+    function curveErr(w){ var s=0,n=0; for(var x=-3;x<=3;x+=0.25){ var f=feat(x); var pred=w[0]*f[0]+w[1]*f[1]; var e=pred-truef(x); s+=e*e; n++; } return Math.sqrt(s/n); }
+    function XR(){return 3.3;} var YR=2.6;
+    function DX(x){return (x/XR()+1)/2*Wd;} function DY(y){return (1-(y/YR+1)/2)*Ht;}
+    function plot(w,color,glow){ ctx.strokeStyle=color; ctx.lineWidth=3; if(glow){ctx.shadowBlur=12;ctx.shadowColor=color;} ctx.beginPath(); var first=true; for(var x=-3.3;x<=3.3;x+=0.06){ var f=feat(x); var y=w[0]*f[0]+w[1]*f[1]; var px=DX(x),py=DY(y); if(first){ctx.moveTo(px,py);first=false;}else ctx.lineTo(px,py); } ctx.stroke(); ctx.shadowBlur=0; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); ctx.moveTo(0,DY(0)); ctx.lineTo(Wd,DY(0)); ctx.stroke();
+      // true curve
+      ctx.strokeStyle='rgba(255,255,255,.32)'; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.beginPath(); var f0=true; for(var x=-3.3;x<=3.3;x+=0.06){ var px=DX(x),py=DY(truef(x)); if(f0){ctx.moveTo(px,py);f0=false;}else ctx.lineTo(px,py);} ctx.stroke(); ctx.setLineDash([]);
+      var s0 = naive? naiveStart : start;
+      plot(s0, naive?'#ff7a9c':'#c58bff', true);
+      if(adapted) plot(adapted,'#4fd6b5',true);
+      for(var i=0;i<examples.length;i++){ ctx.fillStyle='#ffd24d'; ctx.shadowBlur=8; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(DX(examples[i][0]),DY(examples[i][1]),5,0,6.2832); ctx.fill(); ctx.shadowBlur=0; }
+      var e = adapted? curveErr(adapted): curveErr(s0);
+      document.getElementById('mmErr').textContent=e.toFixed(3);
+      document.getElementById('mmSteps').textContent = naive?'random':'meta-trained';
+      document.getElementById('mmread').textContent = !adapted?'A new task (grey dashed) with 5 example dots. The violet start sits near flat — poised, not fitted. Press Adapt.':(naive?'From a RANDOM start, one gradient step barely bends toward the task — few-shot fails without a good meta-start.':'One gradient step from the meta-start (teal) lands right on the task. That is what "learning to learn" buys you.'); }
+    document.getElementById('mmTask').addEventListener('click',newTask);
+    document.getElementById('mmAdapt').addEventListener('click',function(){ naive=false; adapted=adaptStep(start); draw(); });
+    document.getElementById('mmNaive').addEventListener('click',function(){ naive=true; adapted=adaptStep(naiveStart); draw(); });
+    newTask();
+  })();
+  </script></body></html>
