@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LoRA · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; LoRA</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>LoRA: Fine-Tuning on a Budget</h1>
+        <p>Fully fine-tuning a giant model means updating every one of its billions of weights. LoRA's insight: the <em>change</em> you need is usually low-rank, so you can express it as the product of two skinny matrices — training a tiny fraction of the parameters while freezing the original model.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the <b>rank r</b>. The full weight-update ΔW (left) is approximated by B·A (right), built from two thin matrices.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Even a small rank reproduces ΔW closely — while training only 2·d·r numbers instead of d². The parameter count plummets with barely any loss.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">rank r <input type="range" id="loR" min="1" max="16" step="1" value="2"><span id="loRv" class="lab-tag">2</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="loParams">—</b><span>LoRA params vs full</span></div><div class="s"><b id="loErr">—</b><span>approximation error</span></div></div>
+      <div class="lab-stage"><span class="badge">left = full update ΔW (d×d) · right = B·A from rank-r factors · far right = the thin B and A</span><canvas id="locv" width="820" height="470" aria-label="lora"></canvas></div>
+      <div class="lab-readout" id="loread">Slide the rank and watch B·A approximate ΔW.</div>
+      <div class="lab-explain"><b>What's happening:</b> instead of learning a full d×d weight update ΔW (that's d² parameters), <b>LoRA</b> freezes the pretrained weights and learns ΔW ≈ B·A, where B is d×r and A is r×d with a small rank r — only 2·d·r parameters. Here we take a target update and show its best rank-r factorization (via its SVD): even r = 2 or 4 captures most of a d = 32 matrix, cutting trainable parameters by an order of magnitude. This works because fine-tuning nudges a model in a few dominant "directions", so the update genuinely lives in a low-rank subspace. The payoff is huge: you can adapt a frozen billion-parameter model by training megabytes, and swap LoRA adapters in and out. This is <a href="../lessons/track-11-efficient-scalable-ml/03-lora.html">Parameter-efficient fine-tuning</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('locv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var d=32, r=2;
+    // build a low-rank-ish target update: sum of a few outer products + small noise
+    var W=[]; (function(){ var s=7; function rnd(){ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; } var comps=4, U=[],V=[],sv=[3.0,1.8,1.0,0.6]; for(var k=0;k<comps;k++){ var u=[],v=[]; for(var i=0;i<d;i++)u.push(rnd()*2-1); for(var j=0;j<d;j++)v.push(rnd()*2-1); U.push(u);V.push(v);} for(var i=0;i<d;i++){ W.push([]); for(var j=0;j<d;j++){ var val=0; for(var k=0;k<comps;k++)val+=sv[k]*U[k][i]*V[k][j]; val+=(rnd()*2-1)*0.15; W[i].push(val); } } })();
+    function svd(Ain,m,nn){ var A=[]; for(var i=0;i<m;i++)A.push(Ain[i].slice()); var Vt=[]; for(var i=0;i<nn;i++){Vt.push(new Array(nn).fill(0));Vt[i][i]=1;}
+      for(var sw=0;sw<60;sw++){ var off=0; for(var p=0;p<nn-1;p++)for(var q=p+1;q<nn;q++){ var al=0,be=0,ga=0; for(var i=0;i<m;i++){var ap=A[i][p],aq=A[i][q];al+=ap*ap;be+=aq*aq;ga+=ap*aq;} off+=Math.abs(ga); if(Math.abs(ga)<1e-14)continue; var z=(be-al)/(2*ga); var t=(z>0?1:-1)/(Math.abs(z)+Math.sqrt(1+z*z)); var c=1/Math.sqrt(1+t*t),sn=c*t; for(var i=0;i<m;i++){var ap=A[i][p],aq=A[i][q];A[i][p]=c*ap-sn*aq;A[i][q]=sn*ap+c*aq;} for(var i=0;i<nn;i++){var vp=Vt[i][p],vq=Vt[i][q];Vt[i][p]=c*vp-sn*vq;Vt[i][q]=sn*vp+c*vq;} } if(off<1e-10)break; }
+      var sig=[],Umat=[]; for(var i=0;i<m;i++)Umat.push(new Array(nn).fill(0)); for(var j=0;j<nn;j++){var nr=0;for(var i=0;i<m;i++)nr+=A[i][j]*A[i][j];nr=Math.sqrt(nr);sig.push(nr);for(var i=0;i<m;i++)Umat[i][j]=nr>1e-12?A[i][j]/nr:0;}
+      var idx=sig.map(function(v,i){return i;}).sort(function(a,b){return sig[b]-sig[a];});
+      return {U:Umat,S:idx.map(function(i){return sig[i];}),Vt:Vt,idx:idx}; }
+    var SV=svd(W,d,d);
+    function approx(r){ var out=[]; for(var i=0;i<d;i++){out.push(new Array(d).fill(0));} for(var kk=0;kk<r;kk++){ var k=SV.idx[kk]; var s=SV.S[kk]; for(var i=0;i<d;i++)for(var j=0;j<d;j++)out[i][j]+=s*SV.U[i][k]*SV.Vt[j][k]; } return out; }
+    function heat(M,px,py,cell){ var mx=0; for(var i=0;i<M.length;i++)for(var j=0;j<M[i].length;j++)mx=Math.max(mx,Math.abs(M[i][j])); mx=mx||1;
+      for(var i=0;i<M.length;i++)for(var j=0;j<M[i].length;j++){ var v=M[i][j]/mx; var r2,g2,b2; if(v>0){r2=Math.round(40+v*60);g2=Math.round(90+v*140);b2=Math.round(200);} else {r2=Math.round(200);g2=Math.round(120+v*60);b2=Math.round(60);} ctx.fillStyle='rgb('+r2+','+g2+','+b2+')'; ctx.fillRect(px+j*cell,py+i*cell,Math.ceil(cell),Math.ceil(cell)); } ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.strokeRect(px,py,M.length*cell,M.length*cell); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var cell=5.4, sz=d*cell, py=70;
+      ctx.fillStyle='#9fb0cc'; ctx.font='13px system-ui'; ctx.textAlign='center';
+      heat(W, 60, py, cell); ctx.fillText('ΔW  (full, d×d = '+(d*d)+' params)',60+sz/2,py-12);
+      var ap=approx(r); heat(ap, 330, py, cell); ctx.fillText('B·A  (rank '+r+')',330+sz/2,py-12);
+      // B and A strips
+      var bx=620; var Bcell=5.4, Bw=r*Bcell;
+      ctx.fillText('B (d×'+r+')',bx+Bw/2,py-12);
+      // draw B (d rows, r cols) and A (r rows, d cols) as small heatmaps from factors
+      var Bm=[],Am=[]; for(var i=0;i<d;i++){Bm.push([]);for(var kk=0;kk<r;kk++){var k=SV.idx[kk];Bm[i].push(Math.sqrt(SV.S[kk])*SV.U[i][k]);}}
+      for(var kk=0;kk<r;kk++){Am.push([]);var k=SV.idx[kk];for(var j=0;j<d;j++)Am[kk].push(Math.sqrt(SV.S[kk])*SV.Vt[j][k]);}
+      heat(Bm,bx,py,Bcell);
+      // A below
+      var ay=py+sz+34; ctx.fillText('A ('+r+'×d)',bx+ (d*Bcell)/2, ay-12);
+      // A heatmap needs its own scaling
+      (function(){ var M=Am, mx=0; for(var i=0;i<M.length;i++)for(var j=0;j<M[i].length;j++)mx=Math.max(mx,Math.abs(M[i][j])); mx=mx||1; for(var i=0;i<M.length;i++)for(var j=0;j<M[i].length;j++){ var v=M[i][j]/mx; var r2,g2,b2; if(v>0){r2=40;g2=Math.round(90+v*140);b2=200;}else{r2=200;g2=Math.round(120+v*60);b2=60;} ctx.fillStyle='rgb('+r2+','+g2+','+b2+')'; ctx.fillRect(bx+j*Bcell, ay+i*Bcell, Math.ceil(Bcell),Math.ceil(Bcell)); } ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.strokeRect(bx,ay,d*Bcell,r*Bcell); })();
+      var err=0,en=0; for(var i=0;i<d;i++)for(var j=0;j<d;j++){ err+=(ap[i][j]-W[i][j])*(ap[i][j]-W[i][j]); en+=W[i][j]*W[i][j]; } var rel=Math.sqrt(err/en)*100;
+      var full=d*d, lora=2*d*r; document.getElementById('loParams').textContent=lora+' vs '+full+'  ('+(lora/full*100).toFixed(0)+'%)'; document.getElementById('loErr').textContent=rel.toFixed(1)+'%';
+      document.getElementById('loread').textContent = 'Rank '+r+': B·A uses '+lora+' parameters instead of '+full+' ('+(100-lora/full*100).toFixed(0)+'% fewer) and reconstructs ΔW to within '+rel.toFixed(1)+'%. Fine-tuning really is low-rank.'; }
+    document.getElementById('loR').addEventListener('input',function(){ r=+this.value; document.getElementById('loRv').textContent=r; draw(); });
+    draw();
+  })();
+  </script></body></html>

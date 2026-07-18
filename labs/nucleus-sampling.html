@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Top-k & Nucleus Sampling · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Top-k & Nucleus Sampling</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Top-k &amp; Nucleus (Top-p) Sampling</h1>
+        <p>Temperature reshapes the whole distribution; <b>truncation</b> sampling instead chops off the unlikely tail before sampling, so the model never blurts out something absurd. Top-k keeps a fixed number of candidates; top-p (nucleus) keeps just enough to cover a probability budget — adapting to how confident the model is.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Switch between <b>top-k</b> and <b>top-p</b> and move the slider. The kept tokens light up; the rest are cut and the remainder is renormalized.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Top-k always keeps the same count. Top-p keeps <em>few</em> tokens when the model is confident and <em>many</em> when it's unsure — the adaptive behavior that makes nucleus sampling the default.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="nsK">top-k</button>
+        <button class="lab-btn ghost" id="nsP">top-p (nucleus)</button>
+        <label class="lab-ctl"><span id="nsLbl">k</span> <input type="range" id="nsV" min="1" max="20" step="1" value="5"><span id="nsVv" class="lab-tag">5</span></label>
+        <button class="lab-btn ghost" id="nsData">🎲 new distribution</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="nsKept">—</b><span>tokens kept</span></div><div class="s"><b id="nsCov">—</b><span>probability covered</span></div></div>
+      <div class="lab-stage"><span class="badge">gold = kept (sampled from) · dim = cut · purple line = cumulative probability</span><canvas id="nscv" width="820" height="450" aria-label="nucleus sampling"></canvas></div>
+      <div class="lab-readout" id="nsread">Pick a method and slide the cutoff.</div>
+      <div class="lab-explain"><b>What's happening:</b> the model outputs a probability for every possible next token (sorted tallest-first here). <b>Top-k</b> keeps the k most-likely tokens and zeroes the rest. <b>Top-p / nucleus</b> instead walks down the sorted list adding probabilities until the running total reaches p, then keeps exactly that set — the "nucleus". Either way the survivors are renormalized to sum to 1 and one is sampled. The key difference: top-k's count is fixed regardless of shape, so it can keep junk when the model is unsure or cut good options when it's confident; top-p adapts its count to the distribution, which is why it (often with a little temperature) is the standard decoding recipe. This is <a href="../lessons/track-10-large-language-models/03-decoding.html">Decoding strategies</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('nscv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var mode='k', val=5, probs=[];
+    function gen(){ var n=20; var raw=[]; var s=1+Math.random()*2; for(var i=0;i<n;i++)raw.push(Math.exp(-i/s)*(0.6+Math.random()*0.8)); raw.sort(function(a,b){return b-a;}); var Z=raw.reduce(function(a,b){return a+b;},0); probs=raw.map(function(r){return r/Z;}); }
+    function keptSet(){ if(mode==='k'){ var kept=[]; for(var i=0;i<probs.length;i++)kept.push(i<val); return kept; } else { var p=val/100; var kept=new Array(probs.length).fill(false); var cum=0; for(var i=0;i<probs.length;i++){ kept[i]=true; cum+=probs[i]; if(cum>=p)break; } return kept; } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      var pad=50, baseY=Ht-70, top=50, w=Wd-pad*2, h=baseY-top, n=probs.length, bw=w/n;
+      var mx=Math.max.apply(null,probs);
+      var kept=keptSet(); var cov=0,cnt=0; for(var i=0;i<n;i++)if(kept[i]){cov+=probs[i];cnt++;}
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(pad+w,baseY); ctx.stroke();
+      // bars
+      for(var i=0;i<n;i++){ var bh=probs[i]/mx*h; var x=pad+i*bw; var c= kept[i]?'#ffd24d':'#33415e'; ctx.fillStyle=c; if(kept[i]){ctx.shadowBlur=8;ctx.shadowColor='#ffd24d';} ctx.fillRect(x,baseY-bh,bw*0.8,bh); ctx.shadowBlur=0; }
+      // cumulative line
+      var cum=0; ctx.strokeStyle='#c58bff'; ctx.lineWidth=2; ctx.beginPath(); for(var i=0;i<n;i++){ cum+=probs[i]; var x=pad+i*bw+bw*0.4, y=baseY-cum*h/ (1) ; y=baseY-cum*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke();
+      if(mode==='p'){ var py=baseY-(val/100)*h; ctx.strokeStyle='rgba(200,139,255,.6)'; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(pad,py); ctx.lineTo(pad+w,py); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#c58bff'; ctx.font='11px system-ui'; ctx.textAlign='left'; ctx.fillText('p = '+(val/100).toFixed(2),pad+4,py-5); }
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText('tokens (sorted by probability) →',pad+w/2,baseY+40);
+      document.getElementById('nsKept').textContent=cnt; document.getElementById('nsCov').textContent=(cov*100).toFixed(0)+'%';
+      document.getElementById('nsread').textContent = mode==='k'? 'top-k with k='+val+': always keeps '+cnt+' tokens ('+(cov*100).toFixed(0)+'% of the mass), no matter the shape.' : 'top-p with p='+(val/100).toFixed(2)+': kept '+cnt+' tokens to reach '+(cov*100).toFixed(0)+'% — that count shrinks when the model is confident and grows when it isn’t.'; }
+    function setMode(m){ mode=m; document.getElementById('nsK').className='lab-btn'+(m==='k'?'':' ghost'); document.getElementById('nsP').className='lab-btn'+(m==='p'?'':' ghost');
+      var sl=document.getElementById('nsV'); if(m==='k'){ sl.min=1;sl.max=20;sl.step=1; val=5; sl.value=5; document.getElementById('nsLbl').textContent='k'; document.getElementById('nsVv').textContent='5'; } else { sl.min=10;sl.max=100;sl.step=5; val=80; sl.value=80; document.getElementById('nsLbl').textContent='p%'; document.getElementById('nsVv').textContent='80'; } draw(); }
+    document.getElementById('nsK').addEventListener('click',function(){ setMode('k'); });
+    document.getElementById('nsP').addEventListener('click',function(){ setMode('p'); });
+    document.getElementById('nsV').addEventListener('input',function(){ val=+this.value; document.getElementById('nsVv').textContent=this.value; draw(); });
+    document.getElementById('nsData').addEventListener('click',function(){ gen(); draw(); });
+    gen(); draw();
+  })();
+  </script></body></html>
