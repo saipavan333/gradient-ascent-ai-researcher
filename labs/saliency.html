@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Saliency Maps · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Saliency Maps</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Saliency: What Is the Model Looking At?</h1>
+        <p>A model gives an answer — but <em>why</em>? A saliency map highlights which input pixels actually pushed the decision, by asking how much each one contributed. It's a first window into interpretability: seeing where the model's attention really lands.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Paint pixels on the left (click-drag) to build an input. The right panel lights up the pixels the model relied on.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Only pixels in the region the model cares about drive the score up; painting elsewhere barely moves it and stays dark in the saliency map. That's the model's "gaze" made visible.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn ghost" id="saClear">clear</button>
+        <button class="lab-btn ghost" id="saEg">example</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="saScore">—</b><span>model score (is the “object” present?)</span></div></div>
+      <div class="lab-stage"><span class="badge">left = your input (paint here) · right = saliency (bright = pixel mattered to the score)</span><canvas id="sacv" width="820" height="450" aria-label="saliency"></canvas></div>
+      <div class="lab-readout" id="saread">Paint some pixels and watch the saliency map.</div>
+      <div class="lab-explain"><b>What's happening:</b> the model scores the image with s = σ(Σᵢ wᵢ·xᵢ + b) — a weight wᵢ for every pixel. The <b>saliency</b> of a pixel is its contribution wᵢ·xᵢ (the classic "input × gradient" method; for this linear model the gradient of the score w.r.t. pixel i is just wᵢ). Pixels the model was trained to care about have large weights, so painting them lights up the saliency map and drives the score; painting ignored pixels changes little and stays dark. Real saliency does the same for deep nets by back-propagating the output to the input — a quick, imperfect check of whether a model is "looking" at the right evidence or exploiting a spurious shortcut. This is <a href="../lessons/track-14-ai-safety-interpretability/02-saliency.html">Interpretability &amp; saliency</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('sacv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var G=16; var x=[], w=[]; var bias=-3.2;
+    for(var i=0;i<G*G;i++)x.push(0);
+    // weights: model detects a diagonal stroke through the middle (positive), penalizes corners
+    for(var r=0;r<G;r++)for(var c=0;c<G;c++){ var onDiag=Math.abs(r-c)<=1.4; var mid=(r>3&&r<12&&c>3&&c<12); w.push( onDiag&&mid? 1.4 : (mid?0.15:-0.05) ); }
+    var cell=Math.min((Wd/2-70)/G,(Ht-100)/G), ax=40, bx=Wd/2+30, ay=60;
+    function AX(c){return ax+c*cell;} function BX(c){return bx+c*cell;}
+    function score(){ var s=bias; for(var i=0;i<x.length;i++)s+=w[i]*x[i]; return 1/(1+Math.exp(-s)); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.fillStyle='#9fb0cc'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.fillText('input',ax+G*cell/2,ay-14); ctx.fillText('saliency (input × weight)',bx+G*cell/2,ay-14);
+      var maxSal=0.01; for(var i=0;i<x.length;i++)maxSal=Math.max(maxSal,Math.abs(w[i]*x[i]));
+      for(var r=0;r<G;r++)for(var c=0;c<G;c++){ var i=r*G+c;
+        // input
+        ctx.fillStyle= x[i]>0? '#dfe8ff':'#141c2e'; ctx.fillRect(AX(c),ay+r*cell,cell-1,cell-1);
+        // saliency
+        var sal=w[i]*x[i]/maxSal; var col; if(sal>0){ col='rgba('+Math.round(255)+','+Math.round(200-sal*40)+','+Math.round(60)+','+(0.15+sal*0.85)+')'; } else if(sal<0){ col='rgba(90,150,255,'+(0.1+(-sal)*0.6)+')'; } else col='rgba(255,255,255,.03)'; ctx.fillStyle=col; ctx.fillRect(BX(c),ay+r*cell,cell-1,cell-1); }
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.strokeRect(ax,ay,G*cell,G*cell); ctx.strokeRect(bx,ay,G*cell,G*cell);
+      var s=score(); document.getElementById('saScore').textContent=(s*100).toFixed(0)+'%';
+      document.getElementById('saread').textContent = s>0.6? 'Score '+(s*100).toFixed(0)+'% — the model is confident. Notice the saliency lit up along the diagonal: that’s the evidence it used.' : 'Score '+(s*100).toFixed(0)+'%. Paint along the central diagonal to trigger the model — those are the pixels its weights favour.'; }
+    function paint(e,val){ var r=cv.getBoundingClientRect(); var mx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(cv.width/r.width), my=((e.touches?e.touches[0].clientY:e.clientY)-r.top)*(cv.height/r.height);
+      var c=Math.floor((mx-ax)/cell), rr=Math.floor((my-ay)/cell); if(c>=0&&c<G&&rr>=0&&rr<G){ x[rr*G+c]=val; draw(); } }
+    var painting=false, pv=1;
+    cv.addEventListener('mousedown',function(e){ painting=true; var r=cv.getBoundingClientRect(); var mx=((e.clientX)-r.left)*(cv.width/r.width); pv = mx< Wd/2 ? 1:1; paint(e,1); });
+    cv.addEventListener('mousemove',function(e){ if(painting)paint(e,1); });
+    window.addEventListener('mouseup',function(){ painting=false; });
+    document.getElementById('saClear').addEventListener('click',function(){ for(var i=0;i<x.length;i++)x[i]=0; draw(); });
+    document.getElementById('saEg').addEventListener('click',function(){ for(var i=0;i<x.length;i++)x[i]=0; for(var k=4;k<12;k++){ x[k*G+k]=1; if(k+1<G)x[k*G+k+1]=1; } draw(); });
+    // start with example
+    for(var k=4;k<12;k++){ x[k*G+k]=1; if(k+1<G)x[k*G+k+1]=1; }
+    draw();
+  })();
+  </script></body></html>

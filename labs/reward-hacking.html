@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reward Hacking · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Reward Hacking</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Reward Hacking &amp; Goodhart's Law</h1>
+        <p>"When a measure becomes a target, it ceases to be a good measure." We can rarely specify exactly what we want, so we optimize a <em>proxy</em> — and a capable optimizer will happily push that proxy to the moon while the thing we actually cared about quietly collapses.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Drag <b>optimization pressure</b> up (or press <b>Optimize</b>) — the agent pours effort into maximizing the measurable proxy reward.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">The proxy (gold) keeps climbing, but the true objective (green) rises only for a while, then <b>turns and falls</b>. Past the divergence point, optimizing harder actively makes things worse.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">optimization pressure <input type="range" id="rhP" min="0" max="1" step="0.01" value="0"><span id="rhPv" class="lab-tag">0.00</span></label>
+        <button class="lab-btn" id="rhAuto">⏩ Optimize</button>
+        <button class="lab-btn ghost" id="rhReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rhProxy">—</b><span>proxy reward (what we measure)</span></div><div class="s"><b id="rhTrue">—</b><span>true objective (what we want)</span></div></div>
+      <div class="lab-stage"><span class="badge">gold = proxy reward (optimized) · green = true objective · dashed = where they diverge</span><canvas id="rhcv" width="820" height="450" aria-label="reward hacking"></canvas></div>
+      <div class="lab-readout" id="rhread">Turn up the optimization pressure.</div>
+      <div class="lab-explain"><b>What's happening:</b> the proxy and the true objective agree at first — early optimization improves both. But the proxy is only a <em>correlate</em> of what we want, and beyond some point the cheapest way to raise the proxy is to exploit the gap between them (the classic "cleaning robot that hides dust instead of removing it"). So the true objective peaks at the <b>divergence point</b> and then declines even as the proxy keeps rising — <b>Goodhart's law</b> in one curve. This is why reward design, and stopping over-optimization (e.g. KL penalties in RLHF, early stopping, human oversight), is central to <a href="../lessons/track-14-ai-safety-interpretability/03-reward-hacking.html">AI safety</a>. It's also why a higher benchmark score isn't always a better model.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rhcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var p=0, raf=null;
+    function proxy(t){ return 1-Math.exp(-3.2*t); }
+    function truev(t){ return Math.max(0, 3.1*t*Math.exp(-2.4*t)); }
+    var diverge=1/2.4; // peak of true objective (d/dt (t e^-kt)=0 at t=1/k)
+    function AX(t){ return 60+t*(Wd-110); } var VMAX=1.05; function VY(v){ return Ht-60-v/VMAX*(Ht-110); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(60,Ht-60); ctx.lineTo(Wd-50,Ht-60); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='12px system-ui'; ctx.textAlign='center'; ctx.fillText('optimization pressure  →',Wd/2,Ht-28);
+      // divergence line
+      ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(AX(diverge),40); ctx.lineTo(AX(diverge),Ht-60); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillText('divergence',AX(diverge),34);
+      function curve(fn,color){ ctx.strokeStyle=color; ctx.lineWidth=3; ctx.shadowBlur=8; ctx.shadowColor=color; ctx.beginPath(); var first=true; for(var t=0;t<=1.001;t+=0.005){ if(first){ctx.moveTo(AX(t),VY(fn(t)));first=false;}else ctx.lineTo(AX(t),VY(fn(t))); } ctx.stroke(); ctx.shadowBlur=0; }
+      curve(proxy,'#ffd24d'); curve(truev,'#2fbf6f');
+      // fill region past divergence where true is falling
+      ctx.fillStyle='rgba(208,72,90,.10)'; ctx.fillRect(AX(diverge),40,AX(1)-AX(diverge),Ht-100);
+      // markers at current p
+      [['#ffd24d',proxy(p)],['#2fbf6f',truev(p)]].forEach(function(m){ ctx.fillStyle=m[0]; ctx.shadowBlur=12; ctx.shadowColor=m[0]; ctx.beginPath(); ctx.arc(AX(p),VY(m[1]),7,0,6.2832); ctx.fill(); ctx.shadowBlur=0; });
+      ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.beginPath(); ctx.moveTo(AX(p),40); ctx.lineTo(AX(p),Ht-60); ctx.stroke();
+      // labels
+      ctx.fillStyle='#ffd24d'; ctx.textAlign='left'; ctx.fillText('proxy',AX(1)+4,VY(proxy(1))); ctx.fillStyle='#2fbf6f'; ctx.fillText('true',AX(1)+4,VY(truev(1)));
+      document.getElementById('rhProxy').textContent=proxy(p).toFixed(2); document.getElementById('rhTrue').textContent=truev(p).toFixed(2);
+      document.getElementById('rhread').textContent = p<diverge*0.8? 'Early on both rise together — optimizing the proxy really does help ('+ 'true '+truev(p).toFixed(2)+').' : (p>diverge? 'Past the divergence point: proxy is still climbing ('+proxy(p).toFixed(2)+') but the TRUE objective has fallen to '+truev(p).toFixed(2)+'. The optimizer is now gaming the measure — reward hacking.' : 'Near the divergence point — the true objective is about to peak. Push further and it will start to drop.'); }
+    document.getElementById('rhP').addEventListener('input',function(){ p=+this.value; document.getElementById('rhPv').textContent=p.toFixed(2); draw(); });
+    document.getElementById('rhAuto').addEventListener('click',function(){ if(raf){cancelAnimationFrame(raf);raf=null;this.textContent='⏩ Optimize';return;} this.textContent='⏸ Pause'; var self=this; (function go(){ p=Math.min(1,p+0.006); document.getElementById('rhP').value=p; document.getElementById('rhPv').textContent=p.toFixed(2); draw(); if(p<1)raf=requestAnimationFrame(go); else {raf=null;self.textContent='⏩ Optimize';} })(); });
+    document.getElementById('rhReset').addEventListener('click',function(){ if(raf){cancelAnimationFrame(raf);raf=null;} p=0; document.getElementById('rhP').value=0; document.getElementById('rhPv').textContent='0.00'; document.getElementById('rhAuto').textContent='⏩ Optimize'; draw(); });
+    draw();
+  })();
+  </script></body></html>
