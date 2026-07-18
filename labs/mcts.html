@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monte Carlo Tree Search · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Monte Carlo Tree Search</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Monte Carlo Tree Search</h1>
+        <p>You can't search a whole game tree — it's astronomically large. MCTS, the algorithm behind AlphaGo, grows the tree <em>selectively</em>: it spends its effort on the most promising moves, using quick random playouts to estimate how good each one is, and lets the winners attract more attention.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Press <b>Rollout</b> (or <b>Auto</b>) to run one search iteration: select a branch, simulate a random playout, and back up the result.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">Nodes grow with visits. The search quickly stops wasting time on weak branches and pours rollouts into the best line — its size shows the move it now recommends.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="mtStep">▶ Rollout</button>
+        <button class="lab-btn" id="mtAuto">⏩ Auto</button>
+        <label class="lab-ctl">exploration C <input type="range" id="mtC" min="0.2" max="2" step="0.1" value="1"><span id="mtCv" class="lab-tag">1.0</span></label>
+        <button class="lab-btn ghost" id="mtReset">↺ reset</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="mtN">0</b><span>rollouts</span></div><div class="s"><b id="mtBest">—</b><span>recommended move</span></div></div>
+      <div class="lab-stage"><span class="badge">node size = visits · number = average value · gold path = current best line</span><canvas id="mtcv" width="820" height="470" aria-label="mcts"></canvas></div>
+      <div class="lab-readout" id="mtread">Press Rollout to grow the search tree.</div>
+      <div class="lab-explain"><b>What's happening:</b> each rollout runs four steps. <b>Select</b>: from the root, walk down by picking the child with the best UCB score — average value + C·√(ln N / n) — which balances <em>exploiting</em> good moves against <em>exploring</em> rarely-tried ones. <b>Expand</b> a new node, <b>simulate</b> a fast (here random) playout to a result, and <b>back-propagate</b> that result up the path, bumping every ancestor's visit count and value. Over many rollouts the visit counts concentrate on the strongest line, and the most-visited child of the root becomes the recommended move. Swap the random playout for a neural network's value estimate and you have the core of AlphaGo/AlphaZero. This is <a href="../lessons/track-15-frontier-architectures-agents/03-mcts.html">Monte Carlo Tree Search</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('mtcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var C=1.0, nRoll=0;
+    // fixed tree: root -> 3 moves -> each 3 replies (leaves) with hidden true win-rates
+    var trueVals=[[0.35,0.42,0.30],[0.72,0.65,0.80],[0.48,0.40,0.55]]; // move2 is best
+    var root;
+    function mk(){ root={v:0,n:0,kids:[]}; for(var a=0;a<3;a++){ var c={v:0,n:0,kids:[],mi:a}; for(var b=0;b<3;b++){ c.kids.push({v:0,n:0,kids:[],leaf:trueVals[a][b],mi:a,mj:b}); } root.kids.push(c); } }
+    function ucb(node,parentN){ if(node.n===0)return 1e9; return node.v/node.n + C*Math.sqrt(Math.log(parentN+1)/node.n); }
+    function rollout(){ var path=[root]; var node=root;
+      // select to a leaf level
+      while(node.kids.length>0){ var best=null,bv=-1e9; for(var i=0;i<node.kids.length;i++){ var u=ucb(node.kids[i],node.n); if(u>bv){bv=u;best=node.kids[i];} } node=best; path.push(node); }
+      // simulate: leaf has true win prob -> sample result
+      var reward = Math.random()< node.leaf ? 1:0;
+      for(var i=0;i<path.length;i++){ path[i].n++; path[i].v+=reward; }
+      nRoll++; }
+    function layout(){ // positions
+      var y0=60,y1=Ht/2-10,y2=Ht-90; root.x=Wd/2; root.y=y0;
+      for(var a=0;a<3;a++){ var c=root.kids[a]; c.x=Wd*(0.24+a*0.26); c.y=y1; for(var b=0;b<3;b++){ var g=c.kids[b]; g.x=c.x-70+b*70; g.y=y2; } } }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht); layout();
+      // best line (most visited)
+      var bestMove=-1,bmv=-1; for(var a=0;a<3;a++)if(root.kids[a].n>bmv){bmv=root.kids[a].n;bestMove=a;}
+      function edge(p,c,gold){ ctx.strokeStyle=gold?'rgba(255,210,77,.85)':'rgba(255,255,255,.15)'; ctx.lineWidth=gold?3:1.2; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(c.x,c.y); ctx.stroke(); }
+      for(var a=0;a<3;a++){ var c=root.kids[a]; edge(root,c,a===bestMove&&nRoll>0); var bestReply=-1,brv=-1; for(var b=0;b<3;b++)if(c.kids[b].n>brv){brv=c.kids[b].n;bestReply=b;} for(var b=0;b<3;b++){ edge(c,c.kids[b], a===bestMove&&b===bestReply&&nRoll>0); } }
+      function node(nd,r0){ var vis=nd.n; var rad=r0+Math.sqrt(vis)*2.2; var q= vis>0? nd.v/nd.n:0; var c= vis>0? 'rgb('+Math.round(90+ (1-q)*150)+','+Math.round(90+q*140)+',90)':'#26324a'; ctx.fillStyle=c; ctx.shadowBlur=vis>0?8:0; ctx.shadowColor=c; ctx.beginPath(); ctx.arc(nd.x,nd.y,Math.min(rad,34),0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#eaf0ff'; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; if(vis>0)ctx.fillText((nd.v/nd.n).toFixed(2),nd.x,nd.y); ctx.textBaseline='alphabetic'; ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='10px system-ui'; ctx.fillText(vis+'n',nd.x,nd.y+ Math.min(rad,34)+12); }
+      node(root,14); for(var a=0;a<3;a++){ node(root.kids[a],11); for(var b=0;b<3;b++)node(root.kids[a].kids[b],8); }
+      ctx.fillStyle='#9fb0cc'; ctx.font='11px system-ui'; ctx.textAlign='center'; for(var a=0;a<3;a++)ctx.fillText('move '+(a+1),root.kids[a].x,root.kids[a].y-42);
+      document.getElementById('mtN').textContent=nRoll; document.getElementById('mtBest').textContent= nRoll>0? ('move '+(bestMove+1)+' ('+(root.kids[bestMove].v/Math.max(1,root.kids[bestMove].n)).toFixed(2)+')'):'—';
+      document.getElementById('mtread').textContent = nRoll===0? 'Empty tree. Each rollout selects a branch, plays it out, and backs up the win/loss.' : (nRoll>40? 'After '+nRoll+' rollouts the search has concentrated on move '+(bestMove+1)+' — the true best line — giving it far more visits than the weak branches.' : nRoll+' rollouts: visit counts are starting to favour the stronger moves (move '+(bestMove+1)+' leads).'); }
+    function stop(){ if(window._mtraf){cancelAnimationFrame(window._mtraf);window._mtraf=null;} document.getElementById('mtAuto').textContent='⏩ Auto'; }
+    function loop(){ rollout(); draw(); if(nRoll>=120){stop();return;} window._mtraf=requestAnimationFrame(function(){ setTimeout(loop,90); }); }
+    document.getElementById('mtStep').addEventListener('click',function(){ rollout(); draw(); });
+    document.getElementById('mtAuto').addEventListener('click',function(){ if(window._mtraf){stop();return;} document.getElementById('mtAuto').textContent='⏸ Pause'; loop(); });
+    document.getElementById('mtC').addEventListener('input',function(){ C=+this.value; document.getElementById('mtCv').textContent=C.toFixed(1); });
+    document.getElementById('mtReset').addEventListener('click',function(){ stop(); mk(); nRoll=0; draw(); });
+    mk(); draw();
+  })();
+  </script></body></html>
