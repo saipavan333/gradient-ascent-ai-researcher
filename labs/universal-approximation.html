@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Universal Approximation · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; Universal Approximation</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Universal Approximation</h1>
+        <p>The universal approximation theorem says a neural network with enough hidden units can fit <em>any</em> continuous function. The mechanism is beautifully concrete: each ReLU neuron contributes one "kink", and stacking enough kinks bends a straight line into any shape you want.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Slide the number of <b>hidden units</b> (ReLU kinks) and watch the network's fit chase the wiggly target.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">A few units give a crude piecewise-linear sketch; add more and the fit hugs the curve. Each unit adds exactly one bend — the faint lines are the individual ReLUs being summed.</div></div>
+      </div>
+      <div class="lab-controls">
+        <label class="lab-ctl">hidden units <input type="range" id="uaK" min="1" max="40" step="1" value="6"><span id="uaKv" class="lab-tag">6</span></label>
+        <button class="lab-btn ghost" id="uaPieces">show/hide pieces</button>
+        <button class="lab-btn ghost" data-t="0">target: wave</button>
+        <button class="lab-btn ghost" data-t="1">target: step+bump</button>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="uaErr">—</b><span>fit error (lower = closer)</span></div><div class="s"><b id="uaK2">6</b><span>ReLU kinks in use</span></div></div>
+      <div class="lab-stage"><span class="badge">white = target function · gold = network’s fit · faint = individual ReLU units summed</span><canvas id="uacv" width="820" height="460" aria-label="universal approximation"></canvas></div>
+      <div class="lab-readout" id="uaread">Slide the number of hidden units.</div>
+      <div class="lab-explain"><b>What's happening:</b> the network is f(x) = w₀ + w·x + Σₖ wₖ · relu(x − tₖ), a sum of K ReLU units with kinks placed across the input range, and we solve for the output weights by least squares to best match the target. Each relu(x − tₖ) is flat then rises, so adding it bends the output at tₖ — with K kinks you get a piecewise-linear curve of K+1 segments that can approximate any continuous shape as closely as you like by increasing K. That's the universal approximation theorem made visible: depth and width buy you expressive power, and "enough neurons" really can fit anything (learning the right weights is the separate, harder story). This is <a href="../lessons/track-04-deep-learning/01-mlp.html">Neural networks &amp; MLPs</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('uacv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var K=6, showP=false, tgt=0;
+    function target(x){ return tgt===0? (Math.sin(3.1*x)+0.4*Math.sin(7*x)) : ( (x<-0.1?-0.7:0.7) + 0.9*Math.exp(-12*(x-0.4)*(x-0.4)) - 0.3 ); }
+    function solve(M,b){ var nn=b.length; var A=M.map(function(r,i){return r.concat([b[i]]);}); for(var c=0;c<nn;c++){ var piv=c; for(var r=c+1;r<nn;r++)if(Math.abs(A[r][c])>Math.abs(A[piv][c]))piv=r; var t=A[c];A[c]=A[piv];A[piv]=t; var d=A[c][c]; if(Math.abs(d)<1e-12)d=1e-12; for(var j=c;j<=nn;j++)A[c][j]/=d; for(var r=0;r<nn;r++)if(r!==c){var f=A[r][c];for(var j=c;j<=nn;j++)A[r][j]-=f*A[c][j];} } return A.map(function(r){return r[nn];}); }
+    var Xs=[]; for(var i=0;i<160;i++)Xs.push(-1+2*i/159);
+    function feats(x,K){ var f=[1,x]; for(var k=0;k<K;k++){ var t=-1+2*(k+1)/(K+1); f.push(Math.max(0,x-t)); } return f; }
+    function fit(K){ var P=2+K; var ys=Xs.map(target); var G=[],rhs=[]; var F=Xs.map(function(x){return feats(x,K);});
+      for(var a=0;a<P;a++){ G.push([]); for(var b2=0;b2<P;b2++){ var s=0; for(var i=0;i<Xs.length;i++)s+=F[i][a]*F[i][b2]; G[a].push(s+1e-4*(a===b2?1:0)); } var r=0; for(var i=0;i<Xs.length;i++)r+=F[i][a]*ys[i]; rhs.push(r); }
+      return solve(G,rhs); }
+    function PX(x){ return 44+(x+1)/2*(Wd-88); } var YMIN=-1.9,YMAX=1.9; function PY(y){ return 30+(YMAX-y)/(YMAX-YMIN)*(Ht-90); }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.moveTo(0,PY(0)); ctx.lineTo(Wd,PY(0)); ctx.stroke();
+      var w=fit(K);
+      // individual pieces
+      if(showP){ for(var k=0;k<K;k++){ var t=-1+2*(k+1)/(K+1); ctx.strokeStyle='rgba(127,224,255,.22)'; ctx.lineWidth=1; ctx.beginPath(); var f0=true; for(var xi=0;xi<Xs.length;xi++){ var x=Xs[xi]; var y=w[2+k]*Math.max(0,x-t); var px=PX(x),py=PY(y); if(f0){ctx.moveTo(px,py);f0=false;}else ctx.lineTo(px,py);} ctx.stroke(); } }
+      // target
+      ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=3; ctx.beginPath(); for(var xi=0;xi<Xs.length;xi++){ var x=Xs[xi],y=target(x); if(xi===0)ctx.moveTo(PX(x),PY(y)); else ctx.lineTo(PX(x),PY(y)); } ctx.stroke();
+      // fit
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor='#ffd24d'; ctx.beginPath(); var err=0; for(var xi=0;xi<Xs.length;xi++){ var x=Xs[xi]; var ff=feats(x,K); var y=0; for(var a=0;a<ff.length;a++)y+=w[a]*ff[a]; err+=(y-target(x))*(y-target(x)); if(xi===0)ctx.moveTo(PX(x),PY(y)); else ctx.lineTo(PX(x),PY(y)); } ctx.stroke(); ctx.shadowBlur=0; err=Math.sqrt(err/Xs.length);
+      // kink markers
+      for(var k=0;k<K;k++){ var t=-1+2*(k+1)/(K+1); ctx.fillStyle='rgba(127,224,255,.5)'; ctx.beginPath(); ctx.arc(PX(t),PY(0),2.5,0,6.2832); ctx.fill(); }
+      document.getElementById('uaErr').textContent=err.toFixed(3); document.getElementById('uaK2').textContent=K;
+      document.getElementById('uaread').textContent = K<=3? K+' units: only '+(K+1)+' straight segments — a rough sketch (error '+err.toFixed(2)+').' : (err<0.08? K+' units: the fit hugs the target (error '+err.toFixed(3)+'). Enough kinks approximate any shape.' : K+' units: '+(K+1)+' segments closing in (error '+err.toFixed(2)+'). Add more units to sharpen it.'); }
+    document.getElementById('uaK').addEventListener('input',function(){ K=+this.value; document.getElementById('uaKv').textContent=K; draw(); });
+    document.getElementById('uaPieces').addEventListener('click',function(){ showP=!showP; draw(); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-t]'),function(btn){ btn.addEventListener('click',function(){ tgt=+btn.getAttribute('data-t'); draw(); }); });
+    draw();
+  })();
+  </script></body></html>
