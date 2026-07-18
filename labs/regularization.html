@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>L1 vs L2 Regularization · Interactive Labs</title>
+<link rel="icon" type="image/svg+xml" href="../assets/img/logo-ascent.svg" />
+<link rel="stylesheet" href="../assets/css/style.css" /><link rel="stylesheet" href="../assets/css/labs.css" /></head>
+<body><aside id="sidebar"></aside><main><div class="lab-wrap">
+<div class="crumb"><a href="../labs.html">Interactive Labs</a> &nbsp;›&nbsp; L1 vs L2 Regularization</div>
+      <section class="lab-hero"><div class="kicker">Flagship Lab</div><h1>Regularization: Why L1 Makes Things Sparse</h1>
+        <p>Adding a penalty on the size of the weights keeps a model from over-fitting — but the <em>shape</em> of the penalty matters. L2 (ridge) gently shrinks every weight; L1 (lasso) drives some weights exactly to zero, doing feature selection for free. This one picture explains why.</p></section>
+      <div class="lab-guide">
+        <div class="g do"><div class="gk">▸ Do this</div><div class="gv">Toggle <b>L1</b> vs <b>L2</b> and raise the penalty <b>λ</b>. Watch the solution dot move from the unregularized best fit toward the origin.</div></div>
+        <div class="g see"><div class="gk">◈ You'll see</div><div class="gv">L2's penalty region is a circle, so the solution shrinks smoothly with both weights alive. L1's region is a diamond — its pointy corners sit on the axes, so the solution snaps onto an axis and a weight becomes exactly 0.</div></div>
+      </div>
+      <div class="lab-controls">
+        <button class="lab-btn" id="rgL1">L1 (lasso)</button>
+        <button class="lab-btn ghost" id="rgL2">L2 (ridge)</button>
+        <label class="lab-ctl">penalty λ <input type="range" id="rgLam" min="0" max="4" step="0.05" value="0.9"><span id="rgLamv" class="lab-tag">0.90</span></label>
+      </div>
+      <div class="lab-stat"><div class="s"><b id="rgW">—</b><span>solution weights (w₁, w₂)</span></div><div class="s"><b id="rgSp">—</b><span>sparsity</span></div></div>
+      <div class="lab-stage"><span class="badge">blue rings = data-fit loss · gold region = penalty budget · dot = regularized solution</span><canvas id="rgcv" width="820" height="470" aria-label="regularization"></canvas></div>
+      <div class="lab-readout" id="rgread">Toggle L1/L2 and raise λ.</div>
+      <div class="lab-explain"><b>What's happening:</b> training minimizes data-fit loss (the blue elliptical rings, centered on the unpenalized best fit w★) <em>plus</em> λ times a penalty on the weights. Geometrically, the solution is where a loss ring first touches the penalty "budget" region. <b>L2</b> penalizes w₁²+w₂² — a round region, so the contact point slides smoothly and both weights stay nonzero (shrinkage). <b>L1</b> penalizes |w₁|+|w₂| — a diamond whose corners lie <em>on the axes</em>, so the first contact is usually a corner, forcing a weight to exactly 0. That's why L1 yields sparse, self-selecting models. Bigger λ = smaller budget = more shrinkage. This is <a href="../lessons/track-04-deep-learning/04-regularization.html">Regularization</a>.</div>
+      <div class="pager" style="margin-top:2rem"><a href="../labs.html">← All Interactive Labs</a></div>
+      <div class="foot"><p>Gradient Ascent · Interactive Labs — built by hand, runs in your browser.</p></div>
+    </div></main><div id="ov"></div>
+  <script src="../assets/js/site.js"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById('rgcv'); if(!cv||!cv.getContext) return; var ctx=cv.getContext('2d'); var Wd=cv.width,Ht=cv.height;
+    var S=78, ox=Wd*0.42, oy=Ht*0.54; var A=[[1.5,0.6],[0.6,1.0]], wstar=[2.15,1.35]; var mode='L1', lam=0.9;
+    function PX(w){return ox+w*S;} function PY(w){return oy-w*S;}
+    function eigA(){ var a=A[0][0],b=A[0][1],d=A[1][1]; var tr=a+d, s=Math.sqrt((a-d)*(a-d)+4*b*b); var l1=(tr+s)/2,l2=(tr-s)/2; var v1=norm([b,l1-a]); if(Math.abs(b)<1e-9)v1=[1,0]; var v2=[-v1[1],v1[0]]; return {l1:l1,l2:l2,v1:v1,v2:v2}; }
+    function norm(v){var n=Math.hypot(v[0],v[1])||1;return [v[0]/n,v[1]/n];}
+    function soft(x,k){ return Math.sign(x)*Math.max(0,Math.abs(x)-k); }
+    function solveL2(){ var m00=A[0][0]+lam,m01=A[0][1],m10=A[1][0],m11=A[1][1]+lam; var det=m00*m11-m01*m10; var b0=A[0][0]*wstar[0]+A[0][1]*wstar[1], b1=A[1][0]*wstar[0]+A[1][1]*wstar[1]; return [ (m11*b0-m01*b1)/det, (-m10*b0+m00*b1)/det ]; }
+    function solveL1(){ var w=[0,0], lr=0.04; for(var it=0;it<600;it++){ var d0=2*(A[0][0]*(w[0]-wstar[0])+A[0][1]*(w[1]-wstar[1])); var d1=2*(A[1][0]*(w[0]-wstar[0])+A[1][1]*(w[1]-wstar[1])); w[0]-=lr*d0; w[1]-=lr*d1; w[0]=soft(w[0],lr*lam); w[1]=soft(w[1],lr*lam); } return w; }
+    function draw(){ ctx.fillStyle='#0a0f1f'; ctx.fillRect(0,0,Wd,Ht);
+      // axes
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(Wd,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,Ht); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='12px system-ui'; ctx.fillText('w₁',Wd-24,oy-8); ctx.fillText('w₂',ox+8,18);
+      var E=eigA();
+      // loss contours around wstar
+      [0.35,0.9,1.7,2.8].forEach(function(c){ ctx.strokeStyle='rgba(91,155,255,'+(0.5-c*0.1)+')'; ctx.lineWidth=1.5; ctx.beginPath(); for(var t=0;t<=64;t++){ var th=t/64*6.2832; var w0=wstar[0]+Math.sqrt(c/E.l1)*Math.cos(th)*E.v1[0]+Math.sqrt(c/E.l2)*Math.sin(th)*E.v2[0]; var w1=wstar[1]+Math.sqrt(c/E.l1)*Math.cos(th)*E.v1[1]+Math.sqrt(c/E.l2)*Math.sin(th)*E.v2[1]; if(t===0)ctx.moveTo(PX(w0),PY(w1)); else ctx.lineTo(PX(w0),PY(w1)); } ctx.stroke(); });
+      // wstar
+      ctx.fillStyle='#5b9bff'; ctx.beginPath(); ctx.arc(PX(wstar[0]),PY(wstar[1]),5,0,6.2832); ctx.fill(); ctx.fillStyle='#9fb0cc'; ctx.font='12px system-ui'; ctx.fillText('w★ (no penalty)',PX(wstar[0])+8,PY(wstar[1])-8);
+      var sol = mode==='L1'? solveL1(): solveL2();
+      var T = mode==='L1'? (Math.abs(sol[0])+Math.abs(sol[1])) : Math.hypot(sol[0],sol[1]);
+      // penalty region through solution
+      ctx.strokeStyle='#ffd24d'; ctx.lineWidth=2.5; ctx.shadowBlur=8; ctx.shadowColor='#ffd24d'; ctx.globalAlpha=.95; ctx.beginPath();
+      if(mode==='L1'){ ctx.moveTo(PX(T),PY(0)); ctx.lineTo(PX(0),PY(T)); ctx.lineTo(PX(-T),PY(0)); ctx.lineTo(PX(0),PY(-T)); ctx.closePath(); }
+      else { for(var t=0;t<=64;t++){ var th=t/64*6.2832; if(t===0)ctx.moveTo(PX(T*Math.cos(th)),PY(T*Math.sin(th))); else ctx.lineTo(PX(T*Math.cos(th)),PY(T*Math.sin(th))); } }
+      ctx.stroke(); ctx.globalAlpha=1; ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(255,210,77,.10)'; ctx.fill();
+      // solution
+      ctx.fillStyle='#ffd24d'; ctx.shadowBlur=14; ctx.shadowColor='#ffd24d'; ctx.beginPath(); ctx.arc(PX(sol[0]),PY(sol[1]),8,0,6.2832); ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=1.2; ctx.stroke();
+      document.getElementById('rgW').textContent='('+sol[0].toFixed(2)+', '+sol[1].toFixed(2)+')';
+      var zero = (Math.abs(sol[0])<0.02?1:0)+(Math.abs(sol[1])<0.02?1:0);
+      document.getElementById('rgSp').textContent = zero>0? zero+' weight(s) = 0':'both nonzero';
+      document.getElementById('rgread').textContent = mode==='L1'? (zero>0? 'L1 at λ='+lam.toFixed(2)+': the solution snapped to an axis — w'+(Math.abs(sol[0])<0.02?'₁':'₂')+' is exactly 0. That is automatic feature selection.' : 'L1 at λ='+lam.toFixed(2)+': the diamond is shrinking the weights; raise λ and watch one hit zero at a corner.') : 'L2 at λ='+lam.toFixed(2)+': the circular budget shrinks both weights smoothly toward the origin — but neither becomes exactly 0.'; }
+    function setMode(m){ mode=m; document.getElementById('rgL1').className='lab-btn'+(m==='L1'?'':' ghost'); document.getElementById('rgL2').className='lab-btn'+(m==='L2'?'':' ghost'); draw(); }
+    document.getElementById('rgL1').addEventListener('click',function(){ setMode('L1'); });
+    document.getElementById('rgL2').addEventListener('click',function(){ setMode('L2'); });
+    document.getElementById('rgLam').addEventListener('input',function(){ lam=+this.value; document.getElementById('rgLamv').textContent=lam.toFixed(2); draw(); });
+    draw();
+  })();
+  </script></body></html>
