@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your First 20 Minutes · Gradient Ascent</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/logo-ascent.svg" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .f20{max-width:var(--measure);}
+    .tl{display:grid;gap:.9rem;margin:1.4rem 0 0;}
+    .tstep{display:flex;gap:1rem;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--radius-sm);padding:.95rem 1.05rem;box-shadow:var(--shadow);}
+    .tstep .tm{flex:0 0 auto;min-width:4.2rem;font-weight:700;color:var(--primary-ink);background:var(--primary-weak);border-radius:999px;text-align:center;padding:.25rem .5rem;font-size:.82rem;letter-spacing:.02em;}
+    .tstep h3{margin:.05rem 0 .35rem;font-size:1.02rem;}
+    .tstep p{margin:.3rem 0;}
+    .tstep .do{color:var(--text);}
+    .tstep .see{color:var(--text-muted);font-style:italic;}
+    .rules{display:grid;gap:.6rem;margin:1rem 0 0;padding:0;list-style:none;}
+    .rules li{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem .9rem;box-shadow:var(--shadow);}
+    .rules b{color:var(--text);}
+    .loop{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.9rem 0 0;}
+    .loop span{background:var(--primary-weak);color:var(--primary-ink);border-radius:999px;padding:.35rem .8rem;font-weight:600;font-size:.9rem;}
+    .loop i{color:var(--text-muted);font-style:normal;}
+  </style>
+</head>
+<body>
+  <aside id="sidebar"></aside>
+  <main>
+    <article class="lesson f20">
+      <h1>Your first 20 minutes</h1>
+      <p class="subtitle">A step-by-step script for your very first session. No preparation, no maths, nothing to install. Just follow it in order and stop when the twenty minutes are up.</p>
+      <div class="meta-row">
+        <span class="chip b">Day 1</span>
+        <span class="chip">20 minutes</span>
+        <span class="chip">Zero background needed</span>
+      </div>
+
+      <div class="callout intuition" style="margin:1.1rem 0">
+        <div class="co-h">Read this first</div>
+        <p style="margin:0">You are <b>not</b> going to understand everything today — and that is the plan, not a problem. Today has exactly one job: to show you that this stuff is <em>touchable</em>. You'll play with two things that actually learn in front of you, read a few paragraphs, and stop. That's a complete first day.</p>
+      </div>
+
+      <div class="tl">
+        <div class="tstep"><div class="tm">0–1 min</div><div>
+          <h3>Bookmark this site</h3>
+          <p class="do">Save this page. Decide right now <em>when</em> you'll do this each day — the time matters more than the length. After breakfast, after dinner, pick one.</p>
+          <p class="see">Why: the people who finish aren't the smartest ones, they're the ones with a slot in the day.</p>
+        </div></div>
+
+        <div class="tstep"><div class="tm">1–6 min</div><div>
+          <h3>Watch a neural network actually learn</h3>
+          <p class="do">Open the <a href="labs/neural-playground.html">Neural Network Playground</a>. Press <b>Train</b> and just watch. Then switch the dataset to <b>spirals</b> and train again. Add a few neurons and try once more.</p>
+          <p class="see">Notice: nobody ever told it the rule. It found the boundary by nudging numbers up and down, thousands of times. That is the entire trick of machine learning, and you just watched it happen.</p>
+        </div></div>
+
+        <div class="tstep"><div class="tm">6–11 min</div><div>
+          <h3>Find out how it learns</h3>
+          <p class="do">Open the <a href="labs/gradient-descent.html">Gradient Descent lab</a>. Press play and watch the ball roll downhill. Now drag the <b>learning rate</b> slider up, higher and higher, until the whole thing explodes.</p>
+          <p class="see">Notice: learning is just walking downhill on a landscape, one step at a time. Take steps that are too big and you fly off the mountain. You now understand the single most common reason training fails.</p>
+        </div></div>
+
+        <div class="tstep"><div class="tm">11–17 min</div><div>
+          <h3>Read the beginning of Lesson 1</h3>
+          <p class="do">Open <a href="lessons/track-1-linear-algebra-probability/01-vectors.html">Track 1, Lesson 1 — Vectors</a>. Read only until you hit the first interactive box, then drag the arrows around for a minute. <b>Then stop</b>, even if you want to keep going.</p>
+          <p class="see">Why stop: finishing hungry is what makes you come back tomorrow. Bingeing today is what makes you quit on Thursday.</p>
+        </div></div>
+
+        <div class="tstep"><div class="tm">17–19 min</div><div>
+          <h3>Mark it complete</h3>
+          <p class="do">Hit the <b>Mark complete</b> button at the bottom of the lesson, then open your <a href="progress.html">Progress dashboard</a>.</p>
+          <p class="see">Your streak now reads 1. That number is going to do more work than motivation ever will.</p>
+        </div></div>
+
+        <div class="tstep"><div class="tm">19–20 min</div><div>
+          <h3>Close the laptop</h3>
+          <p class="do">You're done. Same time tomorrow, and give it 45 minutes instead of 20.</p>
+          <p class="see">You've seen a network learn, seen why it sometimes fails, and read your first lesson. That's a genuine day one.</p>
+        </div></div>
+      </div>
+
+      <h2>Five rules that matter more than the material</h2>
+      <ul class="rules">
+        <li><b>Play first, read second.</b> Nearly every lesson has a lab linked at the top. Open it <em>before</em> you read. Intuition first, words second — that order sticks, and the reverse mostly doesn't.</li>
+        <li><b>Predict before you touch the slider.</b> Say out loud what you think will happen, then do it. Being wrong and noticing is where the actual learning lives — much more than in reading another paragraph.</li>
+        <li><b>Small and daily beats a heroic weekend.</b> One lesson and one lab a day finishes this course inside a year. Four hours one Sunday and nothing after finishes nothing.</li>
+        <li><b>Confusion is the feeling of learning.</b> It's a sign you're at the edge of what you know, not a verdict on whether you're clever enough. Sit in it for a few minutes before you reach for help.</li>
+        <li><b>Stopping partway is still a win.</b> Someone who truly understands the first six tracks is ahead of most people who say they "know AI". This is a gift, not a test you can fail.</li>
+      </ul>
+
+      <h2>What every day after this looks like</h2>
+      <div class="loop">
+        <span>🔬 Lab · 5 min</span><i>→</i><span>📖 One lesson · 30 min</span><i>→</i><span>✅ Mark complete · 1 min</span><i>→</i><span>🃏 Flashcards · 10 min</span>
+      </div>
+      <p class="prose" style="margin-top:1rem">That's it — about 45 minutes. Work the tracks <b>in order</b> and never skip ahead; every lesson is built to need only what came before it. If a lesson fights you, open its lab again and play for five more minutes before rereading.</p>
+
+      <div class="callout example" style="margin:1.4rem 0">
+        <div class="co-h">When you're ready for more</div>
+        <p style="margin:0"><a href="start-here.html">Start Here</a> has the full map of all 24 tracks and some suggested routes through them · <a href="labs.html">Interactive Labs</a> has all 70 sandboxes in one place · <a href="math-primer.html">Math &amp; Notation primer</a> decodes any symbol that trips you up · <a href="glossary.html">Glossary</a> defines every term.</p>
+      </div>
+
+      <div class="recap"><b>One line to remember:</b> show up for 45 minutes a day, play before you read, and let the streak do the rest.</div>
+
+      <div class="pager" style="margin-top:2rem"><a href="researcher-path.html">← Course home</a> <a href="lessons/track-1-linear-algebra-probability/01-vectors.html">Start Lesson 1 →</a></div>
+      <div class="foot"><p>Gradient Ascent · You don't need to be ready. You just need to start.</p></div>
+    </article>
+  </main>
+  <div id="ov"></div>
+  <script src="assets/js/site.js"></script>
+</body></html>

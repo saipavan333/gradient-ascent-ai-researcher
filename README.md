@@ -20,6 +20,7 @@ This one repo holds everything you need to **read**, **run**, and **build**:
 
 New to all this? The site has a full beginner on-ramp and built-in retention tools, all linked from the sidebar:
 
+- **Your first 20 minutes** (`first-20.html`) — a literal step-by-step script for day one: what to click, what to notice, when to stop, and the daily loop after that.
 - **Start Here** (`start-here.html`) — what you need, how the lessons work, a **clickable visual map** of all 24 tracks by phase, and **curated learning paths** (complete, fast-track to a GPT, LLM engineer, theory-first, RL, researcher).
 - **Math & Notation primer** (`math-primer.html`) — every symbol in the course decoded in plain English.
 - **Run Python in your browser** — a **▶ Run** button on every code block (Pyodide/WASM, numpy included); edit and re-run in place, no install.

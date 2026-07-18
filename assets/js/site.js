@@ -335,7 +335,7 @@
       return '<a href="' + ROOT + href + '" style="flex:1 1 auto;text-align:center;white-space:nowrap;font-size:.75rem;font-weight:600;text-decoration:none;border-radius:8px;padding:.4rem .5rem;' +
         (primary ? 'color:var(--primary-ink);background:var(--primary-weak)' : 'color:var(--text-muted);background:var(--bg);border:1px solid var(--border)') + '">' + label + '</a>';
     }
-    onramp.innerHTML = _oc("start-here.html", "\u{1F680} Start", true) + _oc("math-primer.html", "\u2211 Math") +
+    onramp.innerHTML = _oc("start-here.html", "\u{1F680} Start", true) + _oc("first-20.html", "▶ Day 1") + _oc("math-primer.html", "\u2211 Math") +
       _oc("progress.html", "\u{1F4CA} Progress") + _oc("glossary.html", "\u{1F4D6} Glossary") + _oc("flashcards.html", "\u{1F0CF} Cards") + _oc("labs.html", "\u{1F52C} Labs");
     sb.appendChild(onramp);
 
