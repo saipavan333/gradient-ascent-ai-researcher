@@ -46,6 +46,7 @@
     function render(f){
       f=(f||"").toLowerCase().trim();
       var shown=terms.filter(function(x){ return !f || x.t.toLowerCase().indexOf(f)>=0 || x.d.toLowerCase().indexOf(f)>=0; });
+      if(f){ function sc(x){ var t=x.t.toLowerCase(); return t===f?3:(t.indexOf(f)===0?2:(t.indexOf(f)>=0?1:0)); } shown=shown.slice().sort(function(a,b){ return sc(b)-sc(a); }); }
       count.textContent=shown.length+" of "+terms.length+" terms";
       if(!shown.length){ list.innerHTML='<div class="gnone">No terms match &ldquo;'+esc(f)+'&rdquo;. Try another word.</div>'; return; }
       list.innerHTML=shown.map(function(x){
@@ -53,8 +54,9 @@
       }).join("");
     }
     q.addEventListener("input",function(){ render(q.value); });
-    var __qs=new URLSearchParams(location.search).get("q"); if(__qs){ q.value=__qs; render(__qs.toLowerCase()); q.focus(); }
-    render("");
+    var __qs=new URLSearchParams(location.search).get("q")||"";
+    if(__qs){ q.value=__qs; q.focus(); }
+    render(__qs);
   })();
   </script>
 </body>
