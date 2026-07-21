@@ -798,6 +798,13 @@
     window.addEventListener("beforeunload", function () { synth.cancel(); });
   }
 
+  function ensureFavicon() {
+    if (document.querySelector('link[rel~="icon"]')) return;
+    var l = document.createElement("link");
+    l.rel = "icon"; l.type = "image/svg+xml"; l.href = ROOT + "assets/img/logo-ascent.svg";
+    document.head.appendChild(l);
+  }
+
   // ---- Inline glossary tooltips: hover/click a term in a lesson to see its definition ----
   var __glossBound = false;
   function glossaryTips() {
@@ -917,6 +924,7 @@
   }
 
   function boot() {
+    ensureFavicon();
     // theme: stored or system preference
     const saved = store.get("theme", null);
     const sys = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
