@@ -798,6 +798,124 @@
     window.addEventListener("beforeunload", function () { synth.cancel(); });
   }
 
+  // ---- Inline glossary tooltips: hover/click a term in a lesson to see its definition ----
+  var __glossBound = false;
+  function glossaryTips() {
+    var art = document.querySelector("article.lesson");
+    if (!art) return;                                  // lessons only
+    if (window.GA_TERMS) { buildGlossTips(art); return; }
+    var sc = document.createElement("script");
+    sc.src = ROOT + "assets/js/glossary-data.js";
+    sc.onload = function () { buildGlossTips(art); };
+    sc.onerror = function () {};                        // fail silent if unavailable
+    document.head.appendChild(sc);
+  }
+  function buildGlossTips(art) {
+    var TERMS = window.GA_TERMS || [];
+    if (!TERMS.length) return;
+    var forms = {}, alts = [];
+    function esc(x) { return x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+    TERMS.forEach(function (t, i) {
+      var base = t.t.toLowerCase();
+      forms[base] = i;
+      if (/^[a-z]+$/.test(base) && base.slice(-1) !== "s") { forms[base + "s"] = i; alts.push(esc(t.t) + "s?"); }
+      else { alts.push(esc(t.t)); }
+    });
+    alts.sort(function (a, b) { return b.length - a.length; });
+    var rx;
+    try { rx = new RegExp("\\b(" + alts.join("|") + ")\\b", "gi"); } catch (e) { return; }
+    var SKIP_TAG = { A:1, BUTTON:1, CODE:1, PRE:1, H1:1, H2:1, H3:1, H4:1, SCRIPT:1, STYLE:1, TEXTAREA:1, LABEL:1 };
+    var SKIP_CLASS = /(^|\s)(katex|widget|quiz|gloss|co-h|wbtn|wreadout|chip|meta-row|tag|badge|subtitle)(\s|$)/;
+    function skip(node) {
+      for (var pp = node.parentNode; pp && pp !== art; pp = pp.parentNode) {
+        if (pp.nodeType !== 1) continue;
+        if (SKIP_TAG[pp.tagName]) return true;
+        if (typeof pp.className === "string" && SKIP_CLASS.test(pp.className)) return true;
+      }
+      return false;
+    }
+    var walker = document.createTreeWalker(art, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], nd;
+    while ((nd = walker.nextNode())) { if (nd.nodeValue && nd.nodeValue.trim().length > 2 && !skip(nd)) nodes.push(nd); }
+    var used = {};
+    nodes.forEach(function (node) {
+      var text = node.nodeValue; rx.lastIndex = 0;
+      var m, segs = [], last = 0, hit = false;
+      while ((m = rx.exec(text))) {
+        var gi = forms[m[1].toLowerCase()];
+        if (gi === undefined || used[gi]) continue;
+        used[gi] = 1; hit = true;
+        if (m.index > last) segs.push(document.createTextNode(text.slice(last, m.index)));
+        var sp = document.createElement("span");
+        sp.className = "gloss"; sp.setAttribute("tabindex", "0"); sp.setAttribute("data-gi", gi); sp.textContent = m[0];
+        segs.push(sp); last = m.index + m[0].length;
+      }
+      if (hit) {
+        if (last < text.length) segs.push(document.createTextNode(text.slice(last)));
+        var frag = document.createDocumentFragment();
+        segs.forEach(function (x) { frag.appendChild(x); });
+        node.parentNode.replaceChild(frag, node);
+      }
+    });
+    injectGlossUI(TERMS);
+  }
+  function injectGlossUI(TERMS) {
+    if (!document.getElementById("gloss-tip")) {
+      var st = document.createElement("style");
+      st.textContent =
+        ".gloss{border-bottom:1px dashed var(--primary,#2563eb);cursor:help}" +
+        ".gloss:hover,.gloss:focus{background:var(--primary-weak,#e7eefe);outline:none;border-radius:2px}" +
+        "#gloss-tip{position:fixed;z-index:9999;max-width:320px;background:var(--surface,#fff);color:var(--text,#111);" +
+        "border:1px solid var(--border,#e2e6ee);border-radius:12px;box-shadow:0 16px 48px rgba(6,10,26,.28);" +
+        "padding:.7rem .85rem;font:14px/1.55 var(--sans,system-ui,sans-serif);opacity:0;transform:translateY(4px);" +
+        "pointer-events:none;transition:opacity .12s ease,transform .12s ease}" +
+        "#gloss-tip.on{opacity:1;transform:translateY(0);pointer-events:auto}" +
+        "#gloss-tip .gt-term{font-weight:700;margin-bottom:.22rem;color:var(--primary-ink,var(--primary,#2563eb))}" +
+        "#gloss-tip .gt-def{color:var(--text-muted,#556)}" +
+        "#gloss-tip .gt-more{display:inline-block;margin-top:.55rem;font-size:12px;font-weight:600;color:var(--primary,#2563eb);text-decoration:none}";
+      document.head.appendChild(st);
+      var tip = document.createElement("div");
+      tip.id = "gloss-tip";
+      tip.innerHTML = '<div class="gt-term"></div><div class="gt-def"></div><a class="gt-more" href="#">Open in glossary →</a>';
+      document.body.appendChild(tip);
+    }
+    if (__glossBound) return; __glossBound = true;
+    var tip = document.getElementById("gloss-tip"), hideT = null, pinned = null;
+    function near(e, sel) { return e.target && e.target.closest ? e.target.closest(sel) : null; }
+    function fill(el) {
+      var gi = +el.getAttribute("data-gi"), t = TERMS[gi]; if (!t) return false;
+      tip.querySelector(".gt-term").textContent = t.t;
+      tip.querySelector(".gt-def").textContent = t.d;
+      tip.querySelector(".gt-more").href = ROOT + "glossary.html?q=" + encodeURIComponent(t.t);
+      return true;
+    }
+    function place(el) {
+      tip.style.left = "0px"; tip.style.top = "0px"; tip.classList.add("on");
+      var r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+      var top = r.top - th - 8; if (top < 8) top = r.bottom + 8; if (top + th > vh - 8) top = Math.max(8, vh - th - 8);
+      var left = Math.min(Math.max(8, r.left), vw - tw - 8);
+      tip.style.left = left + "px"; tip.style.top = top + "px";
+    }
+    function show(el) { if (!fill(el)) return; place(el); if (hideT) { clearTimeout(hideT); hideT = null; } }
+    function hide() { tip.classList.remove("on"); pinned = null; }
+    function sched() { if (pinned) return; if (hideT) clearTimeout(hideT); hideT = setTimeout(hide, 150); }
+    document.addEventListener("mouseover", function (e) {
+      var g = near(e, ".gloss");
+      if (g) { if (pinned && pinned !== g) return; show(g); }
+      else if (near(e, "#gloss-tip")) { if (hideT) { clearTimeout(hideT); hideT = null; } }
+    });
+    document.addEventListener("mouseout", function (e) { if (near(e, ".gloss") || near(e, "#gloss-tip")) sched(); });
+    document.addEventListener("click", function (e) {
+      var g = near(e, ".gloss");
+      if (g) { e.preventDefault(); if (pinned === g) { hide(); } else { show(g); pinned = g; } }
+      else if (!near(e, "#gloss-tip")) { hide(); }
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+    document.addEventListener("focusin", function (e) { var g = near(e, ".gloss"); if (g) show(g); });
+    window.addEventListener("scroll", function () { if (!pinned) hide(); }, true);
+    window.addEventListener("resize", hide);
+  }
+
   function boot() {
     // theme: stored or system preference
     const saved = store.get("theme", null);
@@ -814,6 +932,7 @@
     mobileMenu();
     buildHome();
     readAloud();
+    glossaryTips();
   }
 
   if (document.readyState === "loading") {

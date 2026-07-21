@@ -53,6 +53,7 @@
       }).join("");
     }
     q.addEventListener("input",function(){ render(q.value); });
+    var __qs=new URLSearchParams(location.search).get("q"); if(__qs){ q.value=__qs; render(__qs.toLowerCase()); q.focus(); }
     render("");
   })();
   </script>
