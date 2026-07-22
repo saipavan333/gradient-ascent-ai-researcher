@@ -949,3 +949,12 @@
     boot();
   }
 })();
+
+/* ---- gd-assistant loader: AI course assistant + creator byline / page extras (root-relative) ---- */
+(function(){
+  var root=(document.documentElement.getAttribute("data-root")||"");
+  function css(h){var l=document.createElement("link");l.rel="stylesheet";l.href=root+h;document.head.appendChild(l);}
+  function js(s,d){var t=document.createElement("script");t.src=root+s;if(d)t.defer=true;document.head.appendChild(t);}
+  css("assets/css/gd-assistant.css"); css("assets/css/gd-extras.css");
+  js("assets/js/assistant-config.js"); js("assets/js/gd-extras.js",1); js("assets/js/gd-assistant.js",1);
+})();
