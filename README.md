@@ -64,3 +64,7 @@ Only `numpy` and `matplotlib` (both preinstalled in Colab). Locally: `pip instal
 
 ---
 Built to be rigorous, runnable, honest, and genuinely fun to learn from. Bookmark your Pages URL and start with Track 1, Lesson 0.
+
+## Licence
+
+© 2026 Sai Pavan UE. Free to read and share with credit, not for commercial use: [CC BY-NC 4.0](LICENSE).
